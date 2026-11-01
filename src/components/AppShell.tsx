@@ -69,14 +69,15 @@ export function AppShell({
     >
       {/* Ruled Urtext Masthead Header */}
       <header
-        className="px-4 sm:px-6 py-3 border-b flex flex-wrap items-center justify-between gap-3 sticky top-0 z-40 backdrop-blur-md select-none"
+        className="border-b flex flex-wrap items-center justify-between gap-4 sticky top-0 z-40 select-none"
         style={{
           borderColor: 'var(--color-rule)',
-          backgroundColor: 'var(--color-paper-2)',
+          backgroundColor: 'var(--color-paper)',
+          padding: '12px 24px',
         }}
       >
         {/* Brand Group */}
-        <div className="flex items-baseline gap-2.5 min-w-0">
+        <div className="flex items-baseline gap-3 min-w-0">
           <h1
             className="font-display text-xl sm:text-2xl font-bold tracking-tight truncate cursor-pointer"
             onClick={(e) => handleTabClick('studio', '#/practice', e)}
@@ -84,7 +85,7 @@ export function AppShell({
           >
             Urtext Violin Coach
           </h1>
-          {activeScoreTitle && (
+          {activeScoreTitle ? (
             <span
               className="text-xs sm:text-sm font-sans truncate hidden md:inline"
               style={{ color: 'var(--color-muted)' }}
@@ -92,57 +93,82 @@ export function AppShell({
             >
               · {activeScoreTitle}
             </span>
+          ) : (
+            <span
+              className="text-xs sm:text-sm font-sans truncate hidden sm:inline"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              G. Henle Verlag Urtext Archive Edition
+            </span>
           )}
         </div>
 
-        {/* 4 Quiet Navigation Tabs */}
-        <nav
-          className="flex items-center gap-1 sm:gap-4 order-3 sm:order-2 w-full sm:w-auto overflow-x-auto"
-          aria-label="Main Navigation"
-        >
-          {NAV_ITEMS.map((item) => {
-            const isActive = activePage === item.page;
-            return (
-              <a
-                key={item.page}
-                href={item.route}
-                onClick={(e) => handleTabClick(item.page, item.route, e)}
-                aria-label={item.ariaLabel}
-                aria-current={isActive ? 'page' : undefined}
-                className="px-3 py-1.5 sm:py-2 text-sm font-medium transition cursor-pointer shrink-0 border-b-2"
-                style={{
-                  color: isActive ? 'var(--color-accent)' : 'var(--color-ink-2)',
-                  borderColor: isActive ? 'var(--color-accent)' : 'transparent',
-                  fontWeight: isActive ? 600 : 500,
-                }}
-              >
-                {item.label}
-              </a>
-            );
-          })}
-        </nav>
-
-        {/* Quick Status Badge: A4 reference Hz & tolerance cents */}
-        <div className="flex items-center gap-2 order-2 sm:order-3">
-          <button
-            type="button"
-            onClick={handleStatusBadgeClick}
-            aria-label="Calibration Settings Badge"
-            title="Click to view calibration and audio settings"
-            className="px-2.5 py-1 rounded text-xs font-mono transition border cursor-pointer hover:opacity-90"
-            style={{
-              backgroundColor: 'var(--color-paper-2)',
-              borderColor: 'var(--color-rule)',
-              color: 'var(--color-ink)',
-            }}
+        {/* Right-aligned navigation tabs and calibration badge */}
+        <div className="flex items-center gap-4 sm:gap-6 ml-auto">
+          {/* 4 Quiet Navigation Tabs */}
+          <nav
+            className="flex items-center gap-1 sm:gap-4 overflow-x-auto"
+            aria-label="Main Navigation"
           >
-            A4={referenceA4Hz}Hz · ±{toleranceCents}¢
-          </button>
+            {NAV_ITEMS.map((item) => {
+              const isActive = activePage === item.page;
+              return (
+                <a
+                  key={item.page}
+                  href={item.route}
+                  onClick={(e) => handleTabClick(item.page, item.route, e)}
+                  aria-label={item.ariaLabel}
+                  aria-current={isActive ? 'page' : undefined}
+                  className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm font-medium transition cursor-pointer shrink-0 border-b-2"
+                  style={{
+                    color: isActive ? 'var(--color-accent)' : 'var(--color-ink-2)',
+                    borderColor: isActive ? 'var(--color-accent)' : 'transparent',
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
+          </nav>
+
+          {/* Quick Status Badge: A4 reference Hz & tolerance cents */}
+          <div className="flex items-center shrink-0">
+            <button
+              type="button"
+              onClick={handleStatusBadgeClick}
+              aria-label="Calibration Settings Badge"
+              title="Click to view calibration and audio settings"
+              className="px-2.5 py-1 text-xs font-mono transition border cursor-pointer hover:opacity-90"
+              style={{
+                backgroundColor: 'var(--color-score-paper)',
+                borderColor: 'var(--color-rule)',
+                color: 'var(--color-ink)',
+                borderRadius: '2px',
+              }}
+            >
+              A4={referenceA4Hz}Hz · ±{toleranceCents}¢
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col">{children}</main>
+
+      {/* Urtext Minimal Guild Mast Footer */}
+      <footer
+        className="border-t flex flex-wrap items-center justify-between gap-3 text-xs select-none"
+        style={{
+          borderColor: 'var(--color-rule)',
+          backgroundColor: 'var(--color-paper)',
+          padding: '12px 24px',
+          color: 'var(--color-muted)',
+        }}
+      >
+        <span>G. Henle Urtext Archive Aesthetic · Interactive Violin Practice Coach</span>
+        <span className="font-mono text-[11px]">Cardo &amp; Hanken Grotesk &amp; JetBrains Mono · Web Audio Pitch Engine</span>
+      </footer>
     </div>
   );
 }

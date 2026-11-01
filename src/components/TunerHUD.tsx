@@ -190,11 +190,12 @@ export function TunerHUD({
     <div
       role="region"
       aria-label="Tuner HUD"
-      className={`rounded-xl p-4 sm:p-5 shadow-sm border flex flex-col gap-4 font-sans ${className}`}
+      className={`p-4 sm:p-5 border flex flex-col gap-4 font-sans ${className}`}
       style={{
-        backgroundColor: 'var(--color-paper)',
+        backgroundColor: 'var(--color-score-paper)',
         borderColor: 'var(--color-rule)',
         color: 'var(--color-ink)',
+        borderRadius: '2px',
       }}
     >
       {/* Controls row: Mic Toggle, Device Selector & Reference Indicator */}

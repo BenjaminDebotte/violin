@@ -259,6 +259,9 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
 
     return () => {
       osmdRef.current = null;
+      if (container) {
+        container.innerHTML = '';
+      }
     };
   }, []);
 
@@ -371,7 +374,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       {isLoading && (
         <div
           className="absolute inset-0 flex items-center justify-center z-10"
-          style={{ backgroundColor: 'oklch(99.5% 0.002 245 / 0.85)' }}
+          style={{ backgroundColor: 'var(--color-score-paper)' }}
         >
           <p
             className="text-sm font-medium animate-pulse"
@@ -384,7 +387,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       {errorMessage && (
         <div
           className="absolute inset-0 flex items-center justify-center p-4 z-10 text-center"
-          style={{ backgroundColor: 'oklch(99.5% 0.002 245 / 0.92)' }}
+          style={{ backgroundColor: 'var(--color-score-paper)' }}
         >
           <p className="text-sm font-medium" style={{ color: 'var(--color-intonation-miss)' }}>
             {errorMessage}

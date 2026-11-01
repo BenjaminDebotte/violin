@@ -238,10 +238,11 @@ export function LibraryPage({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className="p-6 rounded-md border-2 border-dashed text-center transition cursor-pointer flex flex-col items-center justify-center gap-2"
+        className="p-6 border-2 border-dashed text-center transition cursor-pointer flex flex-col items-center justify-center gap-2 shadow-xs"
         style={{
-          backgroundColor: isDragging ? 'var(--color-paper-3)' : 'var(--color-paper-2)',
+          backgroundColor: isDragging ? 'var(--color-paper-2)' : 'var(--color-score-paper)',
           borderColor: isDragging ? 'var(--color-accent)' : 'var(--color-rule)',
+          borderRadius: '2px',
         }}
       >
         <input
@@ -278,61 +279,86 @@ export function LibraryPage({
           </h3>
         </div>
 
-        <div className="border rounded-md divide-y overflow-hidden shadow-sm" style={{ borderColor: 'var(--color-rule)', backgroundColor: 'var(--color-paper)' }}>
-          {builtInMetas.map(({ score, measureCount, tempoBpm }) => {
-            const isSelected = score.id === currentScoreId;
-            return (
-              <div
-                key={score.id}
-                className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition hover:opacity-95"
-                style={{
-                  backgroundColor: isSelected ? 'var(--color-paper-2)' : 'transparent',
-                }}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-display font-bold text-base sm:text-lg truncate" style={{ color: 'var(--color-ink)' }}>
-                      {score.title}
-                    </span>
-                    {isSelected && (
-                      <span
-                        className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-semibold"
+        <div
+          className="catalogue-table-wrapper border overflow-x-auto shadow-sm"
+          style={{
+            borderColor: 'var(--color-rule)',
+            backgroundColor: 'var(--color-score-paper)',
+            borderRadius: '2px',
+          }}
+        >
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr style={{ backgroundColor: 'var(--color-paper-2)', borderBottom: '1px solid var(--color-rule)' }}>
+                <th className="px-4 py-2.5 text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>Piece Title</th>
+                <th className="px-4 py-2.5 text-xs font-semibold hidden md:table-cell" style={{ color: 'var(--color-muted)' }}>Details</th>
+                <th className="px-4 py-2.5 text-xs font-semibold text-right" style={{ color: 'var(--color-muted)' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {builtInMetas.map(({ score, measureCount, tempoBpm }) => {
+                const isSelected = score.id === currentScoreId;
+                return (
+                  <tr
+                    key={score.id}
+                    className="border-b transition hover:opacity-95"
+                    style={{
+                      borderColor: 'var(--color-rule)',
+                      backgroundColor: isSelected ? 'var(--color-paper-2)' : 'var(--color-score-paper)',
+                    }}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-display font-bold text-base sm:text-lg" style={{ color: 'var(--color-ink)' }}>
+                          {score.title}
+                        </span>
+                        {isSelected && (
+                          <span
+                            className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold"
+                            style={{
+                              backgroundColor: 'var(--color-accent)',
+                              color: 'var(--color-accent-ink)',
+                              borderRadius: '2px',
+                            }}
+                          >
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-mono mt-0.5 md:hidden flex flex-wrap gap-x-2 gap-y-1" style={{ color: 'var(--color-muted)' }}>
+                        <span>{measureCount} measures</span>
+                        <span>·</span>
+                        <span>♩ = {tempoBpm} BPM</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-mono hidden md:table-cell" style={{ color: 'var(--color-muted)' }}>
+                      <span>{measureCount} measures</span>
+                      <span className="mx-2">·</span>
+                      <span>♩ = {tempoBpm} BPM</span>
+                      <span className="mx-2">·</span>
+                      <span>Solo Violin &amp; Accompaniment</span>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenScore(score)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs border"
                         style={{
                           backgroundColor: 'var(--color-accent)',
                           color: 'var(--color-accent-ink)',
+                          borderColor: 'var(--color-accent)',
+                          borderRadius: '2px',
                         }}
                       >
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs font-mono mt-0.5 flex flex-wrap gap-x-3 gap-y-1" style={{ color: 'var(--color-muted)' }}>
-                    <span>{measureCount} measures</span>
-                    <span>·</span>
-                    <span>♩ = {tempoBpm} BPM</span>
-                    <span>·</span>
-                    <span>Solo Violin + Accompaniment</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenScore(score)}
-                    className="px-3.5 py-1.5 rounded text-xs sm:text-sm font-medium transition cursor-pointer flex items-center gap-1.5"
-                    style={{
-                      backgroundColor: isSelected ? 'var(--color-accent)' : 'var(--color-paper-2)',
-                      color: isSelected ? 'var(--color-accent-ink)' : 'var(--color-ink)',
-                      border: '1px solid var(--color-rule)',
-                    }}
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    <span>Open in Studio</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Open in Studio</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -352,84 +378,115 @@ export function LibraryPage({
 
         {userMetas.length === 0 ? (
           <div
-            className="p-6 rounded-md border text-center text-xs font-mono"
+            className="p-6 border text-center text-xs font-mono shadow-xs"
             style={{
               borderColor: 'var(--color-rule)',
-              backgroundColor: 'var(--color-paper-2)',
+              backgroundColor: 'var(--color-score-paper)',
               color: 'var(--color-muted)',
+              borderRadius: '2px',
             }}
           >
             No custom plates imported yet. Import MusicXML (.musicxml or .mxl) files above.
           </div>
         ) : (
-          <div className="border rounded-md divide-y overflow-hidden shadow-sm" style={{ borderColor: 'var(--color-rule)', backgroundColor: 'var(--color-paper)' }}>
-            {userMetas.map(({ score, measureCount, tempoBpm }) => {
-              const isSelected = score.id === currentScoreId;
-              return (
-                <div
-                  key={score.id}
-                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition hover:opacity-95"
-                  style={{
-                    backgroundColor: isSelected ? 'var(--color-paper-2)' : 'transparent',
-                  }}
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-bold text-base sm:text-lg truncate" style={{ color: 'var(--color-ink)' }}>
-                        {score.title}
-                      </span>
-                      {isSelected && (
-                        <span
-                          className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-semibold"
-                          style={{
-                            backgroundColor: 'var(--color-accent)',
-                            color: 'var(--color-accent-ink)',
-                          }}
-                        >
-                          Active
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs font-mono mt-0.5 flex flex-wrap gap-x-3 gap-y-1" style={{ color: 'var(--color-muted)' }}>
-                      <span>{score.fileName}</span>
-                      <span>·</span>
-                      <span>{measureCount} measures</span>
-                      <span>·</span>
-                      <span>♩ = {tempoBpm} BPM</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenScore(score)}
-                      className="px-3.5 py-1.5 rounded text-xs sm:text-sm font-medium transition cursor-pointer flex items-center gap-1.5"
+          <div
+            className="catalogue-table-wrapper border overflow-x-auto shadow-sm"
+            style={{
+              borderColor: 'var(--color-rule)',
+              backgroundColor: 'var(--color-score-paper)',
+              borderRadius: '2px',
+            }}
+          >
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr style={{ backgroundColor: 'var(--color-paper-2)', borderBottom: '1px solid var(--color-rule)' }}>
+                  <th className="px-4 py-2.5 text-xs font-semibold" style={{ color: 'var(--color-muted)' }}>Piece Title</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold hidden md:table-cell" style={{ color: 'var(--color-muted)' }}>Details</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-right" style={{ color: 'var(--color-muted)' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userMetas.map(({ score, measureCount, tempoBpm }) => {
+                  const isSelected = score.id === currentScoreId;
+                  return (
+                    <tr
+                      key={score.id}
+                      className="border-b transition hover:opacity-95"
                       style={{
-                        backgroundColor: isSelected ? 'var(--color-accent)' : 'var(--color-paper-2)',
-                        color: isSelected ? 'var(--color-accent-ink)' : 'var(--color-ink)',
-                        border: '1px solid var(--color-rule)',
+                        borderColor: 'var(--color-rule)',
+                        backgroundColor: isSelected ? 'var(--color-paper-2)' : 'var(--color-score-paper)',
                       }}
                     >
-                      <Play className="w-3.5 h-3.5" />
-                      <span>Open in Studio</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteScore(e, score.id)}
-                      aria-label={`Delete ${score.title}`}
-                      className="p-2 rounded text-xs transition cursor-pointer hover:opacity-80"
-                      style={{
-                        color: 'var(--color-intonation-miss)',
-                        border: '1px solid var(--color-rule)',
-                        backgroundColor: 'var(--color-paper-2)',
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-display font-bold text-base sm:text-lg" style={{ color: 'var(--color-ink)' }}>
+                            {score.title}
+                          </span>
+                          {isSelected && (
+                            <span
+                              className="px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold"
+                              style={{
+                                backgroundColor: 'var(--color-accent)',
+                                color: 'var(--color-accent-ink)',
+                                borderRadius: '2px',
+                              }}
+                            >
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-mono mt-0.5 md:hidden flex flex-wrap gap-x-2 gap-y-1" style={{ color: 'var(--color-muted)' }}>
+                          <span>{score.fileName}</span>
+                          <span>·</span>
+                          <span>{measureCount} measures</span>
+                          <span>·</span>
+                          <span>♩ = {tempoBpm} BPM</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-mono hidden md:table-cell" style={{ color: 'var(--color-muted)' }}>
+                        <span>{score.fileName}</span>
+                        <span className="mx-2">·</span>
+                        <span>{measureCount} measures</span>
+                        <span className="mx-2">·</span>
+                        <span>♩ = {tempoBpm} BPM</span>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenScore(score)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition cursor-pointer shadow-xs border"
+                            style={{
+                              backgroundColor: 'var(--color-accent)',
+                              color: 'var(--color-accent-ink)',
+                              borderColor: 'var(--color-accent)',
+                              borderRadius: '2px',
+                            }}
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Open in Studio</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteScore(e, score.id)}
+                            aria-label={`Delete ${score.title}`}
+                            className="p-2 text-xs transition cursor-pointer hover:opacity-80 border"
+                            style={{
+                              color: 'var(--color-intonation-miss)',
+                              borderColor: 'var(--color-rule)',
+                              backgroundColor: 'var(--color-paper)',
+                              borderRadius: '2px',
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </section>

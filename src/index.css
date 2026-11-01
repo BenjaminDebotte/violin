@@ -1,23 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  /* Direction 1: Urtext Archive Color Tokens (Cool Henle Slate & Crisp White Plate) */
-  --color-paper: oklch(96.5% 0.008 245);
-  --color-paper-2: oklch(99.5% 0.002 245);
-  --color-paper-3: oklch(92.8% 0.016 245);
-  --color-score-paper: #ffffff;
-  --color-score-ink: oklch(15.0% 0.015 245);
-  --color-ink: oklch(17.5% 0.020 245);
-  --color-ink-2: oklch(32.0% 0.022 245);
-  --color-muted: oklch(48.0% 0.018 245);
-  --color-rule: oklch(85.0% 0.016 245);
-  --color-accent: oklch(44.0% 0.160 245);
-  --color-accent-ink: oklch(98.5% 0.003 245);
+  /* Direction 1: Urtext Archive Color Tokens */
+  --color-paper: oklch(96.2% 0.012 85);
+  --color-paper-2: oklch(93.0% 0.016 85);
+  --color-paper-3: oklch(89.5% 0.020 85);
+  --color-score-paper: oklch(96.8% 0.010 82);
+  --color-score-ink: oklch(16.0% 0.015 245);
+  --color-ink: oklch(17.5% 0.016 245);
+  --color-ink-2: oklch(32.0% 0.018 245);
+  --color-muted: oklch(50.0% 0.014 245);
+  --color-rule: oklch(82.0% 0.012 245);
+  --color-accent: oklch(46.0% 0.165 245);
+  --color-accent-ink: oklch(97.0% 0.005 245);
   --color-focus: oklch(52.0% 0.180 245);
-  --color-intonation-match: oklch(56.0% 0.160 148);
-  --color-intonation-close: oklch(68.0% 0.155 82);
-  --color-intonation-miss: oklch(55.0% 0.190 28);
-  --color-shadow: oklch(17.5% 0.020 245 / 0.08);
+  --color-intonation-match: oklch(48.0% 0.160 148);
+  --color-intonation-close: oklch(54.0% 0.160 82);
+  --color-intonation-miss: oklch(52.0% 0.190 28);
+  --color-cursor: oklch(46.0% 0.165 245 / 0.16);
+  --color-shadow: oklch(17.5% 0.016 245 / 0.08);
 
   /* Direction 1: Typography */
   --font-display: 'Cardo', Georgia, serif;

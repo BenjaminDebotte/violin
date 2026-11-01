@@ -99,7 +99,7 @@ export function SettingsPage({
 
   return (
     <div
-      className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6"
+      className="flex-1 w-full max-w-[780px] mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6"
       data-testid="settings-page"
     >
       {/* Header */}
@@ -112,7 +112,7 @@ export function SettingsPage({
             className="font-display text-2xl sm:text-3xl font-bold tracking-tight"
             style={{ color: 'var(--color-ink)' }}
           >
-            Studio Calibration & Settings
+            Studio Calibration &amp; Settings
           </h2>
           <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'var(--color-muted)' }}>
             Acoustic hardware capture, concert reference calibration, and intonation window
@@ -123,12 +123,14 @@ export function SettingsPage({
         </div>
       </div>
 
-      {/* Settings Card Ledger */}
+      {/* Settings Card Ledger (Matches .settings-card in direction-1-urtext.html) */}
       <div
-        className="border rounded-md divide-y shadow-sm overflow-hidden"
+        className="border divide-y shadow-sm overflow-hidden"
         style={{
           borderColor: 'var(--color-rule)',
-          backgroundColor: 'var(--color-paper)',
+          backgroundColor: 'var(--color-score-paper)',
+          borderRadius: '2px',
+          boxShadow: '0 2px 8px var(--color-shadow)',
         }}
       >
         {/* 1. Microphone Input Device Selection */}
@@ -155,11 +157,12 @@ export function SettingsPage({
               aria-label="Microphone input device"
               value={selectedMicDeviceId ?? ''}
               onChange={(e) => onSelectedMicDeviceIdChange?.(e.target.value || null)}
-              className="px-3 py-1.5 rounded text-xs sm:text-sm border font-sans cursor-pointer"
+              className="px-3 py-1.5 text-xs sm:text-sm border font-sans cursor-pointer"
               style={{
                 backgroundColor: 'var(--color-paper-2)',
                 borderColor: 'var(--color-rule)',
                 color: 'var(--color-ink)',
+                borderRadius: '2px',
               }}
             >
               <option value="">Default System Microphone</option>
@@ -174,11 +177,12 @@ export function SettingsPage({
               onClick={refreshDevices}
               aria-label="Refresh microphone list"
               title="Refresh microphone list"
-              className="p-2 rounded border transition cursor-pointer hover:opacity-80"
+              className="p-2 border transition cursor-pointer hover:opacity-80"
               style={{
                 borderColor: 'var(--color-rule)',
                 backgroundColor: 'var(--color-paper-2)',
                 color: 'var(--color-ink)',
+                borderRadius: '2px',
               }}
             >
               <RefreshCw
@@ -211,11 +215,12 @@ export function SettingsPage({
               <button
                 type="button"
                 onClick={() => onReferenceA4Change(440)}
-                className="px-3 py-1.5 rounded text-xs font-mono font-semibold transition border cursor-pointer"
+                className="px-3 py-1.5 text-xs font-mono font-semibold transition border cursor-pointer"
                 style={{
                   backgroundColor: referenceA4Hz === 440 ? 'var(--color-accent)' : 'var(--color-paper-2)',
                   color: referenceA4Hz === 440 ? 'var(--color-accent-ink)' : 'var(--color-ink)',
                   borderColor: referenceA4Hz === 440 ? 'var(--color-accent)' : 'var(--color-rule)',
+                  borderRadius: '2px',
                 }}
               >
                 440 Hz (Standard)
@@ -223,11 +228,12 @@ export function SettingsPage({
               <button
                 type="button"
                 onClick={() => onReferenceA4Change(442)}
-                className="px-3 py-1.5 rounded text-xs font-mono font-semibold transition border cursor-pointer"
+                className="px-3 py-1.5 text-xs font-mono font-semibold transition border cursor-pointer"
                 style={{
                   backgroundColor: referenceA4Hz === 442 ? 'var(--color-accent)' : 'var(--color-paper-2)',
                   color: referenceA4Hz === 442 ? 'var(--color-accent-ink)' : 'var(--color-ink)',
                   borderColor: referenceA4Hz === 442 ? 'var(--color-accent)' : 'var(--color-rule)',
+                  borderRadius: '2px',
                 }}
               >
                 442 Hz (European)
@@ -274,7 +280,7 @@ export function SettingsPage({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             {STRICTNESS_PRESETS.map((opt) => {
               const isSelected = strictness === opt.id;
               return (
@@ -283,32 +289,22 @@ export function SettingsPage({
                   type="button"
                   onClick={() => onStrictnessChange(opt.id)}
                   aria-pressed={isSelected}
-                  className="p-3 rounded-md border text-left transition cursor-pointer flex flex-col gap-1"
+                  className="px-3.5 py-2 border text-xs font-semibold transition cursor-pointer inline-flex items-center gap-1.5"
                   style={{
-                    backgroundColor: isSelected ? 'var(--color-paper-2)' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--color-accent)' : 'var(--color-paper-2)',
                     borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-rule)',
+                    color: isSelected ? 'var(--color-accent-ink)' : 'var(--color-ink)',
+                    borderRadius: '2px',
                     boxShadow: isSelected ? '0 1px 4px var(--color-shadow)' : 'none',
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="font-semibold text-xs sm:text-sm"
-                      style={{
-                        color: isSelected ? 'var(--color-accent)' : 'var(--color-ink)',
-                      }}
-                    >
-                      {opt.label}
-                    </span>
-                    {isSelected && (
-                      <Check
-                        className="w-4 h-4"
-                        style={{ color: 'var(--color-accent)' }}
-                      />
-                    )}
-                  </div>
-                  <span className="text-xs leading-normal" style={{ color: 'var(--color-muted)' }}>
-                    {opt.description}
-                  </span>
+                  <span>{opt.label}</span>
+                  {isSelected && (
+                    <Check
+                      className="w-3.5 h-3.5"
+                      style={{ color: 'var(--color-accent-ink)' }}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -317,10 +313,11 @@ export function SettingsPage({
           {/* Custom Tolerance Slider */}
           {strictness === 'custom' && (
             <div
-              className="p-3.5 rounded-md border space-y-1.5"
+              className="p-3.5 border space-y-1.5"
               style={{
                 backgroundColor: 'var(--color-paper-2)',
                 borderColor: 'var(--color-rule)',
+                borderRadius: '2px',
               }}
             >
               <div className="flex justify-between text-xs font-mono" style={{ color: 'var(--color-muted)' }}>
@@ -352,22 +349,23 @@ export function SettingsPage({
               className="font-display text-base font-bold"
               style={{ color: 'var(--color-ink)' }}
             >
-              Bluetooth Earbuds & Acoustic Setup Guide
+              Bluetooth Earbuds &amp; Acoustic Setup Guide
             </h3>
           </div>
 
           <div
-            className="p-3.5 rounded-md border text-xs leading-relaxed space-y-2"
+            className="p-3.5 border text-xs leading-relaxed space-y-2"
             style={{
-              backgroundColor: 'var(--color-paper-2)',
+              backgroundColor: 'var(--color-score-paper)',
               borderColor: 'var(--color-rule)',
               color: 'var(--color-ink-2)',
+              borderRadius: '2px',
             }}
           >
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--color-accent)' }} />
               <div>
-                <strong>Bluetooth Transmission Latency:</strong> Wireless earbuds typically introduce between 120ms and 250ms of audio delay. Violin Coach’s <em>Play-Along</em> engine is engineered with an onset tolerance window of <strong>[noteStart - 100ms, noteEnd + 350ms]</strong>, ensuring Bluetooth playback delay will not penalize your intonation evaluation score.
+                <strong>Bluetooth Transmission Latency:</strong> Wireless earbuds typically introduce between 120ms and 250ms of audio delay. Violin Coach’s <em>Play-Along</em> engine is engineered with an onset tolerance window of <strong>[-100ms, +350ms]</strong>, ensuring Bluetooth playback delay will not penalize your intonation evaluation score.
               </div>
             </div>
 
