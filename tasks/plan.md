@@ -25,7 +25,7 @@ Shared Domain Contracts (src/types/music.ts)
 ## Task List (Tracked in `tasks/todo.md`)
 
 ### Phase 1: Foundation & Score Engine
-- [ ] **Task 1:** Project Scaffold, Domain Contracts & Built-in Demo Scores (`S`)
+- [x] **Task 1:** Project Scaffold, Domain Contracts & Built-in Demo Scores (`S`)
 - [ ] **Task 2:** Score Engine — File Validator, Timeline Extractor, IndexedDB Store & OSMD Viewport (`M`)
 
 ### Checkpoint 1: Foundation & Score Rendering

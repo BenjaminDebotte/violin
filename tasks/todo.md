@@ -5,14 +5,14 @@
 **Description:** Initialize the Vite 6 + React 19 + TypeScript 5 + Tailwind CSS v4 + Vitest project in `C:/Users/benji/Documents/Projects/violin-coach`, define strict shared TypeScript interfaces (`ScoreTimeline`, `PlayableNote`, `PitchSample`, `NoteGrade`, `PracticeSettings`), and add two built-in MusicXML demo pieces (*Twinkle Twinkle Little Star* with Solo Violin + Piano Accompaniment, and *Bach Minuet / Tied-Note Etude*).
 
 **Acceptance criteria:**
-- [ ] `package.json`, `tsconfig.json`, and `vite.config.ts` are configured with strict TypeScript (`strict: true`, no `any`) and Vitest (`jsdom` environment).
-- [ ] `src/types/music.ts` defines all core domain contracts shared across the 4 modules.
-- [ ] Two valid `.musicxml` demo pieces exist under `public/samples/` with Part 1 (Solo Violin), Part 2 (Accompaniment), tempo markings, and tied notes.
+- [x] `package.json`, `tsconfig.json`, and `vite.config.ts` are configured with strict TypeScript (`strict: true`, no `any`) and Vitest (`jsdom` environment).
+- [x] `src/types/music.ts` defines all core domain contracts shared across the 4 modules.
+- [x] Two valid `.musicxml` demo pieces exist under `public/samples/` with Part 1 (Solo Violin), Part 2 (Accompaniment), tempo markings, and tied notes.
 
 **Verification:**
-- [ ] Tests pass: `npm test -- --run`
-- [ ] Build succeeds: `npm run build`
-- [ ] Typecheck passes: `npm run typecheck`
+- [x] Tests pass: `npm test -- --run`
+- [x] Build succeeds: `npm run build`
+- [x] Typecheck passes: `npm run typecheck`
 
 **Dependencies:** None
 
