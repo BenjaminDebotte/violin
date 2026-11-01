@@ -94,20 +94,21 @@
 **Description:** Build the `audio-playback` module: a Web Audio lookahead beat scheduler and SoundFont player (`smplr` Violin + Grand Piano with automatic Web Audio harmonic synth fallback when offline or in test environments), routed through 4 independent Web Audio `GainNode`s (**Solo Violin**, **Accompaniment**, **Metronome**, **Reference Drone**), with real-time Tempo % scaling (25%–150%) and 1–2 bar count-in generation.
 
 **Acceptance criteria:**
-- [ ] Independent volume controls (`0.0` to `1.0` + mute) update the 4 Web Audio `GainNode`s (`solo`, `accompaniment`, `metronome`, `drone`) in real time.
-- [ ] Scaling tempo (25%–150%) dynamically adjusts beat scheduling intervals without pitch-shifting artifacts.
-- [ ] The Reference Drone generator plays and stops a sustained, warm reference pitch for any target MIDI note and A4 tuning reference (438–445 Hz).
+- [x] Independent volume controls (`0.0` to `1.0` + mute) update the 4 Web Audio `GainNode`s (`solo`, `accompaniment`, `metronome`, `drone`) in real time.
+- [x] Scaling tempo (25%–150%) dynamically adjusts beat scheduling intervals without pitch-shifting artifacts.
+- [x] The Reference Drone generator plays and stops a sustained, warm reference pitch for any target MIDI note and A4 tuning reference (438–445 Hz).
 
 **Verification:**
-- [ ] Tests pass: `npm test -- --run tests/unit/audio-playback.test.ts`
-- [ ] Build succeeds: `npm run build`
-- [ ] Manual check: Verify `MixerPanel` sliders independently adjust Solo, Accompaniment, and Metronome gain, and the Reference Drone button plays the target note.
+- [x] Tests pass: `npm test -- --run tests/unit/audio-playback.test.ts`
+- [x] Build succeeds: `npm run build`
+- [x] Manual check: Verify `MixerPanel` sliders independently adjust Solo, Accompaniment, and Metronome gain, and the Reference Drone button plays the target note.
 
 **Dependencies:** Task 1, Task 2
 
 **Files likely touched:**
 - `src/modules/audio-playback/audioEngine.ts`
 - `src/modules/audio-playback/beatScheduler.ts`
+- `src/modules/audio-playback/index.ts`
 - `src/components/MixerPanel.tsx`
 - `tests/unit/audio-playback.test.ts`
 
@@ -116,9 +117,9 @@
 ---
 
 ## Checkpoint 2: After Tasks 3–4 (Audio & Pitch Engines)
-- [ ] All unit tests pass (`npm test -- --run`)
-- [ ] Application builds without errors (`npm run build`)
-- [ ] Both `pitch-detection` and `audio-playback` engines pass deterministic unit tests
+- [x] All unit tests pass (`npm test -- --run`)
+- [x] Application builds without errors (`npm run build`)
+- [x] Both `pitch-detection` and `audio-playback` engines pass deterministic unit tests
 
 ---
 

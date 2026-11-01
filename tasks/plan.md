@@ -33,10 +33,10 @@ Shared Domain Contracts (src/types/music.ts)
 
 ### Phase 2: Pitch Detection & Audio Playback Engines
 - [x] **Task 3:** Violin Pitch Detection Engine & Live Tuner HUD (`M`)
-- [ ] **Task 4:** Multi-Track Audio Synthesis, Lookahead Scheduler & 4-Channel Mixer (`M`)
+- [x] **Task 4:** Multi-Track Audio Synthesis, Lookahead Scheduler & 4-Channel Mixer (`M`)
 
 ### Checkpoint 2: Audio & Pitch Engines
-- [ ] All pitch math, median filter, and scheduler tests pass; live mic tuner and independent Solo/Accompaniment/Metronome/Drone volume controls work cleanly.
+- [x] All pitch math, median filter, and scheduler tests pass; live mic tuner and independent Solo/Accompaniment/Metronome/Drone volume controls work cleanly.
 
 ### Phase 3: Interactive Practice Coach & End-to-End Integration
 - [ ] **Task 5:** Practice Coach State Machine — Wait-for-Me, Delay-Forgiving Play-Along & Measure Looping (`M`)
