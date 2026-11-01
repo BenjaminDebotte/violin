@@ -72,7 +72,7 @@ export function AppShell({
         className="px-4 sm:px-6 py-3 border-b flex flex-wrap items-center justify-between gap-3 sticky top-0 z-40 backdrop-blur-md select-none"
         style={{
           borderColor: 'var(--color-rule)',
-          backgroundColor: 'oklch(96.2% 0.012 85 / 0.95)',
+          backgroundColor: 'var(--color-paper-2)',
         }}
       >
         {/* Brand Group */}

@@ -236,10 +236,13 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
 
   // Initialize OSMD instance
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.innerHTML = '';
 
     try {
-      const osmd = new OpenSheetMusicDisplay(containerRef.current, {
+      const osmd = new OpenSheetMusicDisplay(container, {
         autoResize: true,
         backend: 'svg',
         drawTitle: false,
@@ -366,15 +369,26 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       } ${className}`}
     >
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 z-10">
-          <p className="text-sm font-medium text-emerald-400 animate-pulse">
+        <div
+          className="absolute inset-0 flex items-center justify-center z-10"
+          style={{ backgroundColor: 'oklch(99.5% 0.002 245 / 0.85)' }}
+        >
+          <p
+            className="text-sm font-medium animate-pulse"
+            style={{ color: 'var(--color-accent)' }}
+          >
             Rendering Sheet Music...
           </p>
         </div>
       )}
       {errorMessage && (
-        <div className="absolute inset-0 flex items-center justify-center p-4 bg-slate-950/80 z-10 text-center">
-          <p className="text-sm text-rose-400 font-medium">{errorMessage}</p>
+        <div
+          className="absolute inset-0 flex items-center justify-center p-4 z-10 text-center"
+          style={{ backgroundColor: 'oklch(99.5% 0.002 245 / 0.92)' }}
+        >
+          <p className="text-sm font-medium" style={{ color: 'var(--color-intonation-miss)' }}>
+            {errorMessage}
+          </p>
         </div>
       )}
       <div
