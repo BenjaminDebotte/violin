@@ -32,14 +32,14 @@
 **Description:** Build the `score-engine` module: validate uploaded files (accept `.musicxml`/`.mxl`; reject `.mscz`/`.pdf` with clear MuseScore export instructions), extract a deterministic playable timeline from MusicXML (coalescing `NoteTie` chains, separating Part 1 Solo Violin from Part 2+ Accompaniment, and mapping measure/cursor indices), persist scores in `IndexedDB` via `idb-keyval`, and render via OpenSheetMusicDisplay with Desktop Page view, Mobile Horizontal Ribbon mode (`RenderSingleHorizontalStaffline = true`), and $O(1)$ SVG DOM notehead coloring.
 
 **Acceptance criteria:**
-- [ ] Uploading `.mscz` or `.pdf` returns a structured validation error explaining how to export `.mxl`/`.musicxml` in MuseScore; valid `.musicxml` and compressed `.mxl` files unpack and parse cleanly.
-- [ ] Timeline Extractor merges tied notes across beats/barlines into a single sustained target note, separates Part 1 (Solo) from Parts 2+ (Accompaniment), and calculates beat/millisecond durations from score tempo.
-- [ ] `ScoreViewport` renders OSMD in both Page View and Single-System Horizontal Ribbon mode and exposes $O(1)$ SVG notehead coloring (`green`, `yellow`, `red`, `reset`) without re-running `osmd.render()`.
+- [x] Uploading `.mscz` or `.pdf` returns a structured validation error explaining how to export `.mxl`/`.musicxml` in MuseScore; valid `.musicxml` and compressed `.mxl` files unpack and parse cleanly.
+- [x] Timeline Extractor merges tied notes across beats/barlines into a single sustained target note, separates Part 1 (Solo) from Parts 2+ (Accompaniment), and calculates beat/millisecond durations from score tempo.
+- [x] `ScoreViewport` renders OSMD in both Page View and Single-System Horizontal Ribbon mode and exposes $O(1)$ SVG notehead coloring (`green`, `yellow`, `red`, `reset`) without re-running `osmd.render()`.
 
 **Verification:**
-- [ ] Tests pass: `npm test -- --run tests/unit/score-engine.test.ts`
-- [ ] Build succeeds: `npm run build`
-- [ ] Manual check: Load demo MusicXML in `ScoreViewport`, toggle Mobile Ribbon mode, and verify tied notes and part separation in unit tests.
+- [x] Tests pass: `npm test -- --run tests/unit/score-engine.test.ts`
+- [x] Build succeeds: `npm run build`
+- [x] Manual check: Load demo MusicXML in `ScoreViewport`, toggle Mobile Ribbon mode, and verify tied notes and part separation in unit tests.
 
 **Dependencies:** Task 1
 
@@ -55,10 +55,10 @@
 ---
 
 ## Checkpoint 1: After Tasks 1–2 (Foundation & Score Engine)
-- [ ] All unit tests pass (`npm test -- --run`)
-- [ ] Application builds without errors (`npm run build`)
-- [ ] MusicXML timeline extraction (including tied notes and multi-part separation) is verified by automated tests
-- [ ] Review progress against `SPEC.md`
+- [x] All unit tests pass (`npm test -- --run`)
+- [x] Application builds without errors (`npm run build`)
+- [x] MusicXML timeline extraction (including tied notes and multi-part separation) is verified by automated tests
+- [x] Review progress against `SPEC.md`
 
 ---
 
