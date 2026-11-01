@@ -184,3 +184,83 @@
 - [x] Production build succeeds with PWA manifest and service worker (`npm run build`)
 - [x] Zero TypeScript errors (`npm run typecheck`)
 - [x] All 5 `SPEC.md` Success Criteria verified
+
+---
+
+## Task 7: Urtext Archive Design System, Typography & 4-Page AppShell Masthead
+
+**Description:** Implement the **Direction 1: Urtext Archive** design system (`public/demos/direction-1-urtext.html` reference): load `Cardo`, `Hanken Grotesk`, and `JetBrains Mono` in `index.html`, define the OKLCH archival cotton-rag / Henle Prussian Blue CSS custom properties and typography rules in `src/index.css`, and build `src/components/AppShell.tsx` providing URL-hash synchronized navigation across the 4 pages (`#/practice` Studio, `#/library` Library, `#/tuner` Violin Tuner, `#/settings` Settings) with a 2px Prussian Blue active indicator.
+
+**Acceptance criteria:**
+- [x] `index.html` loads `Cardo`, `Hanken Grotesk`, and `JetBrains Mono` and sets the page title and archival background.
+- [x] `src/index.css` defines the Urtext Archive OKLCH tokens (`--color-paper`, `--color-paper-2`, `--color-paper-3`, `--color-score-paper`, `--color-ink`, `--color-accent`, `--color-intonation-match`, `--color-intonation-close`, `--color-intonation-miss`) and tabular-numeral utility rules.
+- [x] `src/components/AppShell.tsx` renders the ruled Urtext masthead with 4 navigation tabs (`Studio`, `Library`, `Tuner`, `Settings`), active score context badge, and calibration summary pill.
+
+**Verification:**
+- [x] Tests pass: `npm test -- --run`
+- [x] Build succeeds: `npm run build`
+- [x] Typecheck passes: `npm run typecheck`
+
+**Dependencies:** Task 6
+
+**Files likely touched:**
+- `index.html`
+- `src/index.css`
+- `src/components/AppShell.tsx`
+
+**Estimated scope:** Small (3 files)
+
+---
+
+## Task 8: Dedicated `LibraryPage`, 4-String `TunerPage`, and `SettingsPage` Views
+
+**Description:** Build three dedicated browsable pages styled in **Direction 1: Urtext Archive**:
+1. `src/pages/LibraryPage.tsx`: Ruled conservatory repertoire ledger listing built-in & user-uploaded pieces with measure/tempo/time-signature metadata, "Open in Studio" button (which selects the piece and navigates to `#/practice`), delete action for custom scores, and an engraved MusicXML/MXL upload plate (rejecting `.mscz`/`.pdf` with the MuseScore export guide).
+2. `src/pages/TunerPage.tsx`: Dedicated 4-string open violin tuner (`G3 196.0 Hz`, `D4 293.7 Hz`, `A4 440.0 Hz`, `E5 659.3 Hz` interactive string buttons that play the reference drone via `AudioPlaybackEngine`) paired with the room-distance `TunerHUD`.
+3. `src/pages/SettingsPage.tsx`: Dedicated calibration & audio setup page for Microphone device selection, A4 Reference Pitch (`440 Hz` / `442 Hz` presets + `438–445 Hz` slider), Intonation Strictness (`Easy ±25¢`, `Medium ±15¢`, `Strict ±8¢`, `Custom`), and Bluetooth earbuds guidance.
+
+**Acceptance criteria:**
+- [x] `LibraryPage` lists built-in and uploaded scores, handles `.musicxml`/`.mxl` upload and `.mscz`/`.pdf` error reporting, and triggers score selection + transition to Studio (`#/practice`).
+- [x] `TunerPage` displays interactive `G3`, `D4`, `A4`, `E5` open-string reference drone buttons alongside `TunerHUD`.
+- [x] `SettingsPage` allows configuring A4 reference pitch (438–445 Hz), strictness (`easy`, `medium`, `strict`, `custom`), and microphone input device.
+
+**Verification:**
+- [x] Tests pass: `npm test -- --run`
+- [x] Build succeeds: `npm run build`
+- [x] Typecheck passes: `npm run typecheck`
+
+**Dependencies:** Task 7
+
+**Files likely touched:**
+- `src/pages/LibraryPage.tsx`
+- `src/pages/TunerPage.tsx`
+- `src/pages/SettingsPage.tsx`
+
+**Estimated scope:** Medium (3 files)
+
+---
+
+## Task 9: Distraction-Free `PracticeStudioPage`, Popover Drawers & Multi-Page Integration Tests
+
+**Description:** Build `src/pages/PracticeStudioPage.tsx` where 85–90% of the viewport is dedicated to the sheet music (`ScoreViewport` on an unbleached warm ivory plate), accompanied by a compact top-center **Archival Pitch & 150ms Hold Pill** (with circular clock-hand SVG progress ring, live pitch/cents readout, and "Simulate In-Tune Note" test button) and a clean **Bottom Transport Dock** (`Wait-for-Me` vs `Play-Along`, `Start Practice` / `Pause` / `Stop & Reset`, `Page View` vs `Mobile Ribbon`, `Reference Drone` button, and toggleable popovers for `Mixer & Tempo` and `Measure Loop`). Connect all 4 pages in `src/App.tsx` and update `tests/integration/app.test.tsx`.
+
+**Acceptance criteria:**
+- [ ] `PracticeStudioPage` dedicates the primary canvas to `ScoreViewport`, shows the compact Pitch & 150ms Hold Pill, and houses `MixerPanel` and Measure Loop controls in accessible popovers/drawers from the Bottom Transport Dock.
+- [ ] `App.tsx` coordinates the 4 browsable pages (`studio`, `library`, `tuner`, `settings`) while preserving modal/drawer quick-access and all `SPEC.md` Success Criteria.
+- [ ] All unit and integration tests in `tests/integration/app.test.tsx` pass (`npm test -- --run`, `npm run typecheck`, `npm run build`).
+
+**Verification:**
+- [ ] Tests pass: `npm test -- --run`
+- [ ] Build succeeds: `npm run build`
+- [ ] Typecheck passes: `npm run typecheck`
+
+**Dependencies:** Task 7, Task 8
+
+**Files likely touched:**
+- `src/pages/PracticeStudioPage.tsx`
+- `src/App.tsx`
+- `src/components/TunerHUD.tsx`
+- `src/components/MixerPanel.tsx`
+- `tests/integration/app.test.tsx`
+
+**Estimated scope:** Medium (5 files)
