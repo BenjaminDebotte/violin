@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Direction 3: Cremona Bench - Hallmark design proposal for Violin Coach PWA featuring luthier workshop aesthetics, amber rosin accents, and physical peg silhouettes.">
+  <title>Direction 3: Cremona Bench | Violin Coach Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Castoro:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* Hallmark · custom · idea: "A violin luthier's workshop bench: aged spruce, rosin amber, and walnut ink" · vibe: "tactile, resonant, amber-rosin, timber, authentic" · axes: light/roman-serif/warm · genre: editorial · nav: double-ruled guild strip · footer: timber stamp */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · weakest: S, rooted every control in the physical craft of violin making and spruce graduation */
+:root {
+  /* Workshop Timber Ground */
+  --color-paper: oklch(94.5% 0.020 65);
+  --color-paper-2: oklch(90.5% 0.026 62);
+  --color-paper-3: oklch(86.5% 0.032 60);
+
+  /* Sheet Music Paper */
+  --color-score-paper: oklch(96.2% 0.016 75);
+  --color-score-ink: oklch(20.0% 0.028 50);
+  --color-score-rule: oklch(78.0% 0.028 62);
+  --color-score-muted: oklch(48.0% 0.022 55);
+
+  /* Ink Hierarchy */
+  --color-ink: oklch(21.0% 0.030 50);
+  --color-ink-2: oklch(34.0% 0.025 52);
+  --color-muted: oklch(48.0% 0.022 55);
+  --color-rule: oklch(78.0% 0.028 62);
+
+  /* Anchor & Accent: Natural Violin Rosin Amber */
+  --color-accent: oklch(66.0% 0.185 55);
+  --color-accent-ink: oklch(16.0% 0.025 50);
+  --color-focus: oklch(62.0% 0.190 55);
+
+  /* Semantic Intonation */
+  --color-intonation-match: oklch(46.0% 0.160 142);
+  --color-intonation-close: oklch(52.0% 0.165 65);
+  --color-intonation-miss:  oklch(50.0% 0.205 32);
+
+  --color-cursor: oklch(66.0% 0.185 55 / 0.22);
+  --color-shadow: oklch(21.0% 0.030 50 / 0.10);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* Typography */
+  --font-display: 'Castoro', Georgia, serif;
+  --font-body: 'Karla', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Geometry & Rules */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 9999px;
+  --border-rule: 1px solid var(--color-rule);
+  --border-double: 3px double var(--color-rule);
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+html {
+  scrollbar-color: var(--color-rule) var(--color-paper);
+  caret-color: var(--color-accent);
+}
+
+html, body {
+  overflow-x: clip;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Typography styles */
+h1, h2, h3, .score-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.05;
+  margin: 0;
+  overflow-wrap: break-word;
+  min-width: 0;
+  text-wrap: balance;
+}
+
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* Floating Direction Switcher */
+.direction-bar {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background-color: var(--color-paper-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  box-shadow: 0 2px 8px var(--color-shadow);
+}
+
+.direction-label {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-right: var(--space-1);
+}
+
+.direction-link {
+  font-size: 11px;
+  color: var(--color-ink-2);
+  text-decoration: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.direction-link:hover {
+  background-color: var(--color-paper-3);
+  color: var(--color-ink);
+}
+
+.direction-link.active {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 600;
+}
+
+.direction-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.direction-link:active {
+  transform: translateY(1px);
+}
+
+/* Header Masthead with double rule */
+.cremona-masthead {
+  border-bottom: var(--border-double);
+  background-color: var(--color-paper);
+  padding: var(--space-3) var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.brand-group {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.brand-edition {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* Navigation Tabs */
+.cremona-nav {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.cremona-nav-btn {
+  background: var(--color-transparent);
+  border: none;
+  border-bottom: 2px solid var(--color-transparent);
+  padding: var(--space-2) 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.cremona-nav-btn:hover {
+  color: var(--color-ink);
+}
+
+.cremona-nav-btn.active {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-accent);
+  font-weight: 700;
+}
+
+.cremona-nav-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.cremona-nav-btn:active {
+  transform: translateY(1px);
+}
+
+.cremona-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Main Container: capped and centered */
+.app-container {
+  max-width: 1400px;
+  margin-inline: auto;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Screen visibility */
+.screen-view {
+  display: none;
+  width: 100%;
+  flex: 1;
+}
+
+.screen-view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* PRACTICE STUDIO SCREEN */
+.studio-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+  flex: 1;
+}
+
+/* Tactile Timber Pitch & Rosin Hold HUD Pill */
+.pitch-hud-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  background-color: var(--color-score-paper);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  box-shadow: 0 2px 8px var(--color-shadow);
+  max-width: 820px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.hud-pitch-display {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hud-note-badge {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1;
+}
+
+.hud-deviation {
+  font-size: 13px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-paper-2);
+  color: var(--color-intonation-match);
+  font-weight: 700;
+}
+
+.hud-hz-label {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* Rosin Progress Capsule 150ms Hold Visualizer */
+.hold-capsule-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.rosin-capsule-track {
+  width: 100px;
+  height: 14px;
+  background-color: var(--color-paper-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  position: relative;
+}
+
+.rosin-capsule-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--color-accent);
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform 150ms linear, background-color 140ms ease;
+}
+
+.hold-capsule-label {
+  font-size: 12px;
+  color: var(--color-ink-2);
+}
+
+.hud-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Single unified primary button */
+.btn-primary {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  border: 1px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-shadow: 0 1px 3px var(--color-shadow);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.94;
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background-color: var(--color-paper-2);
+  color: var(--color-ink-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.btn-ghost:hover {
+  background-color: var(--color-paper-3);
+  color: var(--color-ink);
+}
+
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.btn-ghost:active {
+  transform: translateY(1px);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* European Rag Score Plate */
+.score-plate {
+  background-color: var(--color-score-paper);
+  border: 2px solid var(--color-score-rule);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 14px var(--color-shadow);
+  padding: var(--space-5) var(--space-6);
+  flex: 1;
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.score-header-box {
+  text-align: center;
+  border-bottom: var(--border-double);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.score-work-title {
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  color: var(--color-score-ink);
+}
+
+.score-composer-meta {
+  font-size: 13px;
+  color: var(--color-score-muted);
+  margin-top: var(--space-1);
+}
+
+.score-tempo-text {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--color-ink-2);
+  margin-top: 2px;
+}
+
+.score-svg-frame {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.engraved-svg {
+  width: 100%;
+  max-width: 1100px;
+  height: auto;
+  user-select: none;
+}
+
+.score-cursor-bar {
+  fill: var(--color-cursor);
+  stroke: var(--color-accent);
+  stroke-width: 1.2;
+  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.clickable-note {
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.clickable-note:hover {
+  filter: brightness(1.2);
+}
+
+/* Workshop Transport Dock */
+.cremona-dock {
+  background-color: var(--color-paper-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  box-shadow: 0 2px 8px var(--color-shadow);
+  position: relative;
+}
+
+.mode-selector {
+  display: flex;
+  background-color: var(--color-paper);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1);
+}
+
+.mode-btn {
+  background: var(--color-transparent);
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  font-size: 12px;
+  color: var(--color-ink-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.mode-btn.active {
+  background-color: var(--color-paper-3);
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.mode-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.mode-btn:active {
+  transform: translateY(1px);
+}
+
+.mode-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Popover Panels */
+.popover-panel {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  background-color: var(--color-paper);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  box-shadow: 0 4px 14px var(--color-shadow);
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
+  z-index: 50;
+  min-width: 260px;
+}
+
+.popover-panel.open {
+  display: flex;
+}
+
+.popover-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-bottom: var(--space-1);
+}
+
+.slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-ink-2);
+}
+
+input[type="range"] {
+  accent-color: var(--color-accent);
+  width: 100%;
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* SCREEN 2: REPERTOIRE LIBRARY */
+.library-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.section-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.section-heading {
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.dropzone-box {
+  border: 2px dashed var(--color-rule);
+  background-color: var(--color-score-paper);
+  border-radius: var(--radius-sm);
+  padding: var(--space-6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dropzone-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.dropzone-note {
+  font-size: 13px;
+  color: var(--color-muted);
+  max-width: 50ch;
+}
+
+.ledger-table-wrap {
+  background-color: var(--color-score-paper);
+  border: var(--border-double);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ledger-table th {
+  padding: var(--space-3) var(--space-4);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-muted);
+  border-bottom: var(--border-rule);
+  background-color: var(--color-paper-2);
+}
+
+.ledger-table td {
+  padding: var(--space-3) var(--space-4);
+  font-size: 14px;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.ledger-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ledger-table tr:hover td {
+  background-color: var(--color-paper-2);
+}
+
+/* SCREEN 3: LUTHIER'S TUNER WITH PHYSICAL PEG SILHOUETTES */
+.tuner-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  align-items: center;
+}
+
+.luthier-tuner-plate {
+  background-color: var(--color-score-paper);
+  border: 2px solid var(--color-score-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-6);
+  max-width: 780px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  box-shadow: 0 4px 16px var(--color-shadow);
+}
+
+.spring-needle-svg {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+
+/* 4 Physical Peg Silhouettes */
+.peg-silhouettes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 520px;
+}
+
+.peg-card-btn {
+  background-color: var(--color-paper-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.peg-card-btn.active {
+  background-color: var(--color-paper-3);
+  border-color: var(--color-accent);
+}
+
+.peg-card-btn:hover {
+  background-color: var(--color-paper-3);
+}
+
+.peg-card-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.peg-card-btn:active {
+  transform: translateY(1px);
+}
+
+.peg-card-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.peg-svg-icon {
+  width: 28px;
+  height: 48px;
+}
+
+/* SCREEN 4: BENCH SETTINGS */
+.settings-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 780px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.settings-card {
+  background-color: var(--color-score-paper);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-rule);
+  padding-bottom: var(--space-3);
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settings-label-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.settings-label-desc {
+  font-size: 12px;
+  color: var(--color-muted);
+  max-width: 48ch;
+}
+
+select {
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-paper-2);
+  color: var(--color-ink);
+}
+
+select:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Guild Mast Footer */
+.cremona-footer {
+  border-top: var(--border-double);
+  background-color: var(--color-paper);
+  padding: var(--space-3) var(--space-5);
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* Reduced Motion Fallback */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+  </style>
+</head>
+<body>
+
+  <!-- Floating Switcher Bar -->
+  <aside class="direction-bar" aria-label="Hallmark direction switcher">
+    <span class="direction-label">Hallmark Demo</span>
+    <a href="direction-1-urtext.html" class="direction-link">1: Urtext</a>
+    <a href="direction-2-nocturne.html" class="direction-link">2: Nocturne</a>
+    <a href="direction-3-cremona.html" class="direction-link active">3: Cremona</a>
+    <a href="direction-4-bauhaus.html" class="direction-link">4: Bauhaus</a>
+    <a href="index.html" class="direction-link">Index</a>
+  </aside>
+
+  <!-- Masthead Navigation with double rule -->
+  <header class="cremona-masthead">
+    <div class="brand-group">
+      <h1 class="brand-title">Violin Coach</h1>
+      <span class="brand-edition">Cremona Luthier’s Workshop Edition</span>
+    </div>
+
+    <nav class="cremona-nav" aria-label="Main application screens">
+      <button type="button" class="cremona-nav-btn active" data-tab="studio">Practice Studio</button>
+      <button type="button" class="cremona-nav-btn" data-tab="library">Repertoire Library</button>
+      <button type="button" class="cremona-nav-btn" data-tab="tuner">Luthier’s Tuner</button>
+      <button type="button" class="cremona-nav-btn" data-tab="settings">Bench Settings</button>
+    </nav>
+  </header>
+
+  <!-- Main Application Body -->
+  <main class="app-container">
+
+    <!-- 1. PRACTICE STUDIO SCREEN -->
+    <section id="screen-studio" class="screen-view active" aria-label="Practice Studio">
+      <div class="studio-layout">
+
+        <!-- Top Pinned Tactile Pitch & Rosin Capsule HUD Pill -->
+        <header class="pitch-hud-bar">
+          <div class="hud-pitch-display">
+            <span id="hud-note-name" class="hud-note-badge tabular">G4</span>
+            <span id="hud-deviation-cents" class="hud-deviation tabular">+0¢ in tune</span>
+            <span id="hud-frequency" class="hud-hz-label tabular">392.0 Hz</span>
+          </div>
+
+          <!-- Amber Rosin Capsule 150ms Hold Visualizer -->
+          <div class="hold-capsule-container">
+            <div class="rosin-capsule-track">
+              <div id="rosin-fill-bar" class="rosin-capsule-fill"></div>
+            </div>
+            <span id="hold-status-text" class="hold-capsule-label">150ms hold-to-lock</span>
+          </div>
+
+          <div class="hud-actions">
+            <button type="button" id="btn-simulate-hold" class="btn-primary">Simulate 150ms Hold</button>
+            <button type="button" id="btn-reset-score" class="btn-ghost">Reset Score</button>
+          </div>
+        </header>
+
+        <!-- European Rag Score Plate -->
+        <article class="score-plate">
+          <div class="score-header-box">
+            <h2 class="score-work-title">Minuet in G major</h2>
+            <div class="score-composer-meta">BWV Anh. 114, Johann Sebastian Bach (attr. Christian Petzold)</div>
+            <div class="score-tempo-text">Moderato  ♩ = 108  ·  3/4 Solo Violin</div>
+          </div>
+
+          <div class="score-svg-frame">
+            <svg id="svg-sheet-music" class="engraved-svg" viewBox="0 0 920 320" xmlns="http://www.w3.org/2000/svg" aria-label="Engraved violin sheet music score">
+              <!-- Staff System 1 Lines -->
+              <g stroke="oklch(20.0% 0.028 50)" stroke-width="1.1">
+                <line x1="40" y1="60" x2="880" y2="60" />
+                <line x1="40" y1="68" x2="880" y2="68" />
+                <line x1="40" y1="76" x2="880" y2="76" />
+                <line x1="40" y1="84" x2="880" y2="84" />
+                <line x1="40" y1="92" x2="880" y2="92" />
+                <line x1="40" y1="60" x2="40" y2="92" stroke-width="2" />
+                <line x1="260" y1="60" x2="260" y2="92" />
+                <line x1="460" y1="60" x2="460" y2="92" />
+                <line x1="680" y1="60" x2="680" y2="92" />
+                <line x1="880" y1="60" x2="880" y2="92" />
+              </g>
+
+              <!-- Staff System 2 Lines -->
+              <g stroke="oklch(20.0% 0.028 50)" stroke-width="1.1">
+                <line x1="40" y1="180" x2="880" y2="180" />
+                <line x1="40" y1="188" x2="880" y2="188" />
+                <line x1="40" y1="196" x2="880" y2="196" />
+                <line x1="40" y1="204" x2="880" y2="204" />
+                <line x1="40" y1="212" x2="880" y2="212" />
+                <line x1="40" y1="180" x2="40" y2="212" stroke-width="2" />
+                <line x1="260" y1="180" x2="260" y2="212" />
+                <line x1="460" y1="180" x2="460" y2="212" />
+                <line x1="680" y1="180" x2="680" y2="212" />
+                <line x1="880" y1="180" x2="880" y2="212" stroke-width="2" />
+              </g>
+
+              <!-- Treble Clef System 1 -->
+              <g transform="translate(46, 52) scale(0.04)" fill="oklch(20.0% 0.028 50)">
+                <path d="M296 464c-8-72-56-112-112-112-40 0-80 24-80 72 0 48 32 80 80 80 56 0 104-40 112-112zm-40-208c0-40-24-80-56-80-32 0-48 40-48 80 0 48 24 88 56 88 32 0 48-40 48-88zm160 208c0 120-80 208-184 208-104 0-176-80-176-176 0-88 64-152 152-152 24 0 48 8 64 24l8-120c-32-8-64-16-88-16-104 0-168 80-168 184 0 104 80 184 184 184 128 0 208-96 208-208 0-64-32-120-80-160l-8 8c40 32 64 80 64 128z" />
+              </g>
+
+              <!-- Treble Clef System 2 -->
+              <g transform="translate(46, 172) scale(0.04)" fill="oklch(20.0% 0.028 50)">
+                <path d="M296 464c-8-72-56-112-112-112-40 0-80 24-80 72 0 48 32 80 80 80 56 0 104-40 112-112zm-40-208c0-40-24-80-56-80-32 0-48 40-48 80 0 48 24 88 56 88 32 0 48-40 48-88zm160 208c0 120-80 208-184 208-104 0-176-80-176-176 0-88 64-152 152-152 24 0 48 8 64 24l8-120c-32-8-64-16-88-16-104 0-168 80-168 184 0 104 80 184 184 184 128 0 208-96 208-208 0-64-32-120-80-160l-8 8c40 32 64 80 64 128z" />
+              </g>
+
+              <!-- Key Signature: F# on top line -->
+              <text x="82" y="66" font-family="serif" font-size="20" fill="oklch(20.0% 0.028 50)">♯</text>
+              <text x="82" y="186" font-family="serif" font-size="20" fill="oklch(20.0% 0.028 50)">♯</text>
+
+              <!-- Time Signature: 3/4 -->
+              <g font-family="var(--font-display)" font-size="20" font-weight="700" fill="oklch(20.0% 0.028 50)" text-anchor="middle">
+                <text x="104" y="74">3</text>
+                <text x="104" y="90">4</text>
+              </g>
+
+              <!-- Active Cursor Highlight Box -->
+              <rect id="score-cursor-rect" class="score-cursor-bar" x="404" y="52" width="22" height="48" rx="2" />
+
+              <!-- Measure Numbers -->
+              <g font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)">
+                <text x="264" y="54">2</text>
+                <text x="464" y="54">3</text>
+                <text x="684" y="54">4</text>
+                <text x="44" y="174">5</text>
+                <text x="264" y="174">6</text>
+                <text x="464" y="174">7</text>
+                <text x="684" y="174">8</text>
+              </g>
+
+              <!-- Dynamic marking -->
+              <text x="120" y="112" font-family="serif" font-style="italic" font-size="14" font-weight="bold" fill="oklch(20.0% 0.028 50)">mf</text>
+
+              <!-- NOTES System 1 -->
+              <!-- Measure 1 Note 0: D5 (Alpine Spruce Green) -->
+              <g id="note-group-0" class="clickable-note" data-index="0" data-note="D5" data-cents="+2" data-freq="587.3">
+                <ellipse cx="135" cy="68" rx="5.8" ry="4.2" transform="rotate(-22 135 68)" fill="oklch(46.0% 0.160 142)" />
+                <line x1="140" y1="67" x2="140" y2="40" stroke="oklch(46.0% 0.160 142)" stroke-width="1.3" />
+                <text x="135" y="34" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">3</text>
+              </g>
+
+              <!-- Measure 1 Note 1: G4 (Alpine Spruce Green) -->
+              <g id="note-group-1" class="clickable-note" data-index="1" data-note="G4" data-cents="0" data-freq="392.0">
+                <ellipse cx="170" cy="92" rx="5.8" ry="4.2" transform="rotate(-22 170 92)" fill="oklch(46.0% 0.160 142)" />
+                <line x1="175" y1="91" x2="175" y2="64" stroke="oklch(46.0% 0.160 142)" stroke-width="1.3" />
+                <text x="170" y="106" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">0</text>
+              </g>
+
+              <!-- Measure 1 Note 2: A4 (Alpine Spruce Green) -->
+              <g id="note-group-2" class="clickable-note" data-index="2" data-note="A4" data-cents="-1" data-freq="440.0">
+                <ellipse cx="195" cy="88" rx="5.8" ry="4.2" transform="rotate(-22 195 88)" fill="oklch(46.0% 0.160 142)" />
+                <line x1="200" y1="87" x2="200" y2="64" stroke="oklch(46.0% 0.160 142)" stroke-width="1.3" />
+                <polygon points="175,64 200,64 200,67 175,67" fill="oklch(46.0% 0.160 142)" />
+                <text x="195" y="102" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">1</text>
+              </g>
+
+              <!-- Measure 1 Note 3: B4 (Alpine Spruce Green) -->
+              <g id="note-group-3" class="clickable-note" data-index="3" data-note="B4" data-cents="+1" data-freq="493.9">
+                <ellipse cx="220" cy="84" rx="5.8" ry="4.2" transform="rotate(-22 220 84)" fill="oklch(46.0% 0.160 142)" />
+                <line x1="225" y1="83" x2="225" y2="60" stroke="oklch(46.0% 0.160 142)" stroke-width="1.3" />
+                <text x="220" y="98" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">2</text>
+              </g>
+
+              <!-- Measure 1 Note 4: C5 (Golden Rosin Honey) -->
+              <g id="note-group-4" class="clickable-note" data-index="4" data-note="C5" data-cents="+14" data-freq="523.3">
+                <ellipse cx="242" cy="80" rx="5.8" ry="4.2" transform="rotate(-22 242 80)" fill="oklch(52.0% 0.165 65)" />
+                <line x1="247" y1="79" x2="247" y2="60" stroke="oklch(52.0% 0.165 65)" stroke-width="1.3" />
+                <polygon points="225,60 247,60 247,63 225,63" fill="oklch(52.0% 0.165 65)" />
+                <text x="242" y="94" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">3</text>
+              </g>
+
+              <!-- Measure 2 Note 5: D5 (Madder Lake Red) -->
+              <g id="note-group-5" class="clickable-note" data-index="5" data-note="D5" data-cents="-24" data-freq="587.3">
+                <ellipse cx="290" cy="68" rx="5.8" ry="4.2" transform="rotate(-22 290 68)" fill="oklch(50.0% 0.205 32)" />
+                <line x1="295" y1="67" x2="295" y2="40" stroke="oklch(50.0% 0.205 32)" stroke-width="1.3" />
+                <text x="290" y="34" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">3</text>
+              </g>
+
+              <!-- Measure 2 Note 6: G4 (Alpine Spruce Green) -->
+              <g id="note-group-6" class="clickable-note" data-index="6" data-note="G4" data-cents="+3" data-freq="392.0">
+                <ellipse cx="350" cy="92" rx="5.8" ry="4.2" transform="rotate(-22 350 92)" fill="oklch(46.0% 0.160 142)" />
+                <line x1="355" y1="91" x2="355" y2="64" stroke="oklch(46.0% 0.160 142)" stroke-width="1.3" />
+                <text x="350" y="106" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">0</text>
+              </g>
+
+              <!-- Measure 2 Note 7: G4 (ACTIVE NOTE - Walnut ink) -->
+              <g id="note-group-7" class="clickable-note" data-index="7" data-note="G4" data-cents="0" data-freq="392.0">
+                <ellipse cx="415" cy="92" rx="5.8" ry="4.2" transform="rotate(-22 415 92)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="420" y1="91" x2="420" y2="64" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+                <text x="415" y="106" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">0</text>
+              </g>
+
+              <!-- Measure 3 Note 8: E5 (quarter) -->
+              <g id="note-group-8" class="clickable-note" data-index="8" data-note="E5" data-cents="0" data-freq="659.3">
+                <ellipse cx="490" cy="64" rx="5.8" ry="4.2" transform="rotate(-22 490 64)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="495" y1="63" x2="495" y2="36" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+                <text x="490" y="30" font-family="var(--font-mono)" font-size="10" fill="oklch(48.0% 0.022 55)" text-anchor="middle">4</text>
+              </g>
+
+              <!-- Measure 3 Note 9: C5 (eighth) -->
+              <g id="note-group-9" class="clickable-note" data-index="9" data-note="C5" data-cents="0" data-freq="523.3">
+                <ellipse cx="530" cy="80" rx="5.8" ry="4.2" transform="rotate(-22 530 80)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="535" y1="79" x2="535" y2="52" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+              </g>
+
+              <!-- Measure 3 Note 10: D5 (eighth) -->
+              <g id="note-group-10" class="clickable-note" data-index="10" data-note="D5" data-cents="0" data-freq="587.3">
+                <ellipse cx="560" cy="68" rx="5.8" ry="4.2" transform="rotate(-22 560 68)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="565" y1="67" x2="565" y2="52" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+                <polygon points="535,52 565,52 565,55 535,55" fill="oklch(20.0% 0.028 50)" />
+              </g>
+
+              <!-- Measure 3 Note 11: E5 (eighth) -->
+              <g id="note-group-11" class="clickable-note" data-index="11" data-note="E5" data-cents="0" data-freq="659.3">
+                <ellipse cx="595" cy="64" rx="5.8" ry="4.2" transform="rotate(-22 595 64)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="600" y1="63" x2="600" y2="48" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+              </g>
+
+              <!-- Measure 3 Note 12: F#5 (eighth) -->
+              <g id="note-group-12" class="clickable-note" data-index="12" data-note="F#5" data-cents="0" data-freq="740.0">
+                <ellipse cx="625" cy="60" rx="5.8" ry="4.2" transform="rotate(-22 625 60)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="630" y1="59" x2="630" y2="48" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+                <polygon points="600,48 630,48 630,51 600,51" fill="oklch(20.0% 0.028 50)" />
+              </g>
+
+              <!-- Measure 4 Note 13: D5 (quarter) -->
+              <g id="note-group-13" class="clickable-note" data-index="13" data-note="D5" data-cents="0" data-freq="587.3">
+                <ellipse cx="715" cy="68" rx="5.8" ry="4.2" transform="rotate(-22 715 68)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="720" y1="67" x2="720" y2="40" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+              </g>
+
+              <!-- Measure 4 Note 14: G4 (quarter) -->
+              <g id="note-group-14" class="clickable-note" data-index="14" data-note="G4" data-cents="0" data-freq="392.0">
+                <ellipse cx="775" cy="92" rx="5.8" ry="4.2" transform="rotate(-22 775 92)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="780" y1="91" x2="780" y2="64" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+              </g>
+
+              <!-- Measure 4 Note 15: G4 (quarter) -->
+              <g id="note-group-15" class="clickable-note" data-index="15" data-note="G4" data-cents="0" data-freq="392.0">
+                <ellipse cx="835" cy="92" rx="5.8" ry="4.2" transform="rotate(-22 835 92)" fill="oklch(20.0% 0.028 50)" />
+                <line x1="840" y1="91" x2="840" y2="64" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+              </g>
+
+              <!-- Slur across measure 1 notes 1 to 4 -->
+              <path d="M 170 100 Q 205 116 242 100" fill="none" stroke="oklch(20.0% 0.028 50)" stroke-width="1.3" />
+            </svg>
+          </div>
+        </article>
+
+        <!-- Workshop Transport Dock -->
+        <footer class="cremona-dock">
+          <div style="display: flex; align-items: center; gap: var(--space-2);">
+            <button type="button" id="btn-transport-play" class="btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span>Play</span>
+            </button>
+
+            <div class="mode-selector" role="radiogroup" aria-label="Practice interaction mode">
+              <button type="button" id="mode-wait" class="mode-btn active" role="radio" aria-checked="true">Wait-for-Me</button>
+              <button type="button" id="mode-along" class="mode-btn" role="radio" aria-checked="false">Play-Along</button>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: var(--space-2); position: relative;">
+            <!-- Tempo button & popover -->
+            <button type="button" id="btn-toggle-tempo" class="btn-ghost tabular">108 BPM</button>
+            <div id="popover-tempo" class="popover-panel">
+              <div class="popover-title">Tempo and Metronome</div>
+              <div class="slider-row">
+                <div class="slider-header">
+                  <span>Playback speed</span>
+                  <span id="tempo-pct-label" class="tabular">100%</span>
+                </div>
+                <input type="range" id="tempo-range" min="25" max="150" value="100" step="5">
+              </div>
+              <div class="slider-header" style="margin-top: var(--space-2);">
+                <span>Count-in</span>
+                <span class="tabular">1 bar</span>
+              </div>
+            </div>
+
+            <!-- Loop button & popover -->
+            <button type="button" id="btn-toggle-loop" class="btn-ghost tabular">Loop: M1 to M4</button>
+            <div id="popover-loop" class="popover-panel">
+              <div class="popover-title">Measure Looping</div>
+              <div class="slider-row">
+                <div class="slider-header">
+                  <span>Start measure</span>
+                  <span class="tabular">Measure 1</span>
+                </div>
+                <input type="range" id="loop-start-range" min="1" max="8" value="1">
+              </div>
+              <div class="slider-row">
+                <div class="slider-header">
+                  <span>End measure</span>
+                  <span class="tabular">Measure 4</span>
+                </div>
+                <input type="range" id="loop-end-range" min="1" max="8" value="4">
+              </div>
+            </div>
+
+            <!-- Mixer button & popover -->
+            <button type="button" id="btn-toggle-mixer" class="btn-ghost">Mixer</button>
+            <div id="popover-mixer" class="popover-panel">
+              <div class="popover-title">Audio Mixer Channels</div>
+              <div class="slider-row">
+                <div class="slider-header">
+                  <span>Solo violin</span>
+                  <span class="tabular">100%</span>
+                </div>
+                <input type="range" min="0" max="100" value="100">
+              </div>
+              <div class="slider-row">
+                <div class="slider-header">
+                  <span>Accompaniment</span>
+                  <span class="tabular">75%</span>
+                </div>
+                <input type="range" min="0" max="100" value="75">
+              </div>
+              <div class="slider-row">
+                <div class="slider-header">
+                  <span>Metronome click</span>
+                  <span class="tabular">60%</span>
+                </div>
+                <input type="range" min="0" max="100" value="60">
+              </div>
+            </div>
+
+            <!-- Drone Helper -->
+            <button type="button" id="btn-drone-helper" class="btn-ghost tabular">Drone: G4</button>
+          </div>
+        </footer>
+
+      </div>
+    </section>
+
+    <!-- 2. REPERTOIRE LIBRARY SCREEN -->
+    <section id="screen-library" class="screen-view" aria-label="Repertoire Library">
+      <div class="library-layout">
+        <div class="section-head-row">
+          <h2 class="section-heading">Repertoire catalogue</h2>
+          <span class="brand-edition">Luthier’s guild ledger</span>
+        </div>
+
+        <!-- MusicXML Dropzone -->
+        <div class="dropzone-box">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="oklch(66.0% 0.185 55)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="dropzone-title">Drop MusicXML (.musicxml, .mxl) files here, or browse</div>
+          <div class="dropzone-note">Exporting from MuseScore: Select File > Export > Compressed MusicXML (.mxl). Raw .mscz and .pdf files require conversion.</div>
+        </div>
+
+        <!-- Ledger Table -->
+        <div class="ledger-table-wrap">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Piece title</th>
+                <th>Composer</th>
+                <th>Key & Meter</th>
+                <th>Measures</th>
+                <th>Evaluation</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Minuet in G major</strong> (BWV Anh. 114)</td>
+                <td>J.S. Bach</td>
+                <td>G Major · 3/4</td>
+                <td class="tabular">32</td>
+                <td class="tabular" style="color: var(--color-intonation-match); font-weight: 700;">Ledger grade: 94%</td>
+                <td>
+                  <button type="button" class="btn-primary btn-load-piece" data-piece="bach">Practice in Studio</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Twinkle, Twinkle Little Star</strong> (Theme)</td>
+                <td>Shinichi Suzuki</td>
+                <td>A Major · 4/4</td>
+                <td class="tabular">24</td>
+                <td class="tabular" style="color: var(--color-intonation-match); font-weight: 700;">Ledger grade: 100%</td>
+                <td>
+                  <button type="button" class="btn-primary btn-load-piece" data-piece="twinkle">Practice in Studio</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>60 Studies for Violin</strong> (Op. 45 No. 1)</td>
+                <td>Franz Wohlfahrt</td>
+                <td>C Major · 4/4</td>
+                <td class="tabular">48</td>
+                <td class="tabular" style="color: var(--color-intonation-close); font-weight: 700;">Ledger grade: 78%</td>
+                <td>
+                  <button type="button" class="btn-primary btn-load-piece" data-piece="wohlfahrt">Practice in Studio</button>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Violin Concerto in A Minor</strong> (Op. 3 No. 6)</td>
+                <td>Antonio Vivaldi</td>
+                <td>A Minor · 4/4</td>
+                <td class="tabular">86</td>
+                <td class="tabular" style="color: var(--color-muted);">Guild Repertoire</td>
+                <td>
+                  <button type="button" class="btn-primary btn-load-piece" data-piece="vivaldi">Practice in Studio</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. LUTHIER'S TUNER WITH PHYSICAL PEG SILHOUETTES -->
+    <section id="screen-tuner" class="screen-view" aria-label="Luthier’s Tuner">
+      <div class="tuner-layout">
+        <div class="section-head-row" style="width: 100%; max-width: 780px;">
+          <h2 class="section-heading">Luthier’s workshop tuner</h2>
+          <span class="brand-edition">Physical peg friction collars & spring inertia</span>
+        </div>
+
+        <div class="luthier-tuner-plate">
+          <!-- Spring Needle Cent Meter -->
+          <svg class="spring-needle-svg" viewBox="0 0 300 160" aria-label="Spring damped cent meter">
+            <path d="M 30 140 A 120 120 0 0 1 270 140" fill="none" stroke="oklch(78.0% 0.028 62)" stroke-width="8" stroke-linecap="round" />
+            <!-- Alpine green sweet spot -->
+            <path d="M 135 22 A 120 120 0 0 1 165 22" fill="none" stroke="oklch(46.0% 0.160 142)" stroke-width="8" />
+            <!-- Caliper tick marks -->
+            <line x1="150" y1="20" x2="150" y2="34" stroke="oklch(21.0% 0.030 50)" stroke-width="2" />
+            <line x1="90" y1="50" x2="98" y2="60" stroke="oklch(48.0% 0.022 55)" stroke-width="1.2" />
+            <line x1="210" y1="50" x2="202" y2="60" stroke="oklch(48.0% 0.022 55)" stroke-width="1.2" />
+            <!-- Needle pointer -->
+            <line id="tuner-needle" x1="150" y1="140" x2="150" y2="28" stroke="oklch(21.0% 0.030 50)" stroke-width="2.5" stroke-linecap="round" style="transform-origin: 150px 140px; transition: transform 260ms cubic-bezier(0.18, 0.89, 0.32, 1.28);" />
+            <circle cx="150" cy="140" r="7" fill="oklch(66.0% 0.185 55)" stroke="oklch(21.0% 0.030 50)" stroke-width="1.5" />
+            <!-- Scale text -->
+            <text x="35" y="155" font-family="var(--font-mono)" font-size="11" fill="oklch(48.0% 0.022 55)">-50¢</text>
+            <text x="150" y="55" font-family="var(--font-mono)" font-size="12" font-weight="600" fill="oklch(21.0% 0.030 50)" text-anchor="middle">0¢ True Pitch</text>
+            <text x="265" y="155" font-family="var(--font-mono)" font-size="11" fill="oklch(48.0% 0.022 55)" text-anchor="end">+50¢</text>
+          </svg>
+
+          <!-- Selected String Frequency Readout -->
+          <div style="text-align: center;">
+            <div id="tuner-active-note" style="font-family: var(--font-display); font-size: 36px; font-weight: 600; color: var(--color-ink);" class="tabular">A4</div>
+            <div id="tuner-active-hz" style="font-family: var(--font-mono); font-size: 14px; color: var(--color-muted);" class="tabular">440.0 Hz · Deviation: 0¢</div>
+          </div>
+
+          <!-- 4 Physical Peg Silhouettes (Ebony & Pearwood Collars) -->
+          <div class="peg-silhouettes-grid">
+            <button type="button" class="peg-card-btn" data-string="G3" data-freq="196.0">
+              <svg class="peg-svg-icon" viewBox="0 0 28 48" aria-hidden="true">
+                <!-- Friction peg heart shape -->
+                <ellipse cx="14" cy="10" rx="10" ry="7" fill="oklch(21.0% 0.030 50)" />
+                <circle cx="14" cy="10" r="2.5" fill="oklch(66.0% 0.185 55)" />
+                <!-- Peg collar ring -->
+                <rect x="10" y="18" width="8" height="4" rx="1" fill="oklch(66.0% 0.185 55)" />
+                <!-- Peg shaft tapered -->
+                <polygon points="11,22 17,22 15,44 13,44" fill="oklch(21.0% 0.030 50)" />
+              </svg>
+              <span style="font-weight: 700; font-size: 16px;">G3</span>
+              <span class="tabular" style="font-size: 11px; opacity: 0.85;">196.0 Hz</span>
+            </button>
+
+            <button type="button" class="peg-card-btn" data-string="D4" data-freq="293.7">
+              <svg class="peg-svg-icon" viewBox="0 0 28 48" aria-hidden="true">
+                <ellipse cx="14" cy="10" rx="10" ry="7" fill="oklch(21.0% 0.030 50)" />
+                <circle cx="14" cy="10" r="2.5" fill="oklch(66.0% 0.185 55)" />
+                <rect x="10" y="18" width="8" height="4" rx="1" fill="oklch(66.0% 0.185 55)" />
+                <polygon points="11,22 17,22 15,44 13,44" fill="oklch(21.0% 0.030 50)" />
+              </svg>
+              <span style="font-weight: 700; font-size: 16px;">D4</span>
+              <span class="tabular" style="font-size: 11px; opacity: 0.85;">293.7 Hz</span>
+            </button>
+
+            <button type="button" class="peg-card-btn active" data-string="A4" data-freq="440.0">
+              <svg class="peg-svg-icon" viewBox="0 0 28 48" aria-hidden="true">
+                <ellipse cx="14" cy="10" rx="10" ry="7" fill="oklch(21.0% 0.030 50)" />
+                <circle cx="14" cy="10" r="2.5" fill="oklch(66.0% 0.185 55)" />
+                <rect x="10" y="18" width="8" height="4" rx="1" fill="oklch(66.0% 0.185 55)" />
+                <polygon points="11,22 17,22 15,44 13,44" fill="oklch(21.0% 0.030 50)" />
+              </svg>
+              <span style="font-weight: 700; font-size: 16px;">A4</span>
+              <span class="tabular" style="font-size: 11px; opacity: 0.85;">440.0 Hz</span>
+            </button>
+
+            <button type="button" class="peg-card-btn" data-string="E5" data-freq="659.3">
+              <svg class="peg-svg-icon" viewBox="0 0 28 48" aria-hidden="true">
+                <ellipse cx="14" cy="10" rx="10" ry="7" fill="oklch(21.0% 0.030 50)" />
+                <circle cx="14" cy="10" r="2.5" fill="oklch(66.0% 0.185 55)" />
+                <rect x="10" y="18" width="8" height="4" rx="1" fill="oklch(66.0% 0.185 55)" />
+                <polygon points="11,22 17,22 15,44 13,44" fill="oklch(21.0% 0.030 50)" />
+              </svg>
+              <span style="font-weight: 700; font-size: 16px;">E5</span>
+              <span class="tabular" style="font-size: 11px; opacity: 0.85;">659.3 Hz</span>
+            </button>
+          </div>
+
+          <!-- Cent Testing & Reference Tone -->
+          <div style="display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-ghost btn-cent-test tabular" data-cent="-12">-12¢ Flat</button>
+            <button type="button" class="btn-ghost btn-cent-test tabular" data-cent="0">0¢ Dead Center</button>
+            <button type="button" class="btn-ghost btn-cent-test tabular" data-cent="15">+15¢ Sharp</button>
+            <button type="button" id="btn-toggle-tone" class="btn-primary" style="margin-left: var(--space-3);">Stop Audio Tone</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. BENCH SETTINGS SCREEN -->
+    <section id="screen-settings" class="screen-view" aria-label="Bench Settings">
+      <div class="settings-layout">
+        <div class="section-head-row">
+          <h2 class="section-heading">Bench settings & calibrations</h2>
+          <span class="brand-edition">Acoustic calipers & gauge tolerances</span>
+        </div>
+
+        <div class="settings-card">
+          <!-- Microphone Selector -->
+          <div class="settings-row">
+            <div>
+              <div class="settings-label-title">Microphone input device</div>
+              <div class="settings-label-desc">Capturing without echo cancellation or noise suppression for raw acoustic violin harmonics.</div>
+            </div>
+            <select aria-label="Microphone input device">
+              <option>Default: Internal Microphone (Realtek Audio)</option>
+              <option>USB Interface: Focusrite Scarlett Solo</option>
+              <option>Bluetooth Headset Audio (AirPods Pro)</option>
+            </select>
+          </div>
+
+          <!-- A4 Reference Pitch -->
+          <div class="settings-row">
+            <div>
+              <div class="settings-label-title">A4 reference calibration</div>
+              <div class="settings-label-desc">Standard concert pitch is 440 Hz; European orchestras frequently tune to 442 Hz.</div>
+            </div>
+            <div style="display: flex; gap: var(--space-2);">
+              <button type="button" class="btn-ghost tabular" style="background-color: var(--color-accent); color: var(--color-accent-ink); font-weight: 700;">440 Hz</button>
+              <button type="button" class="btn-ghost tabular">442 Hz</button>
+            </div>
+          </div>
+
+          <!-- Intonation Strictness -->
+          <div class="settings-row">
+            <div>
+              <div class="settings-label-title">Intonation strictness tolerance</div>
+              <div class="settings-label-desc">Permissible pitch deviation before a note is marked close (amber) or missed (red).</div>
+            </div>
+            <div style="display: flex; gap: var(--space-2);">
+              <button type="button" class="btn-ghost">Easy (±25¢)</button>
+              <button type="button" class="btn-ghost" style="background-color: var(--color-accent); color: var(--color-accent-ink); font-weight: 700;">Medium (±15¢)</button>
+              <button type="button" class="btn-ghost">Strict (±8¢)</button>
+            </div>
+          </div>
+
+          <!-- Bluetooth Earbuds Latency Guide -->
+          <div class="settings-row">
+            <div>
+              <div class="settings-label-title">Bluetooth earbuds & audio latency guide</div>
+              <div class="settings-label-desc">
+                Bluetooth introduces 120 to 250ms wireless transmission delay. Violin Coach features a delay-forgiving window ([-100ms, +350ms]) so your intonation is never penalized by wireless lag. For lowest latency, wired studio monitor headphones are recommended.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Guild Footer -->
+  <footer class="cremona-footer">
+    <span>Direction 3: Cremona Bench · Luthier’s Workshop</span>
+    <span>Castoro & Karla & IBM Plex Mono · Handcrafted Web Audio</span>
+  </footer>
+
+  <!-- Vanilla JS Interactive Controller -->
+  <script>
+    (function() {
+      // 1. Navigation Tab Switching
+      const tabButtons = document.querySelectorAll('.cremona-nav-btn');
+      const screens = {
+        studio: document.getElementById('screen-studio'),
+        library: document.getElementById('screen-library'),
+        tuner: document.getElementById('screen-tuner'),
+        settings: document.getElementById('screen-settings')
+      };
+
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-tab');
+          tabButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          Object.keys(screens).forEach(key => {
+            if (key === target) {
+              screens[key].classList.add('active');
+            } else {
+              screens[key].classList.remove('active');
+            }
+          });
+        });
+      });
+
+      // Library "Practice in Studio" buttons
+      document.querySelectorAll('.btn-load-piece').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const studioTab = document.querySelector('.cremona-nav-btn[data-tab="studio"]');
+          if (studioTab) studioTab.click();
+        });
+      });
+
+      // 2. Score Cursor & Note Sequence Controller
+      const scoreNotes = [
+        { index: 0, note: 'D5', cents: '+2¢', hz: '587.3 Hz', cx: 135, cy: 68 },
+        { index: 1, note: 'G4', cents: '0¢', hz: '392.0 Hz', cx: 170, cy: 92 },
+        { index: 2, note: 'A4', cents: '-1¢', hz: '440.0 Hz', cx: 195, cy: 88 },
+        { index: 3, note: 'B4', cents: '+1¢', hz: '493.9 Hz', cx: 220, cy: 84 },
+        { index: 4, note: 'C5', cents: '+14¢', hz: '523.3 Hz', cx: 242, cy: 80 },
+        { index: 5, note: 'D5', cents: '-24¢', hz: '587.3 Hz', cx: 290, cy: 68 },
+        { index: 6, note: 'G4', cents: '+3¢', hz: '392.0 Hz', cx: 350, cy: 92 },
+        { index: 7, note: 'G4', cents: '0¢', hz: '392.0 Hz', cx: 415, cy: 92 },
+        { index: 8, note: 'E5', cents: '0¢', hz: '659.3 Hz', cx: 490, cy: 64 },
+        { index: 9, note: 'C5', cents: '0¢', hz: '523.3 Hz', cx: 530, cy: 80 },
+        { index: 10, note: 'D5', cents: '0¢', hz: '587.3 Hz', cx: 560, cy: 68 },
+        { index: 11, note: 'E5', cents: '0¢', hz: '659.3 Hz', cx: 595, cy: 64 },
+        { index: 12, note: 'F#5', cents: '0¢', hz: '740.0 Hz', cx: 625, cy: 60 },
+        { index: 13, note: 'D5', cents: '0¢', hz: '587.3 Hz', cx: 715, cy: 68 },
+        { index: 14, note: 'G4', cents: '0¢', hz: '392.0 Hz', cx: 775, cy: 92 },
+        { index: 15, note: 'G4', cents: '0¢', hz: '392.0 Hz', cx: 835, cy: 92 }
+      ];
+
+      let activeNoteIndex = 7;
+      const cursorRect = document.getElementById('score-cursor-rect');
+      const hudNote = document.getElementById('hud-note-name');
+      const hudDev = document.getElementById('hud-deviation-cents');
+      const hudHz = document.getElementById('hud-frequency');
+      const rosinFillBar = document.getElementById('rosin-fill-bar');
+      const holdStatusText = document.getElementById('hold-status-text');
+
+      function updateActiveNote(index) {
+        activeNoteIndex = index;
+        const current = scoreNotes[index];
+        hudNote.textContent = current.note;
+        hudDev.textContent = current.cents + ' in tune';
+        hudHz.textContent = current.hz;
+
+        cursorRect.setAttribute('x', current.cx - 11);
+        cursorRect.setAttribute('y', 52);
+
+        rosinFillBar.style.transform = 'scaleX(0)';
+        rosinFillBar.style.backgroundColor = 'var(--color-accent)';
+        holdStatusText.textContent = '150ms hold-to-lock';
+      }
+
+      // Simulate 150ms Hold
+      const btnSimulate = document.getElementById('btn-simulate-hold');
+      btnSimulate.addEventListener('click', () => {
+        rosinFillBar.style.transform = 'scaleX(1)';
+        holdStatusText.textContent = 'Holding...';
+
+        setTimeout(() => {
+          rosinFillBar.style.backgroundColor = 'var(--color-intonation-match)';
+          holdStatusText.textContent = 'Locked · Alpine Spruce!';
+
+          const noteEl = document.getElementById('note-group-' + activeNoteIndex);
+          if (noteEl) {
+            const ellipse = noteEl.querySelector('ellipse');
+            const line = noteEl.querySelector('line');
+            if (ellipse) ellipse.setAttribute('fill', 'var(--color-intonation-match)');
+            if (line) line.setAttribute('stroke', 'var(--color-intonation-match)');
+          }
+
+          setTimeout(() => {
+            const nextIndex = (activeNoteIndex + 1) % scoreNotes.length;
+            updateActiveNote(nextIndex);
+          }, 240);
+        }, 150);
+      });
+
+      document.getElementById('btn-reset-score').addEventListener('click', () => {
+        updateActiveNote(7);
+      });
+
+      document.querySelectorAll('.clickable-note').forEach(group => {
+        group.addEventListener('click', () => {
+          const idx = parseInt(group.getAttribute('data-index'), 10);
+          updateActiveNote(idx);
+        });
+      });
+
+      // 3. Transport Popovers & Controls
+      const tempoBtn = document.getElementById('btn-toggle-tempo');
+      const tempoPopover = document.getElementById('popover-tempo');
+      const tempoRange = document.getElementById('tempo-range');
+      const tempoLabel = document.getElementById('tempo-pct-label');
+
+      tempoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers(tempoPopover);
+        tempoPopover.classList.toggle('open');
+      });
+
+      tempoRange.addEventListener('input', () => {
+        tempoLabel.textContent = tempoRange.value + '%';
+        const bpm = Math.round(108 * (tempoRange.value / 100));
+        tempoBtn.textContent = bpm + ' BPM';
+      });
+
+      const loopBtn = document.getElementById('btn-toggle-loop');
+      const loopPopover = document.getElementById('popover-loop');
+      loopBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers(loopPopover);
+        loopPopover.classList.toggle('open');
+      });
+
+      const mixerBtn = document.getElementById('btn-toggle-mixer');
+      const mixerPopover = document.getElementById('popover-mixer');
+      mixerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllPopovers(mixerPopover);
+        mixerPopover.classList.toggle('open');
+      });
+
+      function closeAllPopovers(except) {
+        [tempoPopover, loopPopover, mixerPopover].forEach(p => {
+          if (p !== except) p.classList.remove('open');
+        });
+      }
+
+      document.addEventListener('click', () => {
+        closeAllPopovers(null);
+      });
+
+      const playBtn = document.getElementById('btn-transport-play');
+      let isPlaying = false;
+      playBtn.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        playBtn.querySelector('span').textContent = isPlaying ? 'Pause' : 'Play';
+      });
+
+      const modeWait = document.getElementById('mode-wait');
+      const modeAlong = document.getElementById('mode-along');
+      modeWait.addEventListener('click', () => {
+        modeWait.classList.add('active');
+        modeWait.setAttribute('aria-checked', 'true');
+        modeAlong.classList.remove('active');
+        modeAlong.setAttribute('aria-checked', 'false');
+      });
+      modeAlong.addEventListener('click', () => {
+        modeAlong.classList.add('active');
+        modeAlong.setAttribute('aria-checked', 'true');
+        modeWait.classList.remove('active');
+        modeWait.setAttribute('aria-checked', 'false');
+      });
+
+      // 4. Web Audio & Luthier's Tuner
+      let audioCtx = null;
+      let activeOsc = null;
+      let activeGain = null;
+      let isTonePlaying = false;
+      let activeFrequency = 440.0;
+
+      function startReferenceTone(freq) {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        if (activeOsc) {
+          try {
+            activeGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            activeOsc.stop();
+          } catch(e) {}
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(freq * 3, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.05);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        activeOsc = osc;
+        activeGain = gain;
+        isTonePlaying = true;
+
+        const toggleBtn = document.getElementById('btn-toggle-tone');
+        if (toggleBtn) toggleBtn.textContent = 'Stop Audio Tone';
+      }
+
+      function stopReferenceTone() {
+        if (activeOsc && audioCtx) {
+          activeGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.08);
+          setTimeout(() => {
+            try {
+              if (activeOsc) activeOsc.stop();
+              activeOsc = null;
+            } catch(e) {}
+          }, 90);
+        }
+        isTonePlaying = false;
+        const toggleBtn = document.getElementById('btn-toggle-tone');
+        if (toggleBtn) toggleBtn.textContent = 'Play Audio Tone';
+      }
+
+      const pegBtns = document.querySelectorAll('.peg-card-btn');
+      const tunerNeedle = document.getElementById('tuner-needle');
+      const tunerNoteLabel = document.getElementById('tuner-active-note');
+      const tunerHzLabel = document.getElementById('tuner-active-hz');
+
+      pegBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          pegBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const note = btn.getAttribute('data-string');
+          const freq = parseFloat(btn.getAttribute('data-freq'));
+          activeFrequency = freq;
+
+          tunerNoteLabel.textContent = note;
+          tunerHzLabel.textContent = freq.toFixed(1) + ' Hz · Deviation: 0¢';
+          tunerNeedle.style.transform = 'rotate(0deg)';
+
+          startReferenceTone(freq);
+        });
+      });
+
+      document.querySelectorAll('.btn-cent-test').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cent = parseInt(btn.getAttribute('data-cent'), 10);
+          const angle = (cent / 50) * 45;
+          tunerNeedle.style.transform = 'rotate(' + angle + 'deg)';
+          tunerHzLabel.textContent = activeFrequency.toFixed(1) + ' Hz · Deviation: ' + (cent >= 0 ? '+' : '') + cent + '¢';
+        });
+      });
+
+      const toggleToneBtn = document.getElementById('btn-toggle-tone');
+      toggleToneBtn.addEventListener('click', () => {
+        if (isTonePlaying) {
+          stopReferenceTone();
+        } else {
+          startReferenceTone(activeFrequency);
+        }
+      });
+
+      const droneHelperBtn = document.getElementById('btn-drone-helper');
+      droneHelperBtn.addEventListener('click', () => {
+        if (isTonePlaying) {
+          stopReferenceTone();
+          droneHelperBtn.textContent = 'Drone: Off';
+        } else {
+          startReferenceTone(392.0);
+          droneHelperBtn.textContent = 'Drone: Active';
+        }
+      });
+
+    })();
+  </script>
+</body>
+</html>

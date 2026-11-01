@@ -122,6 +122,9 @@ export function TunerPage({
               <span className="text-xs font-mono tabular-nums opacity-85">
                 {currentHz.toFixed(1)} Hz
               </span>
+              <span className="text-[10px] opacity-75 line-clamp-1">
+                {str.description}
+              </span>
 
               <div
                 className="mt-2 flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full"

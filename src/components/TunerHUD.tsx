@@ -166,17 +166,17 @@ export function TunerHUD({
 
   // Status colors
   const statusColorClass = {
-    'in-tune': 'text-emerald-400',
-    close: 'text-amber-400',
-    'out-of-tune': 'text-rose-400',
-    silent: 'text-slate-400',
+    'in-tune': 'text-emerald-700',
+    close: 'text-amber-600',
+    'out-of-tune': 'text-rose-600',
+    silent: 'text-stone-400',
   }[status];
 
   const needleColorClass = {
-    'in-tune': 'bg-emerald-400 border-emerald-300 shadow-emerald-500/50',
-    close: 'bg-amber-400 border-amber-300 shadow-amber-500/50',
-    'out-of-tune': 'bg-rose-400 border-rose-300 shadow-rose-500/50',
-    silent: 'bg-slate-600 border-slate-500 shadow-none',
+    'in-tune': 'bg-emerald-600 border-emerald-700 shadow-emerald-500/30',
+    close: 'bg-amber-500 border-amber-600 shadow-amber-500/30',
+    'out-of-tune': 'bg-rose-500 border-rose-600 shadow-rose-500/30',
+    silent: 'bg-stone-400 border-stone-500 shadow-none',
   }[status];
 
   // Visual tolerance zone widths in percentage (meter spans -50 to +50 cents = 100 cents)
@@ -190,20 +190,28 @@ export function TunerHUD({
     <div
       role="region"
       aria-label="Tuner HUD"
-      className={`bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col gap-4 text-slate-100 ${className}`}
+      className={`rounded-xl p-4 sm:p-5 shadow-sm border flex flex-col gap-4 font-sans ${className}`}
+      style={{
+        backgroundColor: 'var(--color-paper)',
+        borderColor: 'var(--color-rule)',
+        color: 'var(--color-ink)',
+      }}
     >
       {/* Controls row: Mic Toggle, Device Selector & Reference Indicator */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 border-b pb-3"
+        style={{ borderColor: 'var(--color-rule)' }}
+      >
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={toggleMic}
             aria-label={isMicActive ? 'Stop Tuner Microphone' : 'Start Tuner Microphone'}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 cursor-pointer min-h-[44px] ${
-              isMicActive
-                ? 'bg-rose-600 hover:bg-rose-500 text-white focus:ring-rose-500 shadow-lg shadow-rose-950/40'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white focus:ring-emerald-500 shadow-lg shadow-emerald-950/40'
-            }`}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded text-sm font-semibold transition cursor-pointer min-h-[38px]"
+            style={{
+              backgroundColor: isMicActive ? 'var(--color-intonation-miss)' : 'var(--color-accent)',
+              color: 'var(--color-accent-ink)',
+            }}
           >
             {isMicActive ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             <span>{isMicActive ? 'Stop Mic' : 'Start Mic'}</span>
@@ -213,7 +221,12 @@ export function TunerHUD({
             aria-label="Microphone Device Selector"
             value={selectedDeviceId}
             onChange={handleDeviceChange}
-            className="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[44px] max-w-[220px] truncate"
+            className="text-xs sm:text-sm rounded px-3 py-1.5 border min-h-[38px] max-w-[220px] truncate"
+            style={{
+              backgroundColor: 'var(--color-paper-2)',
+              borderColor: 'var(--color-rule)',
+              color: 'var(--color-ink)',
+            }}
           >
             <option value="">Default Microphone</option>
             {devices.map((dev) => (
@@ -224,11 +237,23 @@ export function TunerHUD({
           </select>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
-          <span className="bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/60">
+        <div className="flex items-center gap-2 text-xs font-mono" style={{ color: 'var(--color-muted)' }}>
+          <span
+            className="px-2 py-0.5 rounded border"
+            style={{
+              backgroundColor: 'var(--color-paper-2)',
+              borderColor: 'var(--color-rule)',
+            }}
+          >
             A4 = {referenceA4Hz} Hz
           </span>
-          <span className="bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/60">
+          <span
+            className="px-2 py-0.5 rounded border"
+            style={{
+              backgroundColor: 'var(--color-paper-2)',
+              borderColor: 'var(--color-rule)',
+            }}
+          >
             Tol: ±{toleranceCents}¢
           </span>
         </div>
@@ -237,7 +262,12 @@ export function TunerHUD({
       {errorMessage && (
         <div
           role="alert"
-          className="bg-rose-950/50 border border-rose-800 text-rose-300 text-xs px-3 py-2 rounded-lg"
+          className="text-xs px-3 py-2 rounded border"
+          style={{
+            backgroundColor: 'oklch(56.0% 0.185 28 / 0.12)',
+            borderColor: 'var(--color-intonation-miss)',
+            color: 'var(--color-intonation-miss)',
+          }}
         >
           {errorMessage}
         </div>
@@ -245,17 +275,25 @@ export function TunerHUD({
 
       {/* Target Note Banner (if practicing a specific note) */}
       {targetNote && (
-        <div className="flex items-center justify-between bg-slate-800/60 border border-slate-700/50 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-          <span className="font-semibold text-emerald-400">Target Note:</span>
-          <span className="font-mono font-bold text-sm text-slate-100">
+        <div
+          className="flex items-center justify-between rounded px-3 py-1.5 text-xs border"
+          style={{
+            backgroundColor: 'var(--color-paper-2)',
+            borderColor: 'var(--color-rule)',
+          }}
+        >
+          <span className="font-semibold" style={{ color: 'var(--color-accent)' }}>
+            Target Note:
+          </span>
+          <span className="font-mono font-bold text-sm" style={{ color: 'var(--color-ink)' }}>
             {targetNote.pitch?.label ?? 'Rest'}
           </span>
-          <span className="text-slate-400 font-mono">
+          <span className="font-mono" style={{ color: 'var(--color-muted)' }}>
             {targetNote.pitch
               ? `${midiNoteToFrequency(targetNote.pitch.midiNumber, referenceA4Hz).toFixed(1)} Hz`
               : '--'}
           </span>
-          <span className="text-slate-400">
+          <span style={{ color: 'var(--color-muted)' }}>
             M{targetNote.measureNumber} · Beat {targetNote.startBeat + 1}
           </span>
         </div>
@@ -265,29 +303,52 @@ export function TunerHUD({
       <div className="flex flex-col items-center justify-center py-2 text-center select-none">
         <div
           data-testid="detected-note-label"
-          className={`text-7xl sm:text-8xl font-black tracking-tight transition-colors duration-150 font-mono drop-shadow-md ${statusColorClass}`}
+          className={`text-7xl sm:text-8xl font-black tracking-tight transition-colors duration-150 font-mono ${statusColorClass}`}
         >
           {detectedLabel}
         </div>
 
-        <div className="flex items-center gap-4 mt-2 font-mono text-sm sm:text-base">
+        <div className="flex items-center gap-3 mt-2 font-mono text-sm">
           <span
             data-testid="detected-frequency"
-            className="text-slate-300 bg-slate-800/80 px-3 py-0.5 rounded-full border border-slate-700/60"
+            className="px-2.5 py-0.5 rounded border"
+            style={{
+              backgroundColor: 'var(--color-paper-2)',
+              borderColor: 'var(--color-rule)',
+              color: 'var(--color-ink)',
+            }}
           >
             {frequencyText}
           </span>
           <span
             data-testid="detected-cents"
-            className={`font-semibold px-3 py-0.5 rounded-full border ${
-              status === 'in-tune'
-                ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
-                : status === 'close'
-                ? 'bg-amber-950/60 border-amber-800 text-amber-300'
-                : status === 'out-of-tune'
-                ? 'bg-rose-950/60 border-rose-800 text-rose-300'
-                : 'bg-slate-800/80 border-slate-700/60 text-slate-400'
-            }`}
+            className="font-semibold px-2.5 py-0.5 rounded border"
+            style={{
+              backgroundColor:
+                status === 'in-tune'
+                  ? 'oklch(60.0% 0.155 148 / 0.15)'
+                  : status === 'close'
+                  ? 'oklch(72.0% 0.150 82 / 0.15)'
+                  : status === 'out-of-tune'
+                  ? 'oklch(56.0% 0.185 28 / 0.15)'
+                  : 'var(--color-paper-2)',
+              borderColor:
+                status === 'in-tune'
+                  ? 'var(--color-intonation-match)'
+                  : status === 'close'
+                  ? 'var(--color-intonation-close)'
+                  : status === 'out-of-tune'
+                  ? 'var(--color-intonation-miss)'
+                  : 'var(--color-rule)',
+              color:
+                status === 'in-tune'
+                  ? 'var(--color-intonation-match)'
+                  : status === 'close'
+                  ? 'var(--color-intonation-close)'
+                  : status === 'out-of-tune'
+                  ? 'var(--color-intonation-miss)'
+                  : 'var(--color-muted)',
+            }}
           >
             {centsText}
           </span>
@@ -295,36 +356,47 @@ export function TunerHUD({
       </div>
 
       {/* Visual Horizontal Cent Meter (-50¢ to +50¢) */}
-      <div className="flex flex-col gap-1.5 px-2">
-        <div className="relative h-6 bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
-          {/* Outer red/gray backdrop covers entire -50 to +50 */}
-          <div className="absolute inset-0 bg-rose-950/20" />
+      <div className="flex flex-col gap-1.5 px-1">
+        <div
+          className="relative h-6 rounded border overflow-hidden"
+          style={{
+            backgroundColor: 'var(--color-paper-3)',
+            borderColor: 'var(--color-rule)',
+          }}
+        >
+          {/* Outer backdrop */}
+          <div className="absolute inset-0 opacity-10" style={{ backgroundColor: 'var(--color-intonation-miss)' }} />
 
           {/* Yellow warning tolerance zone (±2x tolerance) */}
           <div
-            className="absolute top-0 bottom-0 bg-amber-500/20 border-x border-amber-500/30"
+            className="absolute top-0 bottom-0 opacity-25"
             style={{
               left: `${yellowLeft}%`,
               width: `${yellowWidth}%`,
+              backgroundColor: 'var(--color-intonation-close)',
             }}
           />
 
           {/* Green in-tune tolerance zone (±1x tolerance) */}
           <div
-            className="absolute top-0 bottom-0 bg-emerald-500/30 border-x border-emerald-500/50"
+            className="absolute top-0 bottom-0 opacity-40"
             style={{
               left: `${greenLeft}%`,
               width: `${greenWidth}%`,
+              backgroundColor: 'var(--color-intonation-match)',
             }}
           />
 
           {/* Center target tick (0 cents) */}
-          <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 bg-slate-500/70 z-10" />
+          <div
+            className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 z-10"
+            style={{ backgroundColor: 'var(--color-ink)' }}
+          />
 
           {/* Dynamic Needle Indicator */}
           <div
             data-testid="cent-meter-needle"
-            className={`absolute top-0.5 bottom-0.5 w-2 -translate-x-1/2 rounded-full border shadow-md transition-all duration-75 z-20 ${needleColorClass}`}
+            className={`absolute top-0.5 bottom-0.5 w-2 -translate-x-1/2 rounded-full border shadow-xs transition-all duration-75 z-20 ${needleColorClass}`}
             style={{
               left: `${needlePercent}%`,
               opacity: status === 'silent' ? 0.3 : 1.0,
@@ -333,10 +405,15 @@ export function TunerHUD({
         </div>
 
         {/* Meter Legend / Labels */}
-        <div className="flex justify-between text-[11px] font-mono text-slate-400 px-0.5">
+        <div
+          className="flex justify-between text-[11px] font-mono px-0.5"
+          style={{ color: 'var(--color-muted)' }}
+        >
           <span>-50¢</span>
           <span>-25¢</span>
-          <span className="text-emerald-400 font-bold">0¢</span>
+          <span className="font-bold" style={{ color: 'var(--color-accent)' }}>
+            0¢
+          </span>
           <span>+25¢</span>
           <span>+50¢</span>
         </div>

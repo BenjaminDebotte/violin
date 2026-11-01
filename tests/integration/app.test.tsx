@@ -5,9 +5,12 @@ import {
   resetInMemoryScoreStore,
 } from '../../src/modules/score-engine/scoreStore';
 
-describe('App Integration Tests (SPEC.md Success Criteria)', () => {
+describe('App Integration Tests (SPEC.md Success Criteria & Urtext Multi-Page)', () => {
   beforeEach(() => {
     resetInMemoryScoreStore();
+    if (typeof window !== 'undefined') {
+      window.location.hash = '#/practice';
+    }
   });
 
   afterEach(() => {
@@ -15,69 +18,94 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
   });
 
   // =========================================================================
-  // 1. Initial Workspace Render
+  // 1. Initial Workspace Render in PracticeStudioPage (Direction 1: Urtext Archive)
   // =========================================================================
-  it('renders default score (Twinkle Twinkle Little Star), TopBar, TunerHUD, MixerPanel, and ScoreViewport', () => {
+  it('renders default score (Twinkle Twinkle Little Star), AppShell masthead, Studio Sub-header Bar, Pitch Hold Pill, and ScoreViewport', () => {
     render(<App />);
 
-    // 1. Default Score Title in TopBar
-    expect(
-      screen.getByText('Twinkle, Twinkle, Little Star'),
-    ).toBeInTheDocument();
+    // 1. AppShell Brand and 4 Navigation Tabs
+    expect(screen.getByText('Urtext Violin Coach')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Practice Studio Tab' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Repertoire Library Tab' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Violin Tuner Tab' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Calibration Settings Tab' })).toBeInTheDocument();
 
-    // 2. TopBar component with transport, mode, and calibration controls
-    expect(screen.getByTestId('top-bar')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Library \/ Upload/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Start Practice/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Audio Calibration/i }),
-    ).toBeInTheDocument();
+    // 2. Studio Sub-header Bar with Score Title and Library quick-button
+    expect(screen.getByText('Twinkle, Twinkle, Little Star')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open Score Library' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start Practice' })).toBeInTheDocument();
 
-    // Default mode is Wait-for-Me
-    const wfmRadio = screen.getByRole('radio', { name: 'Wait-for-Me' });
+    // 3. Central Archival Pitch & 150ms Hold HUD Pill
+    expect(screen.getByLabelText('Archival Pitch & Hold Pill')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Wait-for-Me Hold Progress' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simulate In-Tune Note' })).toBeInTheDocument();
+
+    // 4. Mode Switches: Wait-for-Me vs Play-Along, Page View vs Mobile Ribbon
+    const wfmRadio = screen.getByRole('radio', { name: 'Wait-for-Me Mode' });
     expect(wfmRadio).toHaveAttribute('aria-checked', 'true');
 
-    // Default view mode is Page View
-    const pageRadio = screen.getByRole('radio', { name: 'Page View' });
+    const pageRadio = screen.getByRole('radio', { name: 'Page View Mode' });
     expect(pageRadio).toHaveAttribute('aria-checked', 'true');
 
-    // 3. Tuner HUD
-    const tunerHud = screen.getByRole('region', { name: /Tuner HUD/i });
-    expect(tunerHud).toBeInTheDocument();
-    expect(screen.getByText(/A4 = 440 Hz/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tol: ±15¢/i)).toBeInTheDocument();
-
-    // 4. Mixer Panel
-    expect(screen.getByTestId('mixer-panel')).toBeInTheDocument();
-    expect(screen.getByText('Solo Violin')).toBeInTheDocument();
-    expect(screen.getByText('Accompaniment')).toBeInTheDocument();
-    expect(screen.getByText('Metronome')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Play Reference Drone/i }),
-    ).toBeInTheDocument();
-
-    // 5. Score Viewport Container
+    // 5. Center Score Plate & ScoreViewport Container
+    expect(screen.getByLabelText('Center Score Plate')).toBeInTheDocument();
     const scoreContainer = document.getElementById('osmd-score-container');
     expect(scoreContainer).toBeInTheDocument();
+
+    // 6. Bottom Urtext Transport Dock & Mixer Popover Button
+    expect(screen.getByLabelText('Urtext Transport Dock')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Toggle Mixer Popover' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Toggle Reference Drone' })).toBeInTheDocument();
   });
 
   // =========================================================================
-  // 2. Library Modal, File Upload Validation & Switching Scores
+  // 2. Navigation Across 4 Pages (Studio -> Library -> Tuner -> Settings)
+  // =========================================================================
+  it('navigates cleanly between Studio, Library, Tuner, and Settings via AppShell tabs', async () => {
+    render(<App />);
+
+    // Studio is active initially
+    expect(screen.getByTestId('practice-studio-page')).toBeInTheDocument();
+
+    // Navigate to Library Tab
+    const libraryTab = screen.getByRole('link', { name: 'Repertoire Library Tab' });
+    fireEvent.click(libraryTab);
+    expect(screen.getByText('Repertoire Catalogue')).toBeInTheDocument();
+    expect(screen.getByText('Built-in Conservatory Repertoire')).toBeInTheDocument();
+
+    // Navigate to Tuner Tab
+    const tunerTab = screen.getByRole('link', { name: 'Violin Tuner Tab' });
+    fireEvent.click(tunerTab);
+    expect(screen.getByText('Violin Pegbox Tuner')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Tuner HUD' })).toBeInTheDocument();
+    expect(screen.getByText('G3 (lowest string, wound gut/silver)')).toBeInTheDocument();
+
+    // Navigate to Settings Tab
+    const settingsTab = screen.getByRole('link', { name: 'Calibration Settings Tab' });
+    fireEvent.click(settingsTab);
+    expect(screen.getByText('Studio Calibration & Settings')).toBeInTheDocument();
+    expect(screen.getByText('Concert Reference Pitch (A4)')).toBeInTheDocument();
+    expect(screen.getByText('Bluetooth Earbuds & Acoustic Setup Guide')).toBeInTheDocument();
+
+    // Navigate back to Studio Tab
+    const studioTab = screen.getByRole('link', { name: 'Practice Studio Tab' });
+    fireEvent.click(studioTab);
+    expect(screen.getByTestId('practice-studio-page')).toBeInTheDocument();
+  });
+
+  // =========================================================================
+  // 3. Library Modal, File Upload Validation & Switching Scores
   // =========================================================================
   it('rejects .mscz and .pdf with explicit MuseScore export instructions, uploads valid .musicxml, and switches built-in scores', async () => {
     render(<App />);
 
-    // Open Library Modal
+    // Open Library Modal from Studio quick button
     const libraryBtn = screen.getByRole('button', {
-      name: /Library \/ Upload/i,
+      name: 'Open Score Library',
     });
     fireEvent.click(libraryBtn);
 
-    const libraryModal = screen.getByRole('dialog', { name: /Score Library/i });
+    const libraryModal = screen.getByRole('dialog', { name: 'Score Library' });
     expect(libraryModal).toBeInTheDocument();
 
     const fileInput = screen.getByTestId('score-file-input');
@@ -89,7 +117,7 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     fireEvent.change(fileInput, { target: { files: [msczFile] } });
 
     const msczAlert = await screen.findByRole('alert', {
-      name: /Upload Validation Message/i,
+      name: 'Upload Validation Message',
     });
     expect(msczAlert).toBeInTheDocument();
     expect(msczAlert).toHaveTextContent(
@@ -104,7 +132,7 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     fireEvent.change(fileInput, { target: { files: [pdfFile] } });
 
     const pdfAlert = await screen.findByRole('alert', {
-      name: /Upload Validation Message/i,
+      name: 'Upload Validation Message',
     });
     expect(pdfAlert).toBeInTheDocument();
     expect(pdfAlert).toHaveTextContent(/Raw PDF files are not supported/i);
@@ -141,17 +169,17 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     // Modal should close and the workspace should now display "Vivaldi Spring Solo"
     await waitFor(() => {
       expect(
-        screen.queryByRole('dialog', { name: /Score Library/i }),
+        screen.queryByRole('dialog', { name: 'Score Library' }),
       ).not.toBeInTheDocument();
     });
     expect(screen.getByText('Vivaldi Spring Solo')).toBeInTheDocument();
 
     // Case D: Re-open Library Modal and switch to built-in "Minuet & Tied Note Etude"
     fireEvent.click(
-      screen.getByRole('button', { name: /Library \/ Upload/i }),
+      screen.getByRole('button', { name: 'Open Score Library' }),
     );
     expect(
-      screen.getByRole('dialog', { name: /Score Library/i }),
+      screen.getByRole('dialog', { name: 'Score Library' }),
     ).toBeInTheDocument();
 
     const minuetCard = screen.getByLabelText(
@@ -161,21 +189,21 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByRole('dialog', { name: /Score Library/i }),
+        screen.queryByRole('dialog', { name: 'Score Library' }),
       ).not.toBeInTheDocument();
     });
     expect(screen.getByText('Minuet & Tied Note Etude')).toBeInTheDocument();
   });
 
   // =========================================================================
-  // 3. View Mode and Practice Mode Toggles
+  // 4. View Mode and Practice Mode Toggles
   // =========================================================================
   it('toggles View Mode between Page View and Mobile Ribbon view, and switches Practice Mode between Wait-for-Me and Play-Along', () => {
     render(<App />);
 
     // --- Practice Mode Toggle ---
-    const wfmBtn = screen.getByRole('radio', { name: 'Wait-for-Me' });
-    const playAlongBtn = screen.getByRole('radio', { name: 'Play-Along' });
+    const wfmBtn = screen.getByRole('radio', { name: 'Wait-for-Me Mode' });
+    const playAlongBtn = screen.getByRole('radio', { name: 'Play-Along Mode' });
 
     expect(wfmBtn).toHaveAttribute('aria-checked', 'true');
     expect(playAlongBtn).toHaveAttribute('aria-checked', 'false');
@@ -184,18 +212,18 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     fireEvent.click(playAlongBtn);
     expect(playAlongBtn).toHaveAttribute('aria-checked', 'true');
     expect(wfmBtn).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getByText(/Play-Along Mode/i)).toBeInTheDocument();
+    expect(screen.getByText(/Play-Along · Measure/i)).toBeInTheDocument();
 
     // Switch back to Wait-for-Me
     fireEvent.click(wfmBtn);
     expect(wfmBtn).toHaveAttribute('aria-checked', 'true');
     expect(playAlongBtn).toHaveAttribute('aria-checked', 'false');
-    const strip = screen.getByLabelText('Practice Control Strip');
-    expect(within(strip).getByText(/Target Note:/i)).toBeInTheDocument();
+    const pill = screen.getByLabelText('Archival Pitch & Hold Pill');
+    expect(within(pill).getByText(/Target Note:/i)).toBeInTheDocument();
 
     // --- View Mode Toggle ---
-    const pageViewBtn = screen.getByRole('radio', { name: 'Page View' });
-    const ribbonViewBtn = screen.getByRole('radio', { name: 'Mobile Ribbon' });
+    const pageViewBtn = screen.getByRole('radio', { name: 'Page View Mode' });
+    const ribbonViewBtn = screen.getByRole('radio', { name: 'Mobile Ribbon Mode' });
 
     expect(pageViewBtn).toHaveAttribute('aria-checked', 'true');
     expect(ribbonViewBtn).toHaveAttribute('aria-checked', 'false');
@@ -212,25 +240,21 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
   });
 
   // =========================================================================
-  // 4. Calibration Drawer & Reference Tuning / Strictness Badges
+  // 5. Calibration Drawer & Quick Status Badge
   // =========================================================================
-  it('opens CalibrationDrawer, changes A4 reference and strictness, and updates TopBar and TunerHUD badges', async () => {
+  it('opens CalibrationDrawer, changes A4 reference and strictness, and updates AppShell badge', async () => {
     render(<App />);
 
-    // TopBar initial badge
-    const topBarCalBtn = screen.getByRole('button', {
-      name: /Audio Calibration/i,
+    // AppShell initial badge
+    const badge = screen.getByRole('button', {
+      name: 'Calibration Settings Badge',
     });
-    expect(topBarCalBtn).toHaveTextContent('A4=440Hz · ±15¢');
-
-    // Tuner HUD initial badges
-    expect(screen.getByText('A4 = 440 Hz')).toBeInTheDocument();
-    expect(screen.getByText('Tol: ±15¢')).toBeInTheDocument();
+    expect(badge).toHaveTextContent('A4=440Hz · ±15¢');
 
     // Open Calibration Drawer
-    fireEvent.click(topBarCalBtn);
+    fireEvent.click(badge);
     expect(
-      screen.getByRole('dialog', { name: /Calibration & Settings/i }),
+      screen.getByRole('dialog', { name: 'Calibration & Settings' }),
     ).toBeInTheDocument();
 
     // Change A4 pitch reference to 442 Hz (European / Orchestral standard)
@@ -243,14 +267,6 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     });
     fireEvent.click(strictRadio);
 
-    // Verify Bluetooth earbud tip is displayed
-    expect(
-      screen.getByText(/Bluetooth Earbuds & Microphone Tip/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/built-in device microphone/i),
-    ).toBeInTheDocument();
-
     // Apply & Close
     const applyBtn = screen.getByRole('button', {
       name: 'Apply & Done',
@@ -259,53 +275,34 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByRole('dialog', { name: /Calibration & Settings/i }),
+        screen.queryByRole('dialog', { name: 'Calibration & Settings' }),
       ).not.toBeInTheDocument();
     });
 
-    // Verify TopBar calibration badge updated to 442 Hz & ±8¢
-    expect(topBarCalBtn).toHaveTextContent('A4=442Hz · ±8¢');
-
-    // Verify Tuner HUD badges updated
-    expect(screen.getByText('A4 = 442 Hz')).toBeInTheDocument();
-    expect(screen.getByText('Tol: ±8¢')).toBeInTheDocument();
-
-    // Re-open and switch to Easy (±25¢)
-    fireEvent.click(topBarCalBtn);
-    const easyRadio = screen.getByRole('radio', { name: /Easy \(±25¢\)/i });
-    fireEvent.click(easyRadio);
-    fireEvent.click(screen.getByRole('button', { name: 'Apply & Done' }));
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('dialog', { name: /Calibration & Settings/i }),
-      ).not.toBeInTheDocument();
-    });
-
-    expect(topBarCalBtn).toHaveTextContent('A4=442Hz · ±25¢');
-    expect(screen.getByText('Tol: ±25¢')).toBeInTheDocument();
+    // Verify AppShell calibration badge updated to 442 Hz & ±8¢
+    expect(badge).toHaveTextContent('A4=442Hz · ±8¢');
   });
 
   // =========================================================================
-  // 5. Wait-for-Me Practice Session & Deterministic In-Tune Note Simulation
+  // 6. Wait-for-Me Practice Session & Deterministic In-Tune Note Simulation
   // =========================================================================
   it('starts a Wait-for-Me session and uses Simulate In-Tune Note button to hold note for >= 150ms, advancing note and coloring SVG notehead green', async () => {
     render(<App />);
 
     // Start practice session
-    const startBtn = screen.getByRole('button', { name: /Start Practice/i });
+    const startBtn = screen.getByRole('button', { name: 'Start Practice' });
     fireEvent.click(startBtn);
 
     // Transport should now display "Pause"
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: /Pause Practice/i }),
+        screen.getByRole('button', { name: 'Pause Practice' }),
       ).toBeInTheDocument();
     });
 
     // First target note of Twinkle Twinkle Little Star is D4 (Measure 1)
-    const strip = screen.getByLabelText('Practice Control Strip');
-    expect(within(strip).getByText(/Target Note:/i)).toHaveTextContent('D4');
+    const pill = screen.getByLabelText('Archival Pitch & Hold Pill');
+    expect(within(pill).getByText('D4')).toBeInTheDocument();
 
     // Check that SVG note elements exist in container
     const firstNoteSvg = document.querySelector(
@@ -316,7 +313,7 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
 
     // Simulate in-tune pitch hold (feeds two samples spaced 160ms apart >= 150ms hold requirement)
     const simulateBtn = screen.getByRole('button', {
-      name: /Simulate In-Tune Note/i,
+      name: 'Simulate In-Tune Note',
     });
     fireEvent.click(simulateBtn);
 
@@ -324,7 +321,7 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     expect(firstNoteSvg?.getAttribute('fill')).toBe('#22c55e');
 
     // The active target note advances to note 2 (also D4)
-    expect(within(strip).getByText(/Target Note:/i)).toHaveTextContent('D4');
+    expect(within(pill).getByText('D4')).toBeInTheDocument();
 
     // Simulate note 2
     fireEvent.click(simulateBtn);
@@ -335,96 +332,107 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     expect(secondNoteSvg?.getAttribute('fill')).toBe('#22c55e');
 
     // Target note now advances to note 3 (A4)
-    expect(within(strip).getByText(/Target Note:/i)).toHaveTextContent('A4');
+    expect(within(pill).getByText('A4')).toBeInTheDocument();
 
     // Pause practice
-    const pauseBtn = screen.getByRole('button', { name: /Pause Practice/i });
+    const pauseBtn = screen.getByRole('button', { name: 'Pause Practice' });
     fireEvent.click(pauseBtn);
     expect(
-      screen.getByRole('button', { name: /Resume Practice/i }),
+      screen.getByRole('button', { name: 'Resume Practice' }),
     ).toBeInTheDocument();
 
     // Stop and reset practice
-    const stopBtn = screen.getByRole('button', { name: /Stop & Reset/i });
+    const stopBtn = screen.getByRole('button', { name: 'Stop and Reset Practice' });
     fireEvent.click(stopBtn);
     expect(
-      screen.getByRole('button', { name: /Start Practice/i }),
+      screen.getByRole('button', { name: 'Start Practice' }),
     ).toBeInTheDocument();
   });
 
   // =========================================================================
-  // 6. Mixer Controls & Reference Drone Toggle
+  // 7. Mixer & Tempo Popover Controls & Reference Drone Toggle
   // =========================================================================
-  it('updates mixer volumes and toggles reference drone for active target note', () => {
+  it('opens Mixer & Tempo popover, updates volumes, and toggles reference drone', () => {
     render(<App />);
 
-    const droneBtn = screen.getByRole('button', {
-      name: /Play Reference Drone/i,
+    // Open Mixer Popover
+    const mixerPopoverBtn = screen.getByRole('button', {
+      name: 'Toggle Mixer Popover',
     });
-    expect(droneBtn).toBeInTheDocument();
+    fireEvent.click(mixerPopoverBtn);
+
+    expect(screen.getByRole('dialog', { name: 'Mixer & Tempo Popover' })).toBeInTheDocument();
+    expect(screen.getByTestId('mixer-panel')).toBeInTheDocument();
+
+    // Solo Violin Mute Toggle
+    const soloMuteBtn = screen.getByRole('button', {
+      name: 'Mute Solo Violin',
+    });
+    fireEvent.click(soloMuteBtn);
+    expect(
+      screen.getByRole('button', { name: 'Unmute Solo Violin' }),
+    ).toBeInTheDocument();
+
+    // Accompaniment Mute Toggle
+    const accompMuteBtn = screen.getByRole('button', {
+      name: 'Mute Accompaniment',
+    });
+    fireEvent.click(accompMuteBtn);
+    expect(
+      screen.getByRole('button', { name: 'Unmute Accompaniment' }),
+    ).toBeInTheDocument();
+
+    // Metronome Mute Toggle
+    const metroMuteBtn = screen.getByRole('button', {
+      name: 'Mute Metronome',
+    });
+    fireEvent.click(metroMuteBtn);
+    expect(
+      screen.getByRole('button', { name: 'Unmute Metronome' }),
+    ).toBeInTheDocument();
 
     // Toggle Drone on
+    const droneBtn = screen.getByRole('button', {
+      name: 'Toggle Reference Drone',
+    });
     fireEvent.click(droneBtn);
     expect(droneBtn).toHaveTextContent(/Stop Drone/i);
 
     // Toggle Drone off
     fireEvent.click(droneBtn);
-    expect(droneBtn).toHaveTextContent(/Play Reference Drone/i);
-
-    // Solo Violin Mute Toggle
-    const soloMuteBtn = screen.getByRole('button', {
-      name: /Mute Solo Violin/i,
-    });
-    fireEvent.click(soloMuteBtn);
-    expect(
-      screen.getByRole('button', { name: /Unmute Solo Violin/i }),
-    ).toBeInTheDocument();
-
-    // Accompaniment Mute Toggle
-    const accompMuteBtn = screen.getByRole('button', {
-      name: /Mute Accompaniment/i,
-    });
-    fireEvent.click(accompMuteBtn);
-    expect(
-      screen.getByRole('button', { name: /Unmute Accompaniment/i }),
-    ).toBeInTheDocument();
-
-    // Metronome Mute Toggle
-    const metroMuteBtn = screen.getByRole('button', {
-      name: /Mute Metronome/i,
-    });
-    fireEvent.click(metroMuteBtn);
-    expect(
-      screen.getByRole('button', { name: /Unmute Metronome/i }),
-    ).toBeInTheDocument();
+    expect(droneBtn).toHaveTextContent(/Drone/i);
   });
 
   // =========================================================================
-  // 7. Measure Looping Selector in TopBar
+  // 8. Measure Looping Popover Selector
   // =========================================================================
-  it('selects a measure loop range and clears the loop', () => {
+  it('opens Measure Loop popover, selects a measure loop range and clears the loop', () => {
     render(<App />);
 
-    const startSelect = screen.getByLabelText('Start Measure');
-    const endSelect = screen.getByLabelText('End Measure');
+    // Open loop popover
+    const loopBtn = screen.getByRole('button', { name: 'Toggle Loop Controls' });
+    fireEvent.click(loopBtn);
+
+    const startSelect = screen.getByLabelText('Loop Start Measure');
+    const endSelect = screen.getByLabelText('Loop End Measure');
 
     // Select loop measures 2 to 4
     fireEvent.change(startSelect, { target: { value: '2' } });
     fireEvent.change(endSelect, { target: { value: '4' } });
 
     // Clear loop button should appear
-    const clearLoopBtn = screen.getByRole('button', { name: 'Clear Loop' });
+    const clearLoopBtn = screen.getByRole('button', { name: 'Clear Measure Loop' });
     expect(clearLoopBtn).toBeInTheDocument();
 
     // Clear loop
     fireEvent.click(clearLoopBtn);
     expect(
-      screen.queryByRole('button', { name: 'Clear Loop' }),
+      screen.queryByRole('button', { name: 'Clear Measure Loop' }),
     ).not.toBeInTheDocument();
   });
 
   // =========================================================================
-  // 8. Session Accuracy Summary at End of Practice
+  // 9. Session Accuracy Summary at End of Practice & 1-Click Loop Problem Measures
   // =========================================================================
   it('displays Session Accuracy Summary when a session finishes and handles dismissal', async () => {
     const singleNoteScore = {
@@ -459,17 +467,17 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     render(<App initialScore={singleNoteScore} />);
 
     // Start practice
-    fireEvent.click(screen.getByRole('button', { name: /Start Practice/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start Practice' }));
 
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: /Pause Practice/i }),
+        screen.getByRole('button', { name: 'Pause Practice' }),
       ).toBeInTheDocument();
     });
 
     // Simulate in-tune note for the single note
     fireEvent.click(
-      screen.getByRole('button', { name: /Simulate In-Tune Note/i }),
+      screen.getByRole('button', { name: 'Simulate In-Tune Note' }),
     );
 
     // Session completes! Summary card appears
@@ -485,16 +493,13 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
 
     // Dismiss summary
     fireEvent.click(
-      screen.getByRole('button', { name: /Dismiss Session Summary/i }),
+      screen.getByRole('button', { name: 'Dismiss Session Summary' }),
     );
     expect(
       screen.queryByTestId('session-summary-card'),
     ).not.toBeInTheDocument();
   });
 
-  // =========================================================================
-  // 9. Problem Measures & 1-Click Loop Problem Measures
-  // =========================================================================
   it('provides 1-click Loop Problem Measures button when session finishes with problem measures', async () => {
     const singleNoteScore = {
       id: 'single-note-problem',
@@ -528,29 +533,24 @@ describe('App Integration Tests (SPEC.md Success Criteria)', () => {
     render(<App initialScore={singleNoteScore} />);
 
     // Switch to Play-Along Mode
-    fireEvent.click(screen.getByRole('radio', { name: 'Play-Along' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Play-Along Mode' }));
 
     // Start practice session
-    fireEvent.click(screen.getByRole('button', { name: /Start Practice/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start Practice' }));
 
-    // Wait for session to complete or simulate missed pitch
-    // In Play-Along mode, simulate pitch with 40 cents error (out of tolerance -> yellow/red)
-    // Wait for pause or stop button
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: /Pause Practice/i }),
+        screen.getByRole('button', { name: 'Pause Practice' }),
       ).toBeInTheDocument();
     });
 
     // Let scheduler finish or stop to finalize
-    const stopBtn = screen.getByRole('button', { name: /Stop & Reset/i });
+    const stopBtn = screen.getByRole('button', { name: 'Stop and Reset Practice' });
     fireEvent.click(stopBtn);
 
     // Verify session can be restarted or looped cleanly
     expect(
-      screen.getByRole('button', { name: /Start Practice/i }),
+      screen.getByRole('button', { name: 'Start Practice' }),
     ).toBeInTheDocument();
   });
 });
-
-

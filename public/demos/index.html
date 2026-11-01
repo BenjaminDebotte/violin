@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Violin Coach Hallmark Design Showcase: 4 distinct, tactile, standalone interactive design proposals for the Violin Coach PWA redesign.">
+  <title>Violin Coach: Hallmark Design Proposals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cardo:wght@400;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+/* Hallmark · custom · idea: "Showcase launcher for the 4 Violin Coach Hallmark redesign directions" · vibe: "curatorial, tactile, rigorous, architectural" · axes: light/humanist-grotesk/cool · genre: editorial · nav: edge-aligned title · footer: provenance mast */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · weakest: S, anchored every card to real violin practice ergonomics at 70 to 90cm stand distance */
+:root {
+  --color-paper: oklch(96.2% 0.012 85);
+  --color-paper-2: oklch(92.5% 0.016 85);
+  --color-paper-3: oklch(88.5% 0.020 85);
+
+  --color-ink: oklch(17.5% 0.016 245);
+  --color-ink-2: oklch(32.0% 0.018 245);
+  --color-muted: oklch(48.0% 0.014 245);
+  --color-rule: oklch(80.0% 0.012 245);
+
+  --color-accent: oklch(46.0% 0.165 245);
+  --color-accent-ink: oklch(98.0% 0.005 245);
+  --color-focus: oklch(52.0% 0.180 245);
+
+  /* Demo Accent Previews */
+  --color-dir1: oklch(46.0% 0.165 245);
+  --color-dir2: oklch(78.0% 0.165 75);
+  --color-dir3: oklch(66.0% 0.185 55);
+  --color-dir4: oklch(55.0% 0.235 33);
+
+  --color-shadow: oklch(17.5% 0.016 245 / 0.08);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-display: 'Cardo', Georgia, serif;
+  --font-body: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 9999px;
+  --border-rule: 1px solid var(--color-rule);
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+html {
+  scrollbar-color: var(--color-rule) var(--color-paper);
+  caret-color: var(--color-accent);
+}
+
+html, body {
+  overflow-x: clip;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.05;
+  margin: 0;
+  overflow-wrap: break-word;
+  min-width: 0;
+  text-wrap: balance;
+}
+
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* Header Masthead */
+.showcase-masthead {
+  border-bottom: var(--border-rule);
+  background-color: var(--color-paper);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.showcase-title {
+  font-size: 26px;
+  color: var(--color-ink);
+}
+
+.showcase-subtitle {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* Main Container */
+.main-wrapper {
+  max-width: 1320px;
+  margin-inline: auto;
+  width: 100%;
+  padding: var(--space-6) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+/* Introduction Hero */
+.intro-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 78ch;
+}
+
+.intro-lead {
+  font-size: 18px;
+  color: var(--color-ink-2);
+  line-height: 1.5;
+}
+
+.intro-facts {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--color-muted);
+  border-left: 2px solid var(--color-accent);
+  padding-left: var(--space-3);
+}
+
+/* 4 Proposals Grid */
+.directions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.direction-card {
+  background-color: var(--color-paper-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-4);
+  box-shadow: 0 2px 8px var(--color-shadow);
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.direction-card:hover {
+  background-color: var(--color-paper-3);
+}
+
+.card-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.card-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.card-heading {
+  font-size: 22px;
+  color: var(--color-ink);
+}
+
+.card-vibe {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-ink-2);
+}
+
+.card-desc {
+  font-size: 14px;
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
+.spec-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--color-rule);
+  padding-top: var(--space-2);
+}
+
+.spec-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+.btn-launch {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  display: inline-block;
+  cursor: pointer;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.btn-launch:hover {
+  opacity: 0.92;
+}
+
+.btn-launch:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.btn-launch:active {
+  transform: translateY(1px);
+}
+
+/* Comparison Matrix */
+.matrix-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.matrix-title {
+  font-size: 24px;
+  color: var(--color-ink);
+}
+
+.matrix-table-wrap {
+  background-color: var(--color-paper-2);
+  border: var(--border-rule);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.matrix-table th {
+  padding: var(--space-3) var(--space-4);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  border-bottom: var(--border-rule);
+  background-color: var(--color-paper-3);
+}
+
+.matrix-table td {
+  padding: var(--space-3) var(--space-4);
+  font-size: 13px;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Footer */
+.showcase-footer {
+  border-top: var(--border-rule);
+  background-color: var(--color-paper);
+  padding: var(--space-4) var(--space-6);
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* Reduced Motion Fallback */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+  </style>
+</head>
+<body>
+
+  <!-- Masthead -->
+  <header class="showcase-masthead">
+    <div>
+      <h1 class="showcase-title">Violin Coach PWA</h1>
+      <div class="showcase-subtitle">Hallmark Design System Proposals</div>
+    </div>
+    <span class="tabular" style="font-size: 12px; color: var(--color-muted);">Stand Ergonomics: 70 to 90 cm Stand Distance</span>
+  </header>
+
+  <!-- Content -->
+  <main class="main-wrapper">
+
+    <!-- Introduction Section -->
+    <section class="intro-box" aria-label="Proposal Overview">
+      <h2>Acoustic craft, stand ergonomics, zero AI clichés</h2>
+      <p class="intro-lead">
+        A violinist practicing at a music stand plays with both hands occupied, instrument under jaw, and bow in hand. Feedback must be registerable within a 0.2 second glance from 70 to 90 cm away without breaking bowing posture.
+      </p>
+      <div class="intro-facts">
+        <span>85 to 90% score viewport dominance</span>
+        <span>150ms hold-to-lock pitch feedback</span>
+        <span>Delay-forgiving Play-Along window ([-100ms, +350ms])</span>
+        <span>Real Web Audio reference drone synthesis</span>
+      </div>
+    </section>
+
+    <!-- 4 Proposals Interactive Grid -->
+    <section aria-label="Interactive Design Directions">
+      <div class="directions-grid">
+
+        <!-- Direction 1: Urtext Archive -->
+        <article class="direction-card">
+          <div class="card-top">
+            <h3 class="card-heading">Direction 1: Urtext Archive</h3>
+            <div class="card-vibe">The Engraver’s Study</div>
+            <p class="card-desc">
+              Inspired by historic European Urtext editions. Cotton-rag ground softens blue-light glare; Prussian Blue accent maintains quiet conservatory discipline.
+            </p>
+            <div class="spec-list">
+              <div class="spec-item"><span>Display face:</span> <strong>Cardo (600)</strong></div>
+              <div class="spec-item"><span>Tabular mono:</span> <strong>JetBrains Mono</strong></div>
+              <div class="spec-item"><span>Accent:</span> <strong>Henle Prussian Blue</strong></div>
+              <div class="spec-item"><span>Signature:</span> <strong>Circular 150ms hold ring</strong></div>
+              <div class="spec-item"><span>Tuner:</span> <strong>Engraved pegbox & dial</strong></div>
+            </div>
+          </div>
+          <a href="direction-1-urtext.html" class="btn-launch">Launch Direction 1 Demo</a>
+        </article>
+
+        <!-- Direction 2: Nocturne Stage -->
+        <article class="direction-card">
+          <div class="card-top">
+            <h3 class="card-heading">Direction 2: Nocturne Stage</h3>
+            <div class="card-vibe">Concert Hall Darkness</div>
+            <p class="card-desc">
+              Auditorium darkness after hours. Obsidian surround recedes, leaving illuminated parchment score glowing under 2700K tungsten lamp light.
+            </p>
+            <div class="spec-list">
+              <div class="spec-item"><span>Display face:</span> <strong>Familjen Grotesk (700)</strong></div>
+              <div class="spec-item"><span>Tabular mono:</span> <strong>Atkinson Hyperlegible</strong></div>
+              <div class="spec-item"><span>Accent:</span> <strong>2700K Tungsten Brass</strong></div>
+              <div class="spec-item"><span>Signature:</span> <strong>Concentric hold glow</strong></div>
+              <div class="spec-item"><span>Tuner:</span> <strong>72px room-scale tuner</strong></div>
+            </div>
+          </div>
+          <a href="direction-2-nocturne.html" class="btn-launch">Launch Direction 2 Demo</a>
+        </article>
+
+        <!-- Direction 3: Cremona Bench -->
+        <article class="direction-card">
+          <div class="card-top">
+            <h3 class="card-heading">Direction 3: Cremona Bench</h3>
+            <div class="card-vibe">Luthier’s Workshop</div>
+            <p class="card-desc">
+              Rooted in violin making craft. Flamed maple vellum, aged walnut iron-gall ink, double hairlines, and natural violin rosin amber dust.
+            </p>
+            <div class="spec-list">
+              <div class="spec-item"><span>Display face:</span> <strong>Castoro (600)</strong></div>
+              <div class="spec-item"><span>Tabular mono:</span> <strong>IBM Plex Mono</strong></div>
+              <div class="spec-item"><span>Accent:</span> <strong>Violin Rosin Amber</strong></div>
+              <div class="spec-item"><span>Signature:</span> <strong>Rosin capsule hold</strong></div>
+              <div class="spec-item"><span>Tuner:</span> <strong>Physical peg silhouettes</strong></div>
+            </div>
+          </div>
+          <a href="direction-3-cremona.html" class="btn-launch">Launch Direction 3 Demo</a>
+        </article>
+
+        <!-- Direction 4: Acoustic Bauhaus -->
+        <article class="direction-card">
+          <div class="card-top">
+            <h3 class="card-heading">Direction 4: Acoustic Bauhaus</h3>
+            <div class="card-vibe">The Metronome Lab</div>
+            <p class="card-desc">
+              Mechanical metronome engineering and Dieter Rams functionalism. Uncompromising modular grid, zero-radius corners, and oscilloscope reticle precision.
+            </p>
+            <div class="spec-list">
+              <div class="spec-item"><span>Display face:</span> <strong>Jost (700)</strong></div>
+              <div class="spec-item"><span>Tabular mono:</span> <strong>Chivo Mono</strong></div>
+              <div class="spec-item"><span>Accent:</span> <strong>Wittner Vermilion</strong></div>
+              <div class="spec-item"><span>Signature:</span> <strong>Capacitor charge bar</strong></div>
+              <div class="spec-item"><span>Tuner:</span> <strong>Oscilloscope reticle target</strong></div>
+            </div>
+          </div>
+          <a href="direction-4-bauhaus.html" class="btn-launch">Launch Direction 4 Demo</a>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- Comparison Matrix Section -->
+    <section class="matrix-section" aria-label="System Comparison">
+      <h2 class="matrix-title">System Comparison Matrix</h2>
+      <div class="matrix-table-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>1: Urtext Archive</th>
+              <th>2: Nocturne Stage</th>
+              <th>3: Cremona Bench</th>
+              <th>4: Acoustic Bauhaus</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Genre</strong></td>
+              <td>Editorial</td>
+              <td>Atmospheric / Nocturne</td>
+              <td>Editorial / Craft</td>
+              <td>Modern-Minimal</td>
+            </tr>
+            <tr>
+              <td><strong>Surround Ground</strong></td>
+              <td>Archival cotton rag (L 96%)</td>
+              <td>Auditorium obsidian (L 14.5%)</td>
+              <td>Flamed maple vellum (L 94.5%)</td>
+              <td>Studio lab putty (L 93.5%)</td>
+            </tr>
+            <tr>
+              <td><strong>Score Plate</strong></td>
+              <td>Warm ivory plate (L 96.8%)</td>
+              <td>Illuminated bone plate (L 95%)</td>
+              <td>Unbleached rag paper (L 96.2%)</td>
+              <td>Technical proof white (L 98.5%)</td>
+            </tr>
+            <tr>
+              <td><strong>Accent Hue</strong></td>
+              <td>Henle Prussian Blue (245°)</td>
+              <td>Tungsten Stand Brass (75°)</td>
+              <td>Violin Rosin Amber (55°)</td>
+              <td>Wittner Vermilion (33°)</td>
+            </tr>
+            <tr>
+              <td><strong>Display Font</strong></td>
+              <td>Cardo Serif</td>
+              <td>Familjen Grotesk</td>
+              <td>Castoro Roman Serif</td>
+              <td>Jost Geometric</td>
+            </tr>
+            <tr>
+              <td><strong>Tabular Numerals</strong></td>
+              <td>JetBrains Mono</td>
+              <td>Atkinson Hyperlegible</td>
+              <td>IBM Plex Mono</td>
+              <td>Chivo Mono</td>
+            </tr>
+            <tr>
+              <td><strong>150ms Hold Feedback</strong></td>
+              <td>Circular clock-hand needle</td>
+              <td>Concentric glowing ring</td>
+              <td>Rosin progress capsule</td>
+              <td>Capacitor charge bar</td>
+            </tr>
+            <tr>
+              <td><strong>Tuner Interface</strong></td>
+              <td>Engraved pegbox & dial</td>
+              <td>72px room-scale HUD</td>
+              <td>Physical pegs with friction collars</td>
+              <td>Oscilloscope reticle & bars</td>
+            </tr>
+            <tr>
+              <td><strong>Corner Radius</strong></td>
+              <td>Disciplined 2px</td>
+              <td>Smooth 4px to 8px pill</td>
+              <td>Organic 2px</td>
+              <td>Strict 0px (Square)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="showcase-footer">
+    <span>Violin Coach PWA · 4 Hallmark Design Proposals</span>
+    <span>Standalone HTML & CSS & Web Audio · Ready for Browser & Stand Testing</span>
+  </footer>
+
+</body>
+</html>

@@ -245,14 +245,14 @@
 **Description:** Build `src/pages/PracticeStudioPage.tsx` where 85–90% of the viewport is dedicated to the sheet music (`ScoreViewport` on an unbleached warm ivory plate), accompanied by a compact top-center **Archival Pitch & 150ms Hold Pill** (with circular clock-hand SVG progress ring, live pitch/cents readout, and "Simulate In-Tune Note" test button) and a clean **Bottom Transport Dock** (`Wait-for-Me` vs `Play-Along`, `Start Practice` / `Pause` / `Stop & Reset`, `Page View` vs `Mobile Ribbon`, `Reference Drone` button, and toggleable popovers for `Mixer & Tempo` and `Measure Loop`). Connect all 4 pages in `src/App.tsx` and update `tests/integration/app.test.tsx`.
 
 **Acceptance criteria:**
-- [ ] `PracticeStudioPage` dedicates the primary canvas to `ScoreViewport`, shows the compact Pitch & 150ms Hold Pill, and houses `MixerPanel` and Measure Loop controls in accessible popovers/drawers from the Bottom Transport Dock.
-- [ ] `App.tsx` coordinates the 4 browsable pages (`studio`, `library`, `tuner`, `settings`) while preserving modal/drawer quick-access and all `SPEC.md` Success Criteria.
-- [ ] All unit and integration tests in `tests/integration/app.test.tsx` pass (`npm test -- --run`, `npm run typecheck`, `npm run build`).
+- [x] `PracticeStudioPage` dedicates the primary canvas to `ScoreViewport`, shows the compact Pitch & 150ms Hold Pill, and houses `MixerPanel` and Measure Loop controls in accessible popovers/drawers from the Bottom Transport Dock.
+- [x] `App.tsx` coordinates the 4 browsable pages (`studio`, `library`, `tuner`, `settings`) while preserving modal/drawer quick-access and all `SPEC.md` Success Criteria.
+- [x] All unit and integration tests in `tests/integration/app.test.tsx` pass (`npm test -- --run`, `npm run typecheck`, `npm run build`).
 
 **Verification:**
-- [ ] Tests pass: `npm test -- --run`
-- [ ] Build succeeds: `npm run build`
-- [ ] Typecheck passes: `npm run typecheck`
+- [x] Tests pass: `npm test -- --run`
+- [x] Build succeeds: `npm run build`
+- [x] Typecheck passes: `npm run typecheck`
 
 **Dependencies:** Task 7, Task 8
 
@@ -264,3 +264,11 @@
 - `tests/integration/app.test.tsx`
 
 **Estimated scope:** Medium (5 files)
+
+---
+
+## Checkpoint 4: Complete (After Task 9)
+- [x] All unit and integration tests pass (`npm test -- --run`)
+- [x] Production build succeeds with zero TypeScript errors (`npm run build`, `npm run typecheck`)
+- [x] All 4 browsable views (Studio, Library, Tuner, Settings) styled in Direction 1: Urtext Archive
+- [x] All 5 `SPEC.md` Success Criteria verified

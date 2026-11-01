@@ -90,18 +90,26 @@ export function CalibrationDrawer({
       role="dialog"
       aria-modal="true"
       aria-label="Calibration & Settings"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+        className="rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border font-sans"
+        style={{
+          backgroundColor: 'var(--color-paper)',
+          borderColor: 'var(--color-rule)',
+          color: 'var(--color-ink)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+        <div
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: 'var(--color-rule)' }}
+        >
           <div className="flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-bold text-slate-100">
+            <Sliders className="w-5 h-5" style={{ color: 'var(--color-accent)' }} />
+            <h2 className="font-display text-lg font-bold">
               Audio Calibration & Strictness
             </h2>
           </div>
@@ -109,7 +117,8 @@ export function CalibrationDrawer({
             type="button"
             onClick={onClose}
             aria-label="Close Calibration"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded text-xs hover:opacity-75 cursor-pointer"
+            style={{ color: 'var(--color-muted)' }}
           >
             <X className="w-5 h-5" />
           </button>
@@ -122,20 +131,22 @@ export function CalibrationDrawer({
             <div className="flex items-center justify-between mb-2">
               <label
                 htmlFor="calibration-a4-slider"
-                className="text-sm font-semibold text-slate-200"
+                className="text-sm font-semibold"
+                style={{ color: 'var(--color-ink)' }}
               >
-                A4 Reference Pitch: <span className="text-emerald-400 font-mono">{referenceA4Hz} Hz</span>
+                A4 Reference Pitch: <span className="font-mono font-bold" style={{ color: 'var(--color-accent)' }}>{referenceA4Hz} Hz</span>
               </label>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => onReferenceA4Change(440)}
                   aria-label="Set A4 to 440 Hz"
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition cursor-pointer ${
-                    referenceA4Hz === 440
-                      ? 'bg-emerald-600 text-white border-emerald-500'
-                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                  }`}
+                  className="px-2.5 py-1 rounded text-xs font-mono font-medium border transition cursor-pointer"
+                  style={{
+                    backgroundColor: referenceA4Hz === 440 ? 'var(--color-accent)' : 'var(--color-paper-2)',
+                    borderColor: referenceA4Hz === 440 ? 'var(--color-accent)' : 'var(--color-rule)',
+                    color: referenceA4Hz === 440 ? 'var(--color-accent-ink)' : 'var(--color-ink)',
+                  }}
                 >
                   440 Hz (Std)
                 </button>
@@ -143,19 +154,26 @@ export function CalibrationDrawer({
                   type="button"
                   onClick={() => onReferenceA4Change(442)}
                   aria-label="Set A4 to 442 Hz"
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition cursor-pointer ${
-                    referenceA4Hz === 442
-                      ? 'bg-emerald-600 text-white border-emerald-500'
-                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                  }`}
+                  className="px-2.5 py-1 rounded text-xs font-mono font-medium border transition cursor-pointer"
+                  style={{
+                    backgroundColor: referenceA4Hz === 442 ? 'var(--color-accent)' : 'var(--color-paper-2)',
+                    borderColor: referenceA4Hz === 442 ? 'var(--color-accent)' : 'var(--color-rule)',
+                    color: referenceA4Hz === 442 ? 'var(--color-accent-ink)' : 'var(--color-ink)',
+                  }}
                 >
                   442 Hz (Orch)
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
-              <span className="text-xs text-slate-500 font-mono">438 Hz</span>
+            <div
+              className="flex items-center gap-4 p-3 rounded-lg border"
+              style={{
+                backgroundColor: 'var(--color-paper-2)',
+                borderColor: 'var(--color-rule)',
+              }}
+            >
+              <span className="text-xs font-mono" style={{ color: 'var(--color-muted)' }}>438 Hz</span>
               <input
                 id="calibration-a4-slider"
                 type="range"
@@ -165,19 +183,20 @@ export function CalibrationDrawer({
                 value={referenceA4Hz}
                 onChange={(e) => onReferenceA4Change(parseInt(e.target.value, 10))}
                 aria-label="Reference A4 Hz Slider"
-                className="flex-1 accent-emerald-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                className="flex-1 h-2 rounded-lg cursor-pointer"
+                style={{ accentColor: 'var(--color-accent)' }}
               />
-              <span className="text-xs text-slate-500 font-mono">445 Hz</span>
+              <span className="text-xs font-mono" style={{ color: 'var(--color-muted)' }}>445 Hz</span>
             </div>
           </div>
 
           {/* Intonation Strictness */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-slate-200">
+              <span className="text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
                 Intonation Strictness
               </span>
-              <span className="text-xs text-emerald-400 font-mono font-medium">
+              <span className="text-xs font-mono font-medium" style={{ color: 'var(--color-accent)' }}>
                 Active: ±{currentTolerance}¢
               </span>
             </div>
@@ -193,23 +212,23 @@ export function CalibrationDrawer({
                     aria-checked={isSelected}
                     tabIndex={0}
                     aria-label={opt.label}
-                    className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between ${
-                      isSelected
-                        ? 'bg-emerald-950/40 border-emerald-500/80 shadow-md shadow-emerald-950/30'
-                        : 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600'
-                    }`}
+                    className="p-3 rounded-lg border transition cursor-pointer flex flex-col justify-between"
+                    style={{
+                      backgroundColor: isSelected ? 'var(--color-paper-3)' : 'var(--color-paper-2)',
+                      borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-rule)',
+                    }}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-semibold text-slate-100">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--color-ink)' }}>
                         {opt.id === 'custom'
                           ? `Custom (±${customToleranceCents}¢)`
                           : opt.label}
                       </span>
                       {isSelected && (
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <Check className="w-4 h-4 shrink-0" style={{ color: 'var(--color-accent)' }} />
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 leading-snug">
+                    <p className="text-xs leading-snug" style={{ color: 'var(--color-muted)' }}>
                       {opt.description}
                     </p>
                   </div>
@@ -219,20 +238,27 @@ export function CalibrationDrawer({
 
             {/* Custom Strictness Slider */}
             {strictness === 'custom' && (
-              <div className="mt-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2 animate-in fade-in">
+              <div
+                className="mt-3 p-3.5 rounded-lg border space-y-2 animate-in fade-in"
+                style={{
+                  backgroundColor: 'var(--color-paper-2)',
+                  borderColor: 'var(--color-rule)',
+                }}
+              >
                 <div className="flex items-center justify-between text-xs">
                   <label
                     htmlFor="calibration-custom-cents"
-                    className="text-slate-300 font-medium"
+                    className="font-medium"
+                    style={{ color: 'var(--color-ink)' }}
                   >
                     Custom Tolerance Window:
                   </label>
-                  <span className="font-mono text-emerald-400 font-bold">
+                  <span className="font-mono font-bold" style={{ color: 'var(--color-accent)' }}>
                     ±{customToleranceCents}¢
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-slate-500 font-mono">±3¢</span>
+                  <span className="text-[11px] font-mono" style={{ color: 'var(--color-muted)' }}>±3¢</span>
                   <input
                     id="calibration-custom-cents"
                     type="range"
@@ -244,39 +270,63 @@ export function CalibrationDrawer({
                       onCustomToleranceCentsChange(parseInt(e.target.value, 10))
                     }
                     aria-label="Custom Tolerance Cents Slider"
-                    className="flex-1 accent-emerald-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                    className="flex-1 h-2 rounded-lg cursor-pointer"
+                    style={{ accentColor: 'var(--color-accent)' }}
                   />
-                  <span className="text-[11px] text-slate-500 font-mono">±40¢</span>
+                  <span className="text-[11px] font-mono" style={{ color: 'var(--color-muted)' }}>±40¢</span>
                 </div>
               </div>
             )}
           </div>
 
           {/* Bluetooth Earbuds & Microphone Advice Tip */}
-          <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2">
-            <div className="flex items-center gap-2 text-emerald-400 text-sm font-semibold">
+          <div
+            className="rounded-lg p-4 space-y-2 border"
+            style={{
+              backgroundColor: 'var(--color-paper-2)',
+              borderColor: 'var(--color-rule)',
+            }}
+          >
+            <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>
               <Headphones className="w-4 h-4 shrink-0" />
               <span>Bluetooth Earbuds & Microphone Tip</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-ink-2)' }}>
               When playing with wireless Bluetooth earbuds (like AirPods), two-way voice protocol degrades microphone sampling and introduces delay.
             </p>
-            <div className="flex items-start gap-2 bg-slate-900/90 rounded-lg p-2.5 border border-slate-800 text-xs text-slate-400">
-              <Mic className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div
+              className="flex items-start gap-2 rounded p-2.5 border text-xs"
+              style={{
+                backgroundColor: 'var(--color-paper)',
+                borderColor: 'var(--color-rule)',
+                color: 'var(--color-muted)',
+              }}
+            >
+              <Mic className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'var(--color-accent)' }} />
               <p>
-                <strong className="text-slate-200">Recommendation:</strong> Select your laptop or phone&apos;s <strong className="text-emerald-400">built-in device microphone</strong> in the Tuner HUD selector while listening to playback through your Bluetooth earbuds. This delivers pristine acoustic violin pitch pickup without wireless audio distortion.
+                <strong style={{ color: 'var(--color-ink)' }}>Recommendation:</strong> Select your laptop or phone&apos;s <strong style={{ color: 'var(--color-accent)' }}>built-in device microphone</strong> in the Tuner HUD selector while listening to playback through your Bluetooth earbuds. This delivers pristine acoustic violin pitch pickup without wireless audio distortion.
               </p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/50 flex justify-end">
+        <div
+          className="px-6 py-3 border-t flex justify-end"
+          style={{
+            borderColor: 'var(--color-rule)',
+            backgroundColor: 'var(--color-paper-2)',
+          }}
+        >
           <button
             type="button"
             onClick={onClose}
             aria-label="Apply & Done"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-md transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded text-xs font-semibold shadow-xs transition cursor-pointer"
+            style={{
+              backgroundColor: 'var(--color-accent)',
+              color: 'var(--color-accent-ink)',
+            }}
           >
             <Sparkles className="w-4 h-4" />
             <span>Apply & Done</span>

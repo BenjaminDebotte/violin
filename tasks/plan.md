@@ -46,12 +46,12 @@ Shared Domain Contracts (src/types/music.ts)
 - [x] All unit and integration tests pass, production PWA bundle builds with zero TypeScript/lint errors, and all 5 Spec Success Criteria are verified.
 
 ### Phase 4: Hallmark UX Redesign — Direction 1 (Urtext Archive) & 4-Page Browsable Navigation
-- [ ] **Task 7:** Urtext Archive Design Tokens, Typography & 4-Page AppShell Masthead (`S`)
-- [ ] **Task 8:** Dedicated `LibraryPage`, 4-String `TunerPage`, and `SettingsPage` Views (`M`)
-- [ ] **Task 9:** Distraction-Free `PracticeStudioPage`, Popover Drawers & Multi-Page Integration Tests (`M`)
+- [x] **Task 7:** Urtext Archive Design Tokens, Typography & 4-Page AppShell Masthead (`S`)
+- [x] **Task 8:** Dedicated `LibraryPage`, 4-String `TunerPage`, and `SettingsPage` Views (`M`)
+- [x] **Task 9:** Distraction-Free `PracticeStudioPage`, Popover Drawers & Multi-Page Integration Tests (`M`)
 
 ### Checkpoint 4: Urtext Archive 4-Page UX Complete
-- [ ] All unit and integration tests pass, zero TypeScript errors, and all 4 browsable pages match Direction 1 (Urtext Archive).
+- [x] All unit and integration tests pass, zero TypeScript errors, and all 4 browsable pages match Direction 1 (Urtext Archive).
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |

@@ -171,24 +171,33 @@ export function LibraryModal({
       role="dialog"
       aria-modal="true"
       aria-label="Score Library"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+        className="rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border font-sans"
+        style={{
+          backgroundColor: 'var(--color-paper)',
+          borderColor: 'var(--color-rule)',
+          color: 'var(--color-ink)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+        <div
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: 'var(--color-rule)' }}
+        >
           <div className="flex items-center gap-2">
-            <Music className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-bold text-slate-100">Score Library</h2>
+            <Music className="w-5 h-5" style={{ color: 'var(--color-accent)' }} />
+            <h2 className="font-display text-lg font-bold">Score Library</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close Library"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded text-xs hover:opacity-75 cursor-pointer"
+            style={{ color: 'var(--color-muted)' }}
           >
             <X className="w-5 h-5" />
           </button>
@@ -198,7 +207,7 @@ export function LibraryModal({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Upload / Drag & Drop Area */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-2 font-display" style={{ color: 'var(--color-ink)' }}>
               Import MusicXML Score
             </h3>
             <div
@@ -206,11 +215,11 @@ export function LibraryModal({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition ${
-                isDragging
-                  ? 'border-emerald-500 bg-emerald-950/20'
-                  : 'border-slate-700 hover:border-slate-500 bg-slate-950/50 hover:bg-slate-950/80'
-              }`}
+              className="border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition"
+              style={{
+                borderColor: isDragging ? 'var(--color-accent)' : 'var(--color-rule)',
+                backgroundColor: isDragging ? 'var(--color-paper-3)' : 'var(--color-paper-2)',
+              }}
             >
               <input
                 ref={fileInputRef}
@@ -221,16 +230,16 @@ export function LibraryModal({
                 className="hidden"
                 disabled={isUploading}
               />
-              <Upload className="w-8 h-8 text-emerald-400 mb-2" />
-              <p className="text-sm font-medium text-slate-200">
+              <Upload className="w-8 h-8 mb-2" style={{ color: 'var(--color-accent)' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--color-ink)' }}>
                 {isUploading
                   ? 'Processing score file...'
                   : 'Click or drop score file to upload'}
               </p>
-              <p className="text-xs text-slate-400 mt-1">
-                Accepts <span className="font-mono text-emerald-400">.musicxml</span>,{' '}
-                <span className="font-mono text-emerald-400">.xml</span>, and{' '}
-                <span className="font-mono text-emerald-400">.mxl</span>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
+                Accepts <span className="font-mono font-bold" style={{ color: 'var(--color-accent)' }}>.musicxml</span>,{' '}
+                <span className="font-mono font-bold" style={{ color: 'var(--color-accent)' }}>.xml</span>, and{' '}
+                <span className="font-mono font-bold" style={{ color: 'var(--color-accent)' }}>.mxl</span>
               </p>
             </div>
 
@@ -239,12 +248,17 @@ export function LibraryModal({
               <div
                 role="alert"
                 aria-label="Upload Validation Message"
-                className="mt-3 p-4 rounded-xl bg-amber-950/50 border border-amber-800/80 text-amber-200 text-sm flex items-start gap-3"
+                className="mt-3 p-4 rounded-xl text-sm flex items-start gap-3 border"
+                style={{
+                  backgroundColor: 'oklch(72.0% 0.150 82 / 0.15)',
+                  borderColor: 'var(--color-intonation-close)',
+                  color: 'var(--color-ink)',
+                }}
               >
-                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--color-intonation-close)' }} />
                 <div className="space-y-1">
-                  <p className="font-semibold text-amber-300">File Notice</p>
-                  <p className="text-xs sm:text-sm text-amber-200 leading-relaxed">
+                  <p className="font-bold text-xs uppercase tracking-wide" style={{ color: 'var(--color-ink)' }}>File Notice</p>
+                  <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--color-ink-2)' }}>
                     {uploadError}
                   </p>
                 </div>
@@ -254,7 +268,7 @@ export function LibraryModal({
 
           {/* Built-in Scores Section */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-3 font-display" style={{ color: 'var(--color-ink)' }}>
               Built-in Demo Scores
             </h3>
             <div className="grid grid-cols-1 gap-2.5">
@@ -270,34 +284,40 @@ export function LibraryModal({
                     role="button"
                     tabIndex={0}
                     aria-label={`Select ${score.title}`}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border transition cursor-pointer text-left ${
-                      isActive
-                        ? 'bg-emerald-950/40 border-emerald-500/80 shadow-md shadow-emerald-950/40'
-                        : 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600'
-                    }`}
+                    className="flex items-center justify-between p-3.5 rounded-xl border transition cursor-pointer text-left"
+                    style={{
+                      backgroundColor: isActive ? 'var(--color-paper-3)' : 'var(--color-paper-2)',
+                      borderColor: isActive ? 'var(--color-accent)' : 'var(--color-rule)',
+                    }}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <FileMusic
-                        className={`w-5 h-5 shrink-0 ${
-                          isActive ? 'text-emerald-400' : 'text-slate-400'
-                        }`}
+                        className="w-5 h-5 shrink-0"
+                        style={{ color: isActive ? 'var(--color-accent)' : 'var(--color-muted)' }}
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-100 truncate">
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-ink)' }}>
                           {score.title}
                         </p>
-                        <p className="text-xs text-slate-400 font-mono">
+                        <p className="text-xs font-mono" style={{ color: 'var(--color-muted)' }}>
                           {score.fileName} · Part 1 Solo Violin + Accompaniment
                         </p>
                       </div>
                     </div>
                     {isActive ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0">
+                      <span
+                        className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0"
+                        style={{
+                          backgroundColor: 'oklch(60.0% 0.155 148 / 0.15)',
+                          borderColor: 'var(--color-intonation-match)',
+                          color: 'var(--color-intonation-match)',
+                        }}
+                      >
                         <Check className="w-3.5 h-3.5" />
                         Active
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400 hover:text-emerald-400 font-medium shrink-0">
+                      <span className="text-xs font-medium shrink-0" style={{ color: 'var(--color-accent)' }}>
                         Load Score →
                       </span>
                     )}
@@ -309,11 +329,18 @@ export function LibraryModal({
 
           {/* User Uploaded Scores Section */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-3 font-display" style={{ color: 'var(--color-ink)' }}>
               Your Uploaded Scores
             </h3>
             {userList.length === 0 ? (
-              <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/80 text-center text-xs text-slate-500">
+              <div
+                className="p-4 rounded-xl border text-center text-xs"
+                style={{
+                  backgroundColor: 'var(--color-paper-2)',
+                  borderColor: 'var(--color-rule)',
+                  color: 'var(--color-muted)',
+                }}
+              >
                 No custom scores uploaded yet. Export your piece from MuseScore as .musicxml or .mxl and upload it above.
               </div>
             ) : (
@@ -330,30 +357,36 @@ export function LibraryModal({
                       role="button"
                       tabIndex={0}
                       aria-label={`Select ${score.title}`}
-                      className={`flex items-center justify-between p-3.5 rounded-xl border transition cursor-pointer text-left ${
-                        isActive
-                          ? 'bg-emerald-950/40 border-emerald-500/80 shadow-md'
-                          : 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600'
-                      }`}
+                      className="flex items-center justify-between p-3.5 rounded-xl border transition cursor-pointer text-left"
+                      style={{
+                        backgroundColor: isActive ? 'var(--color-paper-3)' : 'var(--color-paper-2)',
+                        borderColor: isActive ? 'var(--color-accent)' : 'var(--color-rule)',
+                      }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <FileMusic
-                          className={`w-5 h-5 shrink-0 ${
-                            isActive ? 'text-emerald-400' : 'text-slate-400'
-                          }`}
+                          className="w-5 h-5 shrink-0"
+                          style={{ color: isActive ? 'var(--color-accent)' : 'var(--color-muted)' }}
                         />
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-100 truncate">
+                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-ink)' }}>
                             {score.title}
                           </p>
-                          <p className="text-xs text-slate-400 font-mono truncate">
+                          <p className="text-xs font-mono truncate" style={{ color: 'var(--color-muted)' }}>
                             {score.fileName}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {isActive && (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                          <span
+                            className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border"
+                            style={{
+                              backgroundColor: 'oklch(60.0% 0.155 148 / 0.15)',
+                              borderColor: 'var(--color-intonation-match)',
+                              color: 'var(--color-intonation-match)',
+                            }}
+                          >
                             <Check className="w-3 h-3" />
                             Active
                           </span>
@@ -362,7 +395,8 @@ export function LibraryModal({
                           type="button"
                           onClick={(e) => handleDeleteScore(e, score.id)}
                           aria-label={`Delete ${score.title}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition cursor-pointer"
+                          className="p-1.5 rounded text-xs hover:opacity-75 transition cursor-pointer"
+                          style={{ color: 'var(--color-intonation-miss)' }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
