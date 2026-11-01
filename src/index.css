@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: dark;
   /* Direction 1: Urtext Archive Color Tokens */
   --color-paper: oklch(96.2% 0.012 85);
   --color-paper-2: oklch(93.0% 0.016 85);
