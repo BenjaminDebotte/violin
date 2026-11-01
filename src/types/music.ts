@@ -70,6 +70,16 @@ export interface NoteEvaluationResult {
   readonly onsetDeltaMs: number | null;
 }
 
+export interface PracticeSessionSummary {
+  readonly totalNotes: number;
+  readonly greenCount: number;
+  readonly yellowCount: number;
+  readonly redCount: number;
+  readonly accuracyPercent: number;
+  readonly averageAbsCentsDelta: number | null;
+  readonly problemMeasures: readonly number[];
+}
+
 export type PracticeMode = 'wait-for-me' | 'play-along';
 
 export type IntonationStrictness = 'easy' | 'medium' | 'strict' | 'custom';
@@ -95,7 +105,7 @@ export interface PracticeSettings {
   readonly referenceA4Hz: number;
   readonly strictness: IntonationStrictness;
   readonly customToleranceCents: number;
-  readonly countInBars: 1 | 2;
+  readonly countInBars: 0 | 1 | 2;
   readonly loopRange: MeasureLoopRange | null;
   readonly selectedMicDeviceId: string | null;
   readonly viewMode: 'page' | 'ribbon';

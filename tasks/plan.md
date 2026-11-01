@@ -39,7 +39,7 @@ Shared Domain Contracts (src/types/music.ts)
 - [x] All pitch math, median filter, and scheduler tests pass; live mic tuner and independent Solo/Accompaniment/Metronome/Drone volume controls work cleanly.
 
 ### Phase 3: Interactive Practice Coach & End-to-End Integration
-- [ ] **Task 5:** Practice Coach State Machine — Wait-for-Me, Delay-Forgiving Play-Along & Measure Looping (`M`)
+- [x] **Task 5:** Practice Coach State Machine — Wait-for-Me, Delay-Forgiving Play-Along & Measure Looping (`M`)
 - [ ] **Task 6:** Unified Practice Workspace, PWA Manifest & Integration Verification (`M`)
 
 ### Checkpoint 3: Complete

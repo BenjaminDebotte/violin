@@ -131,14 +131,14 @@
 3. **Measure Loop Controller:** Constrains practice between any user-selected `startMeasure` and `endMeasure` with configurable count-in bars.
 
 **Acceptance criteria:**
-- [ ] Wait-for-Me mode requires `>= 150ms` of continuous in-tune pitch (via `audioTimeSec` deltas) to advance; brief drops reset the stability accumulator; tied notes advance smoothly as a single target.
-- [ ] Play-Along mode forgives up to `+350ms` onset lag (simulating Bluetooth earbuds) and grades notes `green` ($\le 1\times$ tolerance), `yellow` ($\le 2\times$ tolerance), or `red` ($> 2\times$ tolerance or silent).
-- [ ] Measure looping wraps playback and cursor position cleanly back to `startMeasure` (with optional count-in) upon completing `endMeasure`.
+- [x] Wait-for-Me mode requires `>= 150ms` of continuous in-tune pitch (via `audioTimeSec` deltas) to advance; brief drops reset the stability accumulator; tied notes advance smoothly as a single target.
+- [x] Play-Along mode forgives up to `+350ms` onset lag (simulating Bluetooth earbuds) and grades notes `green` ($\le 1\times$ tolerance), `yellow` ($\le 2\times$ tolerance), or `red` ($> 2\times$ tolerance or silent).
+- [x] Measure looping wraps playback and cursor position cleanly back to `startMeasure` (with optional count-in) upon completing `endMeasure`.
 
 **Verification:**
-- [ ] Tests pass: `npm test -- --run tests/unit/practice-coach.test.ts`
-- [ ] Build succeeds: `npm run build`
-- [ ] Manual check: Step through Wait-for-Me and Play-Along state transitions in tests.
+- [x] Tests pass: `npm test -- --run tests/unit/practice-coach.test.ts`
+- [x] Build succeeds: `npm run build`
+- [x] Manual check: Step through Wait-for-Me and Play-Along state transitions in tests.
 
 **Dependencies:** Task 2, Task 3, Task 4
 

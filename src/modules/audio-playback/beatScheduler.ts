@@ -166,6 +166,24 @@ export class BeatScheduler {
   }
 
   /**
+   * Seeks scheduler position to a specific measure number.
+   */
+  public seekToMeasure(measureNumber: number): void {
+    const activeMeasures = this._getActiveMeasures();
+    const idx = activeMeasures.findIndex((m) => m.measureNumber >= measureNumber);
+    if (idx !== -1) {
+      this._currentMeasureIndex = idx;
+      this._currentBeatInMeasure = 0;
+      this._allMeasuresScheduled = false;
+      this._pendingUiEvents = [];
+      if (this._isPlaying) {
+        this._audioEngine.stopActiveNotes();
+        this._nextEventAudioTime = this._audioContext.currentTime;
+      }
+    }
+  }
+
+  /**
    * Starts playback from the first eligible measure (with count-in if countInBars > 0).
    */
   public start(): void {
