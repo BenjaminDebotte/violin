@@ -67,14 +67,14 @@
 **Description:** Build the `pitch-detection` module: pure frequency-to-MIDI/cents math with configurable A4 reference (438–445 Hz), clarity (`>= 0.85`) and RMS silence gating, and a 3-frame median filter to eliminate violin G3/D4 missing-fundamental octave jumps. Connect a decoupled 20ms Web Audio `AnalyserNode` loop running `pitchy` (`PitchDetector.forFloat32Array(2048)`) that requests unfiltered mic access (`echoCancellation: false, noiseSuppression: false, autoGainControl: false`), dynamically reads `audioContext.sampleRate`, supports post-permission `enumerateDevices()` microphone selection, and drives a glanceable `TunerHUD` component.
 
 **Acceptance criteria:**
-- [ ] `frequencyToCentsDelta` and `detectClosestMidiNote` accurately compute cents deviation for any reference A4 (438–445 Hz).
-- [ ] The 3-frame median filter + clarity (`>= 0.85`) + RMS gate rejects bow-attack noise spikes and single-frame octave jumps in deterministic unit tests.
-- [ ] `MicSessionManager` requests `{ echoCancellation: false, noiseSuppression: false, autoGainControl: false }`, reads `audioContext.sampleRate` dynamically, lists available audio input devices via `enumerateDevices()`, and streams `PitchSample` events stamped with `audioContext.currentTime`.
+- [x] `frequencyToCentsDelta` and `detectClosestMidiNote` accurately compute cents deviation for any reference A4 (438–445 Hz).
+- [x] The 3-frame median filter + clarity (`>= 0.85`) + RMS gate rejects bow-attack noise spikes and single-frame octave jumps in deterministic unit tests.
+- [x] `MicSessionManager` requests `{ echoCancellation: false, noiseSuppression: false, autoGainControl: false }`, reads `audioContext.sampleRate` dynamically, lists available audio input devices via `enumerateDevices()`, and streams `PitchSample` events stamped with `audioContext.currentTime`.
 
 **Verification:**
-- [ ] Tests pass: `npm test -- --run tests/unit/pitch-detection.test.ts`
-- [ ] Build succeeds: `npm run build`
-- [ ] Manual check: Verify `TunerHUD` displays live note name, cent needle/bar, and microphone selector.
+- [x] Tests pass: `npm test -- --run tests/unit/pitch-detection.test.ts`
+- [x] Build succeeds: `npm run build`
+- [x] Manual check: Verify `TunerHUD` displays live note name, cent needle/bar, and microphone selector.
 
 **Dependencies:** Task 1
 

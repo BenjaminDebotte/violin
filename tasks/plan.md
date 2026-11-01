@@ -26,13 +26,13 @@ Shared Domain Contracts (src/types/music.ts)
 
 ### Phase 1: Foundation & Score Engine
 - [x] **Task 1:** Project Scaffold, Domain Contracts & Built-in Demo Scores (`S`)
-- [ ] **Task 2:** Score Engine — File Validator, Timeline Extractor, IndexedDB Store & OSMD Viewport (`M`)
+- [x] **Task 2:** Score Engine — File Validator, Timeline Extractor, IndexedDB Store & OSMD Viewport (`M`)
 
 ### Checkpoint 1: Foundation & Score Rendering
-- [ ] All unit tests pass (`npm test -- --run`), app builds cleanly (`npm run build`), and demo scores render in both Desktop Page and Mobile Horizontal Ribbon modes.
+- [x] All unit tests pass (`npm test -- --run`), app builds cleanly (`npm run build`), and demo scores render in both Desktop Page and Mobile Horizontal Ribbon modes.
 
 ### Phase 2: Pitch Detection & Audio Playback Engines
-- [ ] **Task 3:** Violin Pitch Detection Engine & Live Tuner HUD (`M`)
+- [x] **Task 3:** Violin Pitch Detection Engine & Live Tuner HUD (`M`)
 - [ ] **Task 4:** Multi-Track Audio Synthesis, Lookahead Scheduler & 4-Channel Mixer (`M`)
 
 ### Checkpoint 2: Audio & Pitch Engines
