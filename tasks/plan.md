@@ -40,10 +40,10 @@ Shared Domain Contracts (src/types/music.ts)
 
 ### Phase 3: Interactive Practice Coach & End-to-End Integration
 - [x] **Task 5:** Practice Coach State Machine — Wait-for-Me, Delay-Forgiving Play-Along & Measure Looping (`M`)
-- [ ] **Task 6:** Unified Practice Workspace, PWA Manifest & Integration Verification (`M`)
+- [x] **Task 6:** Unified Practice Workspace, PWA Manifest & Integration Verification (`M`)
 
 ### Checkpoint 3: Complete
-- [ ] All unit and integration tests pass, production PWA bundle builds with zero TypeScript/lint errors, and all 5 Spec Success Criteria are verified.
+- [x] All unit and integration tests pass, production PWA bundle builds with zero TypeScript/lint errors, and all 5 Spec Success Criteria are verified.
 
 ## Risks and Mitigations
 | Risk | Impact | Mitigation |

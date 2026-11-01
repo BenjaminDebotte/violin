@@ -275,12 +275,16 @@ export class PracticeController {
 
     // Subscribe to mic pitch detector if available
     if (this._micSessionManager) {
-      if (!this._micSessionManager.isRunning) {
-        await this._micSessionManager.start();
+      try {
+        if (!this._micSessionManager.isRunning) {
+          await this._micSessionManager.start();
+        }
+        this._micUnsubscribe = this._micSessionManager.subscribe((sample) => {
+          this.handlePitchSample(sample);
+        });
+      } catch (err) {
+        console.warn('Microphone not available for practice session:', err);
       }
-      this._micUnsubscribe = this._micSessionManager.subscribe((sample) => {
-        this.handlePitchSample(sample);
-      });
     }
 
     this._emitState();

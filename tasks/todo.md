@@ -157,14 +157,14 @@
 **Description:** Assemble the complete Violin Coach workspace in `App.tsx` with responsive Music Stand navigation (mode selector: Wait-for-Me vs. Play-Along, Measure Loop picker, Reference Drone button, Library & File Upload modal with `.mscz` guidance, Calibration & Mic Settings drawer, and Session Accuracy Summary card), configure `vite-plugin-pwa` for offline installability, and write integration tests covering the full user workflow.
 
 **Acceptance criteria:**
-- [ ] Users can switch between built-in demo scores or upload `.musicxml`/`.mxl` files (saved in `IndexedDB`), and receive clear guidance if uploading `.mscz` or `.pdf`.
-- [ ] Users can practice in both **Wait-for-Me** (with "Play Reference Drone" button and live hold progress bar) and **Play-Along** (with count-in, live green/yellow/red SVG note coloring, and end-of-piece accuracy summary).
-- [ ] All 5 Success Criteria in `SPEC.md` pass automated unit + integration verification and production PWA build (`npm run build`).
+- [x] Users can switch between built-in demo scores or upload `.musicxml`/`.mxl` files (saved in `IndexedDB`), and receive clear guidance if uploading `.mscz` or `.pdf`.
+- [x] Users can practice in both **Wait-for-Me** (with "Play Reference Drone" button and live hold progress bar) and **Play-Along** (with count-in, live green/yellow/red SVG note coloring, and end-of-piece accuracy summary).
+- [x] All 5 Success Criteria in `SPEC.md` pass automated unit + integration verification and production PWA build (`npm run build`).
 
 **Verification:**
-- [ ] Tests pass: `npm test -- --run`
-- [ ] Build succeeds: `npm run build`
-- [ ] Typecheck & lint pass: `npm run typecheck`
+- [x] Tests pass: `npm test -- --run`
+- [x] Build succeeds: `npm run build`
+- [x] Typecheck & lint pass: `npm run typecheck`
 
 **Dependencies:** Task 2, Task 3, Task 4, Task 5
 
@@ -180,7 +180,7 @@
 ---
 
 ## Checkpoint 3: Complete (After Task 6)
-- [ ] All unit and integration tests pass (`npm test -- --run`)
-- [ ] Production build succeeds with PWA manifest and service worker (`npm run build`)
-- [ ] Zero TypeScript errors (`npm run typecheck`)
-- [ ] All 5 `SPEC.md` Success Criteria verified
+- [x] All unit and integration tests pass (`npm test -- --run`)
+- [x] Production build succeeds with PWA manifest and service worker (`npm run build`)
+- [x] Zero TypeScript errors (`npm run typecheck`)
+- [x] All 5 `SPEC.md` Success Criteria verified
