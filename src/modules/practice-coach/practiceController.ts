@@ -16,12 +16,28 @@ import { BeatScheduler } from '../audio-playback/beatScheduler';
 import { MicSessionManager } from '../pitch-detection/micSessionManager';
 import { WaitForMeEvaluator } from './waitForMeEvaluator';
 import { PlayAlongEvaluator, computeSessionSummary } from './playAlongEvaluator';
+import { HintTracker, type HintReason } from './hintTracker';
 
 export interface NoteGradedEvent {
   readonly note: PlayableNote;
   readonly grade: NoteGradeStatus;
   readonly result: NoteEvaluationResult;
   readonly svgTargetIds: readonly string[];
+}
+
+/** A fingering hint on offer for the current target note (Wait-for-Me only). */
+export interface PracticeHint {
+  readonly reason: HintReason;
+  /** Identity of the target note the hint belongs to. */
+  readonly noteKey: string;
+}
+
+/** Emitted when a target note locks after taking long enough that a hint could have helped. */
+export interface HintEpisodeEvent {
+  readonly hintsEnabled: boolean;
+  readonly reason: HintReason | null;
+  readonly lockSec: number;
+  readonly afterHintSec: number | null;
 }
 
 export interface PracticeControllerState {
@@ -41,6 +57,8 @@ export interface PracticeControllerState {
     readonly beat: number;
     readonly total: number;
   } | null;
+  /** Fingering hint for the current target note, or null. */
+  readonly hint: PracticeHint | null;
 }
 
 export type PracticeStateSubscriber = (state: PracticeControllerState) => void;
@@ -53,6 +71,8 @@ export interface PracticeControllerOptions {
   readonly holdDurationSec?: number;
   readonly onStateChange?: PracticeStateSubscriber;
   readonly onNoteGraded?: (event: NoteGradedEvent) => void;
+  readonly onHintEpisode?: (episode: HintEpisodeEvent) => void;
+  readonly hintsEnabled?: boolean;
 }
 
 /**
@@ -69,6 +89,7 @@ export class PracticeController {
   private readonly _micSessionManager: MicSessionManager | null;
   private readonly _onStateChangeCallback?: PracticeStateSubscriber;
   private readonly _onNoteGradedCallback?: (event: NoteGradedEvent) => void;
+  private readonly _onHintEpisodeCallback?: (episode: HintEpisodeEvent) => void;
 
   private _mode: PracticeMode;
   private _tempoScale: number;
@@ -98,6 +119,10 @@ export class PracticeController {
     readonly total: number;
   } | null = null;
 
+  private readonly _hintTracker = new HintTracker();
+  private _hintsEnabled = true;
+  private _hint: PracticeHint | null = null;
+
   private _subscribers = new Set<PracticeStateSubscriber>();
   private _micUnsubscribe: (() => void) | null = null;
   private _playAlongPollTimer: ReturnType<typeof setInterval> | null = null;
@@ -108,6 +133,8 @@ export class PracticeController {
     this._micSessionManager = options.micSessionManager ?? null;
     this._onStateChangeCallback = options.onStateChange;
     this._onNoteGradedCallback = options.onNoteGraded;
+    this._onHintEpisodeCallback = options.onHintEpisode;
+    this._hintsEnabled = options.hintsEnabled ?? true;
 
     const s = options.settings ?? {};
     this._mode = s.mode ?? DEFAULT_PRACTICE_SETTINGS.mode;
@@ -235,6 +262,7 @@ export class PracticeController {
       isDronePlaying: this._isDronePlaying,
       loopCount: this._loopCount,
       countInBeat: this._countInBeat,
+      hint: this._hint,
     };
   }
 
@@ -256,6 +284,7 @@ export class PracticeController {
 
     this._isRunning = true;
     this._isPaused = false;
+    this._resetHint();
     this._sessionSummary = null;
     this._latestNoteGrade = null;
     this._loopCount = 0;
@@ -279,8 +308,9 @@ export class PracticeController {
         if (!this._micSessionManager.isRunning) {
           await this._micSessionManager.start();
         }
-        this._micUnsubscribe = this._micSessionManager.subscribe((sample) => {
-          this.handlePitchSample(sample);
+        this._micUnsubscribe = this._micSessionManager.subscribe((sample, rawSample) => {
+          // The raw sample always carries a hardware timestamp, so silence still advances clocks.
+          this.handlePitchSample(sample, rawSample?.audioTimeSec);
         });
       } catch (err) {
         console.warn('Microphone not available for practice session:', err);
@@ -296,6 +326,7 @@ export class PracticeController {
   public pause(): void {
     if (!this._isRunning || this._isPaused) return;
     this._isPaused = true;
+    this._resetHint();
 
     if (this._mode === 'play-along') {
       this._beatScheduler.pause();
@@ -310,6 +341,7 @@ export class PracticeController {
   public resume(): void {
     if (!this._isRunning || !this._isPaused) return;
     this._isPaused = false;
+    this._resetHint();
 
     if (this._mode === 'play-along') {
       this._beatScheduler.resume();
@@ -325,6 +357,7 @@ export class PracticeController {
     this._isRunning = false;
     this._isPaused = false;
     this._countInBeat = null;
+    this._resetHint();
 
     if (this._mode === 'play-along') {
       this._beatScheduler.stop();
@@ -434,6 +467,7 @@ export class PracticeController {
         }
       }
 
+      this._updateHint(sample, audioTimeSec, step.advanced);
       this._holdProgress = step.holdProgress;
       this._emitState();
     } else {
@@ -503,6 +537,7 @@ export class PracticeController {
 
   public setLoopRange(loopRange: MeasureLoopRange | null): void {
     this._loopRange = loopRange;
+    this._resetHint();
     this._waitForMeEvaluator.setLoopRange(loopRange);
     this._beatScheduler.setLoopRange(loopRange);
 
@@ -512,6 +547,15 @@ export class PracticeController {
       this._currentMeasureNumber = this._activeNote?.measureNumber ?? 1;
     }
     this._emitState();
+  }
+
+  public setHintsEnabled(enabled: boolean): void {
+    if (this._hintsEnabled === enabled) return;
+    this._hintsEnabled = enabled;
+    if (!enabled && this._hint !== null) {
+      this._hint = null;
+      this._emitState();
+    }
   }
 
   public setToleranceCents(cents: number): void {
@@ -535,6 +579,7 @@ export class PracticeController {
   }
 
   public seekToMeasure(measureNumber: number): void {
+    this._resetHint();
     if (this._mode === 'wait-for-me') {
       this._waitForMeEvaluator.seekToMeasure(measureNumber);
       this._activeNote = this._waitForMeEvaluator.currentNote;
@@ -548,6 +593,51 @@ export class PracticeController {
   }
 
   // --- Private Helpers ---
+
+  private _resetHint(): void {
+    this._hintTracker.reset();
+    this._hint = null;
+  }
+
+  /**
+   * Wait-for-Me only. Runs the hint tracker on every sample (also silence) so the "stuck"
+   * clock keeps going, records how long a note took to lock, and exposes a hint only when
+   * hints are on and the reference drone is silent (the drone would be heard as the player).
+   */
+  private _updateHint(sample: PitchSample | null, audioTimeSec: number | undefined, advanced: boolean): void {
+    const t = audioTimeSec ?? sample?.audioTimeSec ?? this._audioEngine.audioContext.currentTime;
+    const tracker = this._hintTracker;
+    const exposed = this._hintsEnabled && !this._isDronePlaying;
+
+    if (advanced && tracker.noteKey !== null && !this._isDronePlaying) {
+      const lockSec = t - tracker.activeSince;
+      const shownAt = tracker.hintShownAt;
+      const reason = this._hintsEnabled ? tracker.hint : null;
+      this._onHintEpisodeCallback?.({
+        hintsEnabled: this._hintsEnabled,
+        reason,
+        lockSec,
+        afterHintSec: reason !== null && shownAt !== null ? t - shownAt : null,
+      });
+    }
+
+    const midi = this._activeNote?.pitch?.midiNumber ?? null;
+    const noteKey = midi !== null ? String(this._waitForMeEvaluator.results.length) : null;
+    const reason = tracker.update({
+      noteKey,
+      targetMidi: midi,
+      audioTimeSec: t,
+      frequencyHz: sample && sample.frequencyHz > 0 ? sample.frequencyHz : null,
+      referenceA4Hz: this._referenceA4Hz,
+      toleranceCents: this._toleranceCents,
+    });
+
+    if (!exposed || reason === null || noteKey === null) {
+      this._hint = null;
+    } else if (this._hint?.noteKey !== noteKey || this._hint.reason !== reason) {
+      this._hint = { reason, noteKey };
+    }
+  }
 
   private _createBeatScheduler(): BeatScheduler {
     return new BeatScheduler({

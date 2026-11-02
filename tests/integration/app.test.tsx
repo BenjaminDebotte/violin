@@ -328,4 +328,25 @@ describe('App integration: mobile-first Songs / Play / Tune / Settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close practice' }));
     expect(screen.getByTestId('songs-page')).toBeInTheDocument();
   });
+
+  // 11. Finger hints ---------------------------------------------------------------------
+  it('switches finger hints off in Settings, remembers it, and keeps the manual finger button', () => {
+    window.location.hash = '#/settings';
+    const { unmount } = render(<App />);
+
+    const toggle = screen.getByRole('switch', { name: 'Show finger hints' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(localStorage.getItem('violin-coach:hints-enabled')).toBe('off');
+    unmount();
+
+    window.location.hash = '#/practice';
+    render(<App />);
+    // The button still works on request, even with automatic hints off
+    fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
+    const hint = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hint).getByText('Open D string')).toBeInTheDocument();
+    expect(within(hint).getByText('G string, finger 2')).toBeInTheDocument();
+  });
 });

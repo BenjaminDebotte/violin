@@ -26,6 +26,7 @@ import {
 } from './types/music';
 import { midiNoteToFrequency } from './modules/pitch-detection/pitchMath';
 import { NotationProvider } from './modules/notation/NotationContext';
+import { loadHintsEnabled, saveHintsEnabled, recordEpisode } from './modules/fingerboard/hintStats';
 import { loadNotation, saveNotation, type NotationSystem } from './modules/notation/noteNames';
 import {
   buildSessionResult,
@@ -82,6 +83,13 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
     setNotation(system);
     saveNotation(system);
   };
+  const [hintsEnabled, setHintsEnabled] = useState<boolean>(() => loadHintsEnabled());
+  const handleHintsEnabledChange = (enabled: boolean) => {
+    setHintsEnabled(enabled);
+    saveHintsEnabled(enabled);
+  };
+  const hintsEnabledRef = useRef(hintsEnabled);
+  hintsEnabledRef.current = hintsEnabled;
   const [referenceA4Hz, setReferenceA4Hz] = useState<number>(440);
   const [strictness, setStrictness] = useState<IntonationStrictness>('medium');
   const [customToleranceCents, setCustomToleranceCents] = useState<number>(15);
@@ -128,6 +136,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
     isDronePlaying: false,
     loopCount: 0,
     countInBeat: null,
+    hint: null,
   });
   const controllerRef = useRef<PracticeController | null>(null);
 
@@ -160,6 +169,8 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
       },
       onStateChange: setControllerState,
       onNoteGraded: handleNoteGraded,
+      hintsEnabled: hintsEnabledRef.current,
+      onHintEpisode: (e) => recordEpisode({ at: Date.now(), ...e }),
     });
     controllerRef.current = controller;
     setControllerState(controller.getState());
@@ -170,6 +181,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
     // Recreated only when the piece or the mode changes; other settings are pushed below.
   }, [timeline, practiceMode]);
 
+  useEffect(() => controllerRef.current?.setHintsEnabled(hintsEnabled), [hintsEnabled]);
   useEffect(() => controllerRef.current?.setToleranceCents(toleranceCents), [toleranceCents]);
   useEffect(() => controllerRef.current?.setReferenceA4Hz(referenceA4Hz), [referenceA4Hz]);
   useEffect(() => controllerRef.current?.setTempoScale(tempoScale), [tempoScale]);
@@ -357,6 +369,8 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
             onSelectedMicDeviceIdChange={setSelectedMicDeviceId}
             notation={notation}
             onNotationChange={handleNotationChange}
+            hintsEnabled={hintsEnabled}
+            onHintsEnabledChange={handleHintsEnabledChange}
           />
         )}
 

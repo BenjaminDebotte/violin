@@ -145,6 +145,10 @@ input[type='range'] {
 }
 
 /* --- Play screen layout ------------------------------------------------------ */
+/* While a fingering hint is showing, shrink the target ring so the dock stays on screen */
+.play-panel[data-hint] .panel-ring { width: 96px; height: 96px; }
+.play-panel[data-hint] .panel-ring > span { font-size: 40px !important; }
+
 .play-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -164,6 +168,7 @@ input[type='range'] {
   .play-panel { gap: 6px !important; padding: 12px !important; }
   .play-panel .panel-hint { visibility: hidden; min-height: 0; height: 0; }
   .play-panel .panel-meter { display: none; }
+  .play-panel .fing-diagram { display: none; }
   .play-panel .panel-ring { width: 96px; height: 96px; }
 }
 @media (min-width: 1024px) {

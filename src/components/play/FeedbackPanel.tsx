@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Hand } from 'lucide-react';
+import { FingeringHint } from './FingeringHint';
+import { fingeringsFor } from '../../modules/fingerboard/fingering';
 import { useNoteName } from '../../modules/notation/NotationContext';
 import type { PracticeControllerState } from '../../modules/practice-coach/practiceController';
 import type { PitchSample, PracticeMode } from '../../types/music';
@@ -59,6 +61,19 @@ export function FeedbackPanel({
 }: FeedbackPanelProps) {
   const noteName = useNoteName();
   const target = controllerState.activeNote?.pitch ?? null;
+
+  // Fingering hint: offered by the controller (stuck / wrong note) or requested with the button.
+  // Both are per target note: they clear when the note locks or changes.
+  const [requested, setRequested] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => {
+    setRequested(false);
+    setDismissed(false);
+  }, [controllerState.activeNote?.id, controllerState.latestNoteGrade]);
+  const canHint = practiceMode === 'wait-for-me' && target !== null && !controllerState.countInBeat;
+  const offered = controllerState.hint !== null && !dismissed;
+  const showHint = canHint && (offered || requested);
+  const hintReason = offered && controllerState.hint ? controllerState.hint.reason : 'request';
   const targetLabel = target ? noteName(target.label) : '--';
 
   // Briefly echo the last graded note when no live pitch is available (e.g. no mic).
@@ -128,6 +143,7 @@ export function FeedbackPanel({
   return (
     <section
       aria-label="Pitch feedback"
+      data-hint={showHint ? 'on' : undefined}
       className="play-panel relative rounded-[28px] p-4 flex flex-col gap-3 transition-colors duration-150"
       style={{ backgroundColor: PANEL_COLORS[reading.verdict], color: 'var(--bone)' }}
     >
@@ -135,6 +151,31 @@ export function FeedbackPanel({
         <p className="panel-hint text-[15px] leading-snug min-h-[2.6em]" style={{ opacity: 0.86 }} aria-live="polite">
           {detail}
         </p>
+        <div className="flex shrink-0 items-center gap-2">
+        {canHint && (
+          <button
+            type="button"
+            onClick={() => {
+              if (showHint) {
+                setRequested(false);
+                setDismissed(true);
+              } else {
+                setDismissed(false);
+                setRequested(true);
+              }
+            }}
+            aria-pressed={showHint}
+            aria-label="Show finger placement"
+            title="Show where the finger goes"
+            className="shrink-0 h-11 w-11 rounded-full inline-flex items-center justify-center cursor-pointer"
+            style={{
+              backgroundColor: showHint ? 'var(--bone)' : 'rgb(246 242 234 / 0.14)',
+              color: showHint ? 'var(--ink)' : 'var(--bone)',
+            }}
+          >
+            <Hand className="w-5 h-5" />
+          </button>
+        )}
         <button
           type="button"
           onClick={onToggleDrone}
@@ -149,6 +190,7 @@ export function FeedbackPanel({
           {droneActive ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           {droneActive ? 'Stop drone' : `Hear ${targetLabel}`}
         </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
@@ -210,6 +252,17 @@ export function FeedbackPanel({
         </div>
       </div>
 
+      {showHint ? (
+        <FingeringHint
+          fingerings={fingeringsFor(target?.midiNumber)}
+          reason={hintReason}
+          onDismiss={() => {
+            setRequested(false);
+            setDismissed(true);
+          }}
+        />
+      ) : (
+        <>
       {/* Cents meter: low (flat) on the left, high (sharp) on the right; the green zone is your tolerance */}
       <div aria-hidden="true" className="panel-meter px-1">
         <div className="relative h-3 rounded-full" style={{ backgroundColor: 'rgb(246 242 234 / 0.16)' }}>
@@ -238,6 +291,8 @@ export function FeedbackPanel({
           <span>High</span>
         </div>
       </div>
+        </>
+      )}
 
       {showSimulate && (
         <button

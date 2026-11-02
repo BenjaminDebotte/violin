@@ -35,14 +35,15 @@ const running = (overrides: Partial<PracticeControllerState> = {}): PracticeCont
   isDronePlaying: false,
   loopCount: 0,
   countInBeat: null,
+  hint: null,
   ...overrides,
 });
 
 const centsAbove = (cents: number) => midiNoteToFrequency(69, 440) * Math.pow(2, cents / 1200);
 
-function renderPanel(frequencyHz: number | null, state = running()) {
+function renderPanel(frequencyHz: number | null, state = running(), system: 'letters' | 'solfege' = 'letters') {
   return render(
-    <NotationProvider system="letters">
+    <NotationProvider system={system}>
       <FeedbackPanel
         controllerState={state}
         practiceMode={state.mode}
@@ -83,6 +84,58 @@ describe('FeedbackPanel live verdicts', () => {
     renderPanel(null, running({ mode: 'play-along', countInBeat: { bar: 1, beat: 3, total: 4 } }));
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('Count-in, beat 3 of 4')).toBeInTheDocument();
+  });
+});
+
+describe('FeedbackPanel fingering hint', () => {
+  const stuck = { reason: 'stuck' as const, noteKey: '0' };
+
+  it('shows nothing until offered or requested, then both positions for A4', () => {
+    renderPanel(null);
+    expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Hold progress' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
+    const hint = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hint).getByText('Where to put your finger')).toBeInTheDocument();
+    expect(within(hint).getByText('Open A string')).toBeInTheDocument();
+    expect(within(hint).getByText('D string, finger 2')).toBeInTheDocument();
+    expect(within(hint).getByText('1st')).toBeInTheDocument();
+    expect(within(hint).getByText('3rd')).toBeInTheDocument();
+    // The hint takes the meter's place; the target note and verdict stay on screen.
+    expect(screen.getByTestId('target-note')).toBeInTheDocument();
+  });
+
+  it('shows an offered hint with its reason and can be dismissed for this note', () => {
+    renderPanel(null, running({ hint: stuck }));
+    const hint = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hint).getByText('Here it is')).toBeInTheDocument();
+    fireEvent.click(within(hint).getByRole('button', { name: 'Hide finger hint' }));
+    expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
+  });
+
+  it('uses the wrong-note headline', () => {
+    renderPanel(null, running({ hint: { reason: 'wrong-note', noteKey: '0' } }));
+    expect(screen.getByText('Not that one. Here it is')).toBeInTheDocument();
+  });
+
+  it('writes strings in Do Ré Mi without octave numbers', () => {
+    renderPanel(null, running({ hint: stuck }), 'solfege');
+    const hint = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hint).getByText('Open La string')).toBeInTheDocument();
+    expect(within(hint).getByText('Ré string, finger 2')).toBeInTheDocument();
+  });
+
+  it('says so when the note is outside 1st and 3rd position', () => {
+    const low: PlayableNote = { ...a4, pitch: { ...a4.pitch!, midiNumber: 50, label: 'D3' } };
+    renderPanel(null, running({ activeNote: low, hint: stuck }));
+    expect(screen.getByText('Outside 1st and 3rd position')).toBeInTheDocument();
+  });
+
+  it('is not offered in Play-Along or during the count-in', () => {
+    renderPanel(null, running({ mode: 'play-along', hint: stuck }));
+    expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show finger placement' })).not.toBeInTheDocument();
   });
 });
 

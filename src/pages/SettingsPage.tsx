@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { RefreshCw, Check } from 'lucide-react';
 import { type NotationSystem, formatNoteName } from '../modules/notation/noteNames';
 import { type IntonationStrictness, getToleranceCents } from '../types/music';
+import { clearEpisodes, loadEpisodes, summarize } from '../modules/fingerboard/hintStats';
 import {
   listAudioInputDevices,
   type AudioInputDeviceInfo,
@@ -18,6 +19,8 @@ export interface SettingsPageProps {
   readonly onSelectedMicDeviceIdChange?: (deviceId: string | null) => void;
   readonly notation?: NotationSystem;
   readonly onNotationChange?: (system: NotationSystem) => void;
+  readonly hintsEnabled?: boolean;
+  readonly onHintsEnabledChange?: (enabled: boolean) => void;
 }
 
 const STRICTNESS_PRESETS: readonly {
@@ -70,6 +73,8 @@ export function SettingsPage({
   onSelectedMicDeviceIdChange,
   notation = 'letters',
   onNotationChange,
+  hintsEnabled = true,
+  onHintsEnabledChange,
 }: SettingsPageProps) {
   const [devices, setDevices] = useState<readonly AudioInputDeviceInfo[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -88,6 +93,10 @@ export function SettingsPage({
   useEffect(() => {
     refreshDevices();
   }, [refreshDevices]);
+
+  const [statsVersion, setStatsVersion] = useState(0);
+  const stats = useMemo(() => summarize(loadEpisodes()), [statsVersion]);
+  const fmt = (v: number | null) => (v === null ? 'n/a' : `${v.toFixed(1)} s`);
 
   const activeToleranceCents = getToleranceCents({ strictness, customToleranceCents });
 
@@ -125,6 +134,47 @@ export function SettingsPage({
                 </button>
               );
             })}
+          </div>
+        </Group>
+
+        <Group
+          title="Finger hints"
+          hint="In Wait for me, shows which string and finger a note is in 1st and 3rd position, after 2 seconds without finding it or when you play a wrong note."
+        >
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hintsEnabled}
+            aria-label="Show finger hints"
+            onClick={() => onHintsEnabledChange?.(!hintsEnabled)}
+            className="w-full min-h-12 px-4 rounded-full inline-flex items-center justify-between text-[17px] font-bold cursor-pointer"
+            style={{
+              backgroundColor: hintsEnabled ? 'var(--ebony)' : 'var(--plate-2)',
+              color: hintsEnabled ? 'var(--bone)' : 'var(--ink)',
+              border: '1px solid var(--rule)',
+            }}
+          >
+            <span>{hintsEnabled ? 'Hints on' : 'Hints off'}</span>
+            <span aria-hidden="true">{hintsEnabled ? '●' : '○'}</span>
+          </button>
+          <div className="text-[14px] leading-snug space-y-1" style={{ color: 'var(--ink-2)' }}>
+            <p>
+              Notes that took 2 s or more to find, kept on this device only. Hints on: {stats.withHints.n} notes,
+              median {fmt(stats.withHints.medianLockSec)} to find
+              {stats.withHints.medianAfterHintSec !== null ? `, ${fmt(stats.withHints.medianAfterHintSec)} after the hint appeared` : ''}.
+              Hints off: {stats.withoutHints.n} notes, median {fmt(stats.withoutHints.medianLockSec)}.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                clearEpisodes();
+                setStatsVersion((v) => v + 1);
+              }}
+              className="min-h-11 px-3 rounded-full text-[14px] font-semibold cursor-pointer"
+              style={{ backgroundColor: 'var(--plate-2)', border: '1px solid var(--rule)', color: 'var(--ink)' }}
+            >
+              Reset counters
+            </button>
           </div>
         </Group>
 

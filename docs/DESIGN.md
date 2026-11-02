@@ -17,6 +17,7 @@ Scope is "upload a score and play it": no lessons, streaks or accounts.
 - Score plate: single-line ribbon on phones, full page on wide screens.
 - Pitch panel: target note in a hold ring, a verdict in words and arrows (In tune / Flat / Sharp, never colour alone), a cents meter. The whole panel floods with the verdict colour so it reads from 70 to 90 cm.
 - Bottom (thumb zone): Wait for me / Play along switch, Stop, Start / Pause, options sheet (tempo, mixer, drone, strictness, count-in).
+- Finger hints (Wait for me): a hand button beside "Hear <note>" and automatic triggers (stuck 2 s, wrong note) show string and finger for 1st and 3rd position in place of the cents meter. See `docs/ideas/violin-fingerboard-hints.md`.
 - Result sheet at the end of a pass: accuracy (Play along) or notes found (Wait for me), bar tapes marking hard bars, one-tap "Loop bar N", Play again, Done.
 
 ## Layout rules

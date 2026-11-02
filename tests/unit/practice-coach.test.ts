@@ -783,3 +783,89 @@ describe('PracticeController Coordination', () => {
     controller.dispose();
   });
 });
+
+describe('PracticeController fingering hints (Wait-for-Me)', () => {
+  let audioEngine: AudioPlaybackEngine;
+  let timeline: ScoreTimeline;
+
+  beforeEach(() => {
+    audioEngine = new AudioPlaybackEngine({
+      audioContext: createMockAudioContext(0),
+      soundfontEnabled: false,
+    });
+    timeline = createTestTimeline();
+  });
+
+  const silence = (controller: PracticeController, from: number, to: number) => {
+    for (let t = from; t <= to + 1e-9; t += 0.02) controller.handlePitchSample(null, t);
+  };
+
+  it('offers a "stuck" hint after 2 s, clears it on lock, and reports the episode', async () => {
+    const episodes: { reason: string | null; lockSec: number; afterHintSec: number | null }[] = [];
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      settings: { mode: 'wait-for-me', referenceA4Hz: 440, strictness: 'medium' },
+      onHintEpisode: (e) => episodes.push(e),
+    });
+    await controller.start();
+
+    silence(controller, 0, 1.9);
+    expect(controller.getState().hint).toBeNull();
+    silence(controller, 1.92, 2.2);
+    expect(controller.getState().hint).toMatchObject({ reason: 'stuck' });
+    const key = controller.getState().hint?.noteKey;
+
+    // Lock the note (A4): hint disappears, the next target has none.
+    controller.handlePitchSample(createMockPitchSample(440, 3.0));
+    controller.handlePitchSample(createMockPitchSample(440, 3.16));
+    expect(controller.activeNote?.id).toBe('solo-m1-n2');
+    expect(controller.getState().hint).toBeNull();
+    expect(episodes).toHaveLength(1);
+    expect(episodes[0].reason).toBe('stuck');
+    expect(episodes[0].lockSec).toBeGreaterThan(3);
+    expect(episodes[0].afterHintSec).toBeGreaterThan(0.5);
+    expect(key).toBeDefined();
+    controller.dispose();
+  });
+
+  it('shows no hint when hints are off or the drone is playing, but still reports the episode', async () => {
+    const episodes: { hintsEnabled: boolean; reason: string | null }[] = [];
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      settings: { mode: 'wait-for-me', referenceA4Hz: 440, strictness: 'medium' },
+      hintsEnabled: false,
+      onHintEpisode: (e) => episodes.push(e),
+    });
+    await controller.start();
+    silence(controller, 0, 2.5);
+    expect(controller.getState().hint).toBeNull();
+    controller.handlePitchSample(createMockPitchSample(440, 3.0));
+    controller.handlePitchSample(createMockPitchSample(440, 3.16));
+    expect(episodes).toEqual([{ hintsEnabled: false, reason: null, lockSec: expect.any(Number), afterHintSec: null }]);
+
+    controller.setHintsEnabled(true);
+    controller.toggleReferenceDrone();
+    silence(controller, 3.2, 6);
+    expect(controller.getState().hint).toBeNull();
+    controller.dispose();
+  });
+
+  it('restarts the clock after pause and resume', async () => {
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      settings: { mode: 'wait-for-me', referenceA4Hz: 440, strictness: 'medium' },
+    });
+    await controller.start();
+    silence(controller, 0, 1.5);
+    controller.pause();
+    controller.resume();
+    silence(controller, 30, 31.5);
+    expect(controller.getState().hint).toBeNull();
+    silence(controller, 31.52, 32.2);
+    expect(controller.getState().hint).toMatchObject({ reason: 'stuck' });
+    controller.dispose();
+  });
+});
