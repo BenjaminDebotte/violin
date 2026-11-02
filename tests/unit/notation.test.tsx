@@ -35,12 +35,21 @@ describe('notation setting in the app', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Do Ré Mi/ }));
     expect(localStorage.getItem(NOTATION_STORAGE_KEY)).toBe('solfege');
 
-    fireEvent.click(screen.getByLabelText('Violin Tuner Tab'));
+    fireEvent.click(screen.getByRole('link', { name: 'Tune' }));
     expect(screen.getByLabelText('String Sol3 drone')).toBeInTheDocument();
     expect(screen.getByLabelText('String Mi5 drone')).toBeInTheDocument();
     unmount();
 
     expect(loadNotation()).toBe('solfege');
+  });
+
+  it('uses the chosen notation for the target note on the play screen', () => {
+    localStorage.setItem(NOTATION_STORAGE_KEY, 'solfege');
+    window.location.hash = '#/play';
+    render(<App />);
+    const target = screen.getByTestId('target-note');
+    expect(target).toHaveTextContent('Ré4');
+    expect(screen.getByRole('button', { name: 'Hear Ré4' })).toBeInTheDocument();
   });
 
   it('defaults to letters', () => {

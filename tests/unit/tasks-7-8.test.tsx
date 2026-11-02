@@ -1,108 +1,78 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { AppShell } from '../../src/components/AppShell';
-import { LibraryPage } from '../../src/pages/LibraryPage';
+import { AppShell, pageFromHash } from '../../src/components/AppShell';
+import { SongsPage } from '../../src/pages/SongsPage';
 import { TunerPage } from '../../src/pages/TunerPage';
 import { SettingsPage } from '../../src/pages/SettingsPage';
 import { BUILT_IN_SCORES } from '../../src/modules/score-engine/scoreStore';
 import { type AudioPlaybackEngine } from '../../src/modules/audio-playback/audioEngine';
 
 describe('Task 7: AppShell Component', () => {
-  it('renders ruled Urtext masthead with brand title, active score subtitle, and 4 navigation tabs', () => {
+  it('renders a three-tab navigation (Songs, Tune, Settings) with the active tab marked', () => {
     const handleNavigate = vi.fn();
     render(
-      <AppShell
-        activePage="studio"
-        onNavigate={handleNavigate}
-        activeScoreTitle="Minuet in G major"
-        referenceA4Hz={440}
-        toleranceCents={15}
-      >
-        <div data-testid="shell-child">Studio Canvas</div>
+      <AppShell activePage="songs" onNavigate={handleNavigate}>
+        <div data-testid="shell-child">Songs Canvas</div>
       </AppShell>,
     );
 
-    expect(screen.getByText('Urtext Violin Coach')).toBeDefined();
-    expect(screen.getByText('· Minuet in G major')).toBeDefined();
-    expect(screen.getByText('Studio Canvas')).toBeDefined();
+    expect(screen.getByText('Songs Canvas')).toBeDefined();
+    const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+    expect(nav).toBeDefined();
 
-    const studioTab = screen.getByLabelText('Practice Studio Tab');
-    const libraryTab = screen.getByLabelText('Repertoire Library Tab');
-    const tunerTab = screen.getByLabelText('Violin Tuner Tab');
-    const settingsTab = screen.getByLabelText('Calibration Settings Tab');
+    const songsTab = screen.getByRole('link', { name: 'Songs' });
+    const tuneTab = screen.getByRole('link', { name: 'Tune' });
+    const settingsTab = screen.getByRole('link', { name: 'Settings' });
 
-    expect(studioTab).toBeDefined();
-    expect(libraryTab).toBeDefined();
-    expect(tunerTab).toBeDefined();
-    expect(settingsTab).toBeDefined();
+    expect(songsTab.getAttribute('aria-current')).toBe('page');
+    expect(tuneTab.getAttribute('aria-current')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Learn' })).toBeNull();
+    expect(tuneTab.getAttribute('href')).toBe('#/tune');
+    expect(settingsTab.getAttribute('href')).toBe('#/settings');
 
-    // Studio is active
-    expect(studioTab.getAttribute('aria-current')).toBe('page');
-    expect(libraryTab.getAttribute('aria-current')).toBeNull();
-
-    // Click Library tab
-    fireEvent.click(libraryTab);
-    expect(handleNavigate).toHaveBeenCalledWith('library');
+    fireEvent.click(tuneTab);
+    expect(handleNavigate).toHaveBeenCalledWith('tune');
   });
 
-  it('renders quick status badge and navigates to settings on click', () => {
-    const handleNavigate = vi.fn();
-    const handleOpenCalibration = vi.fn();
-
+  it('hides the tab bar on the full-screen play page', () => {
     render(
-      <AppShell
-        activePage="studio"
-        onNavigate={handleNavigate}
-        referenceA4Hz={442}
-        toleranceCents={8}
-        onOpenCalibration={handleOpenCalibration}
-      >
-        <div>Content</div>
+      <AppShell activePage="play" onNavigate={vi.fn()}>
+        <div>Play</div>
       </AppShell>,
     );
+    expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+  });
 
-    const badge = screen.getByLabelText('Calibration Settings Badge');
-    expect(badge.textContent).toContain('A4=442Hz · ±8¢');
-
-    fireEvent.click(badge);
-    expect(handleOpenCalibration).toHaveBeenCalled();
+  it('maps legacy hashes onto the new pages', () => {
+    expect(pageFromHash('#/practice')).toBe('play');
+    expect(pageFromHash('#/library')).toBe('songs');
+    expect(pageFromHash('#/tuner')).toBe('tune');
+    expect(pageFromHash('#/settings')).toBe('settings');
+    expect(pageFromHash('#/learn')).toBe('songs');
+    expect(pageFromHash('')).toBe('songs');
   });
 });
 
-describe('Task 8: Dedicated Pages (LibraryPage, TunerPage, SettingsPage)', () => {
-  describe('LibraryPage', () => {
-    it('renders built-in repertoire pieces and calls onSelectScore and onNavigateToStudio when clicking Open in Studio', () => {
-      const handleSelect = vi.fn();
-      const handleNavigateToStudio = vi.fn();
+describe('Task 8: Dedicated Pages (SongsPage, TunerPage, SettingsPage)', () => {
+  describe('SongsPage', () => {
+    it('lists built-in pieces with their length and opens one for free play', () => {
+      const handlePlay = vi.fn();
+      render(<SongsPage currentScoreId={BUILT_IN_SCORES[0].id} onPlayScore={handlePlay} />);
 
-      render(
-        <LibraryPage
-          currentScoreId={BUILT_IN_SCORES[0].id}
-          onSelectScore={handleSelect}
-          onNavigateToStudio={handleNavigateToStudio}
-        />,
-      );
-
-      expect(screen.getByText('Repertoire Catalogue')).toBeDefined();
-      expect(screen.getByText('Built-in Conservatory Repertoire')).toBeDefined();
+      expect(screen.getByRole('heading', { name: 'Songs' })).toBeDefined();
+      expect(screen.getByText('Built into the app')).toBeDefined();
       expect(screen.getByText('Twinkle, Twinkle, Little Star')).toBeDefined();
       expect(screen.getByText('Minuet & Tied Note Etude')).toBeDefined();
+      expect(screen.getByText(/8 bars at 100 bpm/)).toBeDefined();
 
-      const openButtons = screen.getAllByRole('button', { name: /Open in Studio/i });
-      expect(openButtons.length).toBeGreaterThanOrEqual(2);
-
-      fireEvent.click(openButtons[0]);
-      expect(handleSelect).toHaveBeenCalled();
-      expect(handleNavigateToStudio).toHaveBeenCalled();
+      const playButtons = screen.getAllByRole('button', { name: /^Play / });
+      expect(playButtons.length).toBeGreaterThanOrEqual(2);
+      fireEvent.click(playButtons[1]);
+      expect(handlePlay).toHaveBeenCalledWith(expect.objectContaining({ id: 'minuet-tied' }));
     });
 
     it('displays explicit MuseScore export instructions banner when invalid .mscz file is selected', async () => {
-      render(
-        <LibraryPage
-          currentScoreId={BUILT_IN_SCORES[0].id}
-          onSelectScore={vi.fn()}
-        />,
-      );
+      render(<SongsPage currentScoreId={BUILT_IN_SCORES[0].id} onPlayScore={vi.fn()} />);
 
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       expect(fileInput).toBeDefined();
@@ -135,7 +105,7 @@ describe('Task 8: Dedicated Pages (LibraryPage, TunerPage, SettingsPage)', () =>
         />,
       );
 
-      expect(screen.getByText('Violin Pegbox Tuner')).toBeDefined();
+      expect(screen.getByRole('heading', { name: 'Tune' })).toBeDefined();
       expect(screen.getByText('G3')).toBeDefined();
       expect(screen.getByText('D4')).toBeDefined();
       expect(screen.getByText('A4')).toBeDefined();
@@ -169,7 +139,7 @@ describe('Task 8: Dedicated Pages (LibraryPage, TunerPage, SettingsPage)', () =>
         />,
       );
 
-      expect(screen.getByText('Studio Calibration & Settings')).toBeDefined();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeDefined();
 
       // Click 442 Hz button
       const btn442 = screen.getByRole('button', { name: /442 Hz \(European\)/i });
@@ -181,9 +151,10 @@ describe('Task 8: Dedicated Pages (LibraryPage, TunerPage, SettingsPage)', () =>
       fireEvent.click(strictOption);
       expect(handleStrictnessChange).toHaveBeenCalledWith('strict');
 
-      // Verify Bluetooth Earbuds guide is present
-      expect(screen.getByText(/Bluetooth Earbuds & Acoustic Setup Guide/i)).toBeDefined();
-      expect(screen.getByText(/Bluetooth Transmission Latency/i)).toBeDefined();
+      // Earbud / Bluetooth latency guidance is present
+      expect(screen.getByText(/Earbuds and microphone tips/i)).toBeDefined();
+      expect(screen.getByText(/Bluetooth delay is fine/i)).toBeDefined();
+      expect(screen.getByText(/350 ms late/i)).toBeDefined();
     });
   });
 });

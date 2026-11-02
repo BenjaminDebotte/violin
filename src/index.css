@@ -1,67 +1,180 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: dark;
-  /* Direction 1: Urtext Archive Color Tokens */
-  --color-paper: oklch(96.2% 0.012 85);
-  --color-paper-2: oklch(93.0% 0.016 85);
-  --color-paper-3: oklch(89.5% 0.020 85);
-  --color-score-paper: oklch(96.8% 0.010 82);
-  --color-score-ink: oklch(16.0% 0.015 245);
-  --color-ink: oklch(17.5% 0.016 245);
-  --color-ink-2: oklch(32.0% 0.018 245);
-  --color-muted: oklch(50.0% 0.014 245);
-  --color-rule: oklch(82.0% 0.012 245);
-  --color-accent: oklch(46.0% 0.165 245);
-  --color-accent-ink: oklch(97.0% 0.005 245);
-  --color-focus: oklch(52.0% 0.180 245);
-  --color-intonation-match: oklch(48.0% 0.160 148);
-  --color-intonation-close: oklch(54.0% 0.160 82);
-  --color-intonation-miss: oklch(52.0% 0.190 28);
-  --color-cursor: oklch(46.0% 0.165 245 / 0.16);
-  --color-shadow: oklch(17.5% 0.016 245 / 0.08);
-
-  /* Direction 1: Typography */
-  --font-display: 'Cardo', Georgia, serif;
-  --font-sans: 'Hanken Grotesk', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+/*
+ * "Fingerboard tapes" identity.
+ * Ebony (the fingerboard), rosin amber (the cake every violinist carries), bone-white
+ * plates for the score, and three functional intonation colours. One typeface,
+ * Atkinson Hyperlegible Next, chosen for legibility from a music stand at 70-90 cm.
+ * Self-hosted so the PWA works offline (SIL Open Font License).
+ */
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/atkinson-next-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/atkinson-next-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF,
+    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Phone-first layout: bottom tab bar height incl. iOS/Android gesture inset */
 :root {
-  --bottom-nav-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  /* Declared dark on purpose: keeps Chromium / Opera GX "force dark" from inverting the
+     light UI (see commit f2a66bc). All surfaces below are set explicitly. */
+  color-scheme: dark;
+
+  --ground: #f2f3ee;      /* rosin dust: the app floor */
+  --plate: #ffffff;       /* score plate and sheets */
+  --plate-2: #f8f8f4;
+  --ebony: #221d19;       /* fingerboard, primary text, feedback panel */
+  --ebony-2: #3b342e;
+  --ink: #221d19;
+  --ink-2: #57504a;
+  --muted: #847d75;
+  --rule: #dcdcd3;
+  --rule-strong: #c4c3b9;
+  --rosin: #f0a630;       /* primary action */
+  --rosin-soft: #fbe3b8;
+  --rosin-deep: #a86a0c;  /* rosin used as text on light grounds */
+  --tune: #12905a;        /* in tune */
+  --flat: #2c66d8;        /* too low: go higher */
+  --sharp: #d1335d;       /* too high: go lower */
+  --bone: #f6f2ea;        /* text on ebony */
+
+  --font-ui: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --tabbar-h: calc(4rem + env(safe-area-inset-bottom, 0px));
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Legacy tokens consumed by MixerPanel / TunerHUD / ScoreViewport, remapped to the new identity */
+  --color-paper: var(--ground);
+  --color-paper-2: var(--plate-2);
+  --color-paper-3: #e9eae3;
+  --color-score-paper: var(--plate);
+  --color-score-ink: var(--ebony);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--ebony);
+  --color-accent-ink: var(--bone);
+  --color-focus: var(--flat);
+  --color-intonation-match: var(--tune);
+  --color-intonation-close: var(--rosin-deep);
+  --color-intonation-miss: var(--sharp);
+  --color-cursor: rgb(240 166 48 / 0.28);
+  --color-shadow: rgb(34 29 25 / 0.08);
+  --font-display: var(--font-ui);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-ui);
+}
+
+html,
+body {
+  background-color: var(--ground);
+  color: var(--ink);
 }
 
 body {
+  margin: 0;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
-  font-family: var(--font-sans);
-  background-color: var(--color-paper);
-  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 
-.font-display {
-  font-family: var(--font-display);
-}
-
+.font-display,
 .font-sans {
-  font-family: var(--font-sans);
+  font-family: var(--font-ui);
+}
+.font-mono,
+.tabular {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
 }
 
-.font-mono {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums slashed-zero;
+:focus-visible {
+  outline: 3px solid var(--flat);
+  outline-offset: 2px;
 }
 
+/* --- Motion ---------------------------------------------------------------- */
 
-/* Practice transport dock: pinned above the bottom tab bar on phones */
-.dock-sticky {
-  position: sticky;
-  bottom: var(--bottom-nav-h);
-  z-index: 30;
+@keyframes sheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
-@media (min-width: 640px) {
-  .dock-sticky {
-    position: static;
+.sheet-up {
+  animation: sheet-up 220ms ease-out both;
+}
+
+/* A plucked string shimmers while its drone sounds */
+@keyframes string-shimmer {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1.5px); }
+  75% { transform: translateX(1.5px); }
+}
+.string-shimmer {
+  animation: string-shimmer 90ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-up,
+  .string-shimmer {
+    animation: none !important;
   }
+  * {
+    transition-duration: 0ms !important;
+  }
+}
+
+/* Native range inputs: ebony thumb on a rule track */
+input[type='range'] {
+  accent-color: var(--ebony);
+}
+
+/* --- Play screen layout ------------------------------------------------------ */
+.play-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(120px, 1fr) auto auto;
+  gap: 10px;
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .play-layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+    grid-template-rows: auto 1fr auto;
+  }
+  .play-layout > .play-tapes { grid-column: 1; grid-row: 1; }
+  .play-layout > .play-score { grid-column: 1; grid-row: 2 / span 2; }
+  .play-layout > .play-panel { grid-column: 2; grid-row: 1 / span 2; }
+  .play-layout > .play-dock { grid-column: 2; grid-row: 3; }
+  /* Short landscape screens: keep the verdict and the note, drop the secondary rows */
+  .play-panel { gap: 6px !important; padding: 12px !important; }
+  .play-panel .panel-hint { visibility: hidden; min-height: 0; height: 0; }
+  .play-panel .panel-meter { display: none; }
+  .play-panel .panel-ring { width: 96px; height: 96px; }
+}
+@media (min-width: 1024px) {
+  .play-layout {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: auto 1fr auto;
+    column-gap: 20px;
+  }
+  .play-layout > .play-panel { align-self: start; }
+  .play-layout > .play-tapes { grid-column: 1; grid-row: 1; }
+  .play-layout > .play-score { grid-column: 1; grid-row: 2 / span 2; }
+  .play-layout > .play-panel { grid-column: 2; grid-row: 1 / span 2; }
+  .play-layout > .play-dock { grid-column: 2; grid-row: 3; }
 }

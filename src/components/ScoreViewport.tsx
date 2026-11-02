@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
+import { OpenSheetMusicDisplay, CursorType } from 'opensheetmusicdisplay';
 
 export type NoteGradeColor = 'green' | 'yellow' | 'red' | 'active' | 'reset' | 'pending';
 
@@ -251,6 +251,8 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         drawCredits: false,
         drawPartNames: false,
         renderSingleHorizontalStaffline: viewMode === 'ribbon',
+        // Rosin-amber playhead: reads as "you are here" without competing with note colours
+        cursorsOptions: [{ type: CursorType.Standard, color: '#f0a630', alpha: 0.45, follow: true }],
       });
       osmdRef.current = osmd;
     } catch (err) {
@@ -313,6 +315,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         if (osmd.cursor) {
           osmd.cursor.show();
           osmd.cursor.reset();
+          osmd.cursor.update();
         }
         setIsLoading(false);
       })
@@ -380,7 +383,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
             className="text-sm font-medium animate-pulse"
             style={{ color: 'var(--color-accent)' }}
           >
-            Rendering Sheet Music...
+            Loading the score…
           </p>
         </div>
       )}
@@ -397,7 +400,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       <div
         ref={containerRef}
         id="osmd-score-container"
-        className={`w-full min-h-[300px] ${
+        className={`relative isolate w-full min-h-[200px] ${
           viewMode === 'ribbon' ? 'inline-block min-w-max' : 'max-w-4xl mx-auto'
         }`}
       />

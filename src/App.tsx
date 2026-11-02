@@ -1,27 +1,13 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import {
-  Repeat,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  X,
-} from 'lucide-react';
-import {
-  type StoredScore,
-  BUILT_IN_SCORES,
-} from './modules/score-engine/scoreStore';
+import { type StoredScore, BUILT_IN_SCORES } from './modules/score-engine/scoreStore';
 import { extractScoreTimeline } from './modules/score-engine/timelineExtractor';
-import {
-  applyNoteGradeToSvg,
-  resetSvgNoteColors,
-} from './components/ScoreViewport';
-import { AppShell, type AppPage } from './components/AppShell';
-import { PracticeStudioPage } from './pages/PracticeStudioPage';
-import { LibraryPage } from './pages/LibraryPage';
+import { applyNoteGradeToSvg, resetSvgNoteColors } from './components/ScoreViewport';
+import { AppShell, PAGE_ROUTES, pageFromHash, type AppPage } from './components/AppShell';
+import { PlayPage } from './pages/PlayPage';
+import { SongsPage } from './pages/SongsPage';
 import { TunerPage } from './pages/TunerPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { LibraryModal } from './components/LibraryModal';
-import { CalibrationDrawer } from './components/CalibrationDrawer';
+import { ResultSheet } from './components/play/ResultSheet';
 import { AudioPlaybackEngine } from './modules/audio-playback/audioEngine';
 import { MicSessionManager } from './modules/pitch-detection/micSessionManager';
 import {
@@ -34,12 +20,20 @@ import {
   type IntonationStrictness,
   type MeasureLoopRange,
   type MixerSettings,
+  type PracticeSessionSummary,
   DEFAULT_MIXER_SETTINGS,
   getToleranceCents,
 } from './types/music';
 import { midiNoteToFrequency } from './modules/pitch-detection/pitchMath';
 import { NotationProvider } from './modules/notation/NotationContext';
 import { loadNotation, saveNotation, type NotationSystem } from './modules/notation/noteNames';
+import {
+  buildSessionResult,
+  loopRangeFor,
+  type LockEvent,
+  type SessionResult,
+} from './modules/practice-coach/sessionResult';
+import { useLivePitch, isMicUnsupported } from './hooks/useLivePitch';
 
 export interface AppProps {
   readonly initialAudioEngine?: AudioPlaybackEngine;
@@ -47,71 +41,39 @@ export interface AppProps {
   readonly initialScore?: StoredScore;
 }
 
-function getPageFromHash(): AppPage {
-  if (typeof window === 'undefined') return 'studio';
-  const hash = window.location.hash.toLowerCase();
-  if (hash.startsWith('#/library')) return 'library';
-  if (hash.startsWith('#/tuner')) return 'tuner';
-  if (hash.startsWith('#/settings')) return 'settings';
-  return 'studio';
-}
-
-export default function App({
-  initialAudioEngine,
-  initialMicManager,
-  initialScore,
-}: AppProps = {}) {
-  // Navigation State
-  const [activePage, setActivePage] = useState<AppPage>(() => getPageFromHash());
-
-  // Listen to hashchange events
+export default function App({ initialAudioEngine, initialMicManager, initialScore }: AppProps = {}) {
+  // --- Navigation -----------------------------------------------------------
+  const [activePage, setActivePage] = useState<AppPage>(() =>
+    typeof window === 'undefined' ? 'songs' : pageFromHash(window.location.hash),
+  );
   useEffect(() => {
-    const handleHashChange = () => {
-      setActivePage(getPageFromHash());
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    const onHash = () => setActivePage(pageFromHash(window.location.hash));
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
   }, []);
-
-  const handleNavigate = (page: AppPage) => {
+  const handleNavigate = useCallback((page: AppPage) => {
     setActivePage(page);
-    const route =
-      page === 'library'
-        ? '#/library'
-        : page === 'tuner'
-        ? '#/tuner'
-        : page === 'settings'
-        ? '#/settings'
-        : '#/practice';
+    const route = PAGE_ROUTES[page];
     if (typeof window !== 'undefined' && window.location.hash !== route) {
       window.location.hash = route;
     }
-  };
+  }, []);
 
-  // Score & Engine references
-  const [currentScore, setCurrentScore] = useState<StoredScore>(
-    initialScore ?? BUILT_IN_SCORES[0],
-  );
-
+  // --- Engines (created once) ------------------------------------------------
+  const [currentScore, setCurrentScore] = useState<StoredScore>(initialScore ?? BUILT_IN_SCORES[0]);
   const audioEngineRef = useRef<AudioPlaybackEngine | null>(null);
-  if (!audioEngineRef.current) {
-    audioEngineRef.current = initialAudioEngine ?? new AudioPlaybackEngine();
-  }
+  if (!audioEngineRef.current) audioEngineRef.current = initialAudioEngine ?? new AudioPlaybackEngine();
   const audioEngine = audioEngineRef.current;
-
   const micManagerRef = useRef<MicSessionManager | null>(null);
-  if (!micManagerRef.current) {
-    micManagerRef.current = initialMicManager ?? new MicSessionManager();
-  }
+  if (!micManagerRef.current) micManagerRef.current = initialMicManager ?? new MicSessionManager();
   const micManager = micManagerRef.current;
 
-  // Settings State
+  // --- Settings ------------------------------------------------------------
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('wait-for-me');
-  // Phones default to the single-line ribbon score view
   const [viewMode, setViewMode] = useState<'page' | 'ribbon'>(() =>
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
-    window.matchMedia('(max-width: 639px)').matches
+    window.matchMedia('(max-width: 1023px)').matches
       ? 'ribbon'
       : 'page',
   );
@@ -128,19 +90,20 @@ export default function App({
   const [countInBars, setCountInBars] = useState<1 | 2>(1);
   const [loopRange, setLoopRange] = useState<MeasureLoopRange | null>(null);
   const [mixer, setMixer] = useState<MixerSettings>(DEFAULT_MIXER_SETTINGS);
+  const toleranceCents = getToleranceCents({ strictness, customToleranceCents });
 
-  // Modals State
-  const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
-  const [isCalibrationOpen, setIsCalibrationOpen] = useState<boolean>(false);
-  const [isSummaryDismissed, setIsSummaryDismissed] = useState<boolean>(false);
+  // --- Session ---------------------------------------------------------------
+  const [result, setResult] = useState<SessionResult | null>(null);
+  const [isResultDismissed, setIsResultDismissed] = useState(false);
+  const locksRef = useRef<LockEvent[]>([]);
+  const modeRef = useRef(practiceMode);
+  modeRef.current = practiceMode;
+  const tempoRef = useRef(tempoScale);
+  tempoRef.current = tempoScale;
+  const [micStatus, setMicStatus] = useState<'unknown' | 'live' | 'unavailable'>(() =>
+    isMicUnsupported() ? 'unavailable' : 'unknown',
+  );
 
-  // Derived tolerance
-  const toleranceCents = getToleranceCents({
-    strictness,
-    customToleranceCents,
-  });
-
-  // Extract score timeline
   const timeline = useMemo(() => {
     try {
       return extractScoreTimeline(currentScore.xmlContent);
@@ -149,10 +112,9 @@ export default function App({
       return extractScoreTimeline(BUILT_IN_SCORES[0].xmlContent);
     }
   }, [currentScore.xmlContent]);
-
   const totalMeasures = timeline.measures.length;
 
-  // Practice Controller State
+  // --- Practice controller ---------------------------------------------------
   const [controllerState, setControllerState] = useState<PracticeControllerState>({
     mode: practiceMode,
     isRunning: false,
@@ -167,23 +129,22 @@ export default function App({
     loopCount: 0,
     countInBeat: null,
   });
-
   const controllerRef = useRef<PracticeController | null>(null);
 
-  // Handle note graded event -> O(1) SVG notehead coloring
   const handleNoteGraded = useCallback((event: NoteGradedEvent) => {
     const scoreContainer = document.getElementById('osmd-score-container');
-    if (scoreContainer) {
-      applyNoteGradeToSvg(scoreContainer, event.svgTargetIds, event.grade);
+    if (scoreContainer) applyNoteGradeToSvg(scoreContainer, event.svgTargetIds, event.grade);
+    if (modeRef.current === 'wait-for-me') {
+      locksRef.current.push({
+        measureNumber: event.note.measureNumber,
+        atMs: performance.now(),
+        writtenMs: event.note.durationMs / Math.max(0.25, tempoRef.current),
+      });
     }
   }, []);
 
-  // Initialize / Recreate PracticeController when score or mode changes
   useEffect(() => {
-    if (controllerRef.current) {
-      controllerRef.current.dispose();
-    }
-
+    controllerRef.current?.dispose();
     const controller = new PracticeController({
       timeline,
       audioEngine,
@@ -197,424 +158,220 @@ export default function App({
         countInBars,
         loopRange,
       },
-      onStateChange: (newState) => {
-        setControllerState(newState);
-      },
+      onStateChange: setControllerState,
       onNoteGraded: handleNoteGraded,
     });
-
     controllerRef.current = controller;
     setControllerState(controller.getState());
-    setIsSummaryDismissed(false);
-
-    // Reset SVG note colors for new controller / score
+    setIsResultDismissed(false);
     const scoreContainer = document.getElementById('osmd-score-container');
-    if (scoreContainer) {
-      resetSvgNoteColors(scoreContainer);
+    if (scoreContainer) resetSvgNoteColors(scoreContainer);
+    return () => controller.dispose();
+    // Recreated only when the piece or the mode changes; other settings are pushed below.
+  }, [timeline, practiceMode]);
+
+  useEffect(() => controllerRef.current?.setToleranceCents(toleranceCents), [toleranceCents]);
+  useEffect(() => controllerRef.current?.setReferenceA4Hz(referenceA4Hz), [referenceA4Hz]);
+  useEffect(() => controllerRef.current?.setTempoScale(tempoScale), [tempoScale]);
+  useEffect(() => controllerRef.current?.setLoopRange(loopRange), [loopRange]);
+  useEffect(() => controllerRef.current?.beatScheduler.setCountInBars(countInBars), [countInBars]);
+  useEffect(() => () => controllerRef.current?.dispose(), []);
+
+  const isActive = controllerState.isRunning && !controllerState.isPaused;
+
+  // --- Results ----------------------------------------------------------------
+  // Natural end of the piece (both modes).
+  const finalizedSummaryRef = useRef<PracticeSessionSummary | null>(null);
+  useEffect(() => {
+    const summary = controllerState.sessionSummary;
+    if (summary && !controllerState.isRunning && finalizedSummaryRef.current !== summary) {
+      finalizedSummaryRef.current = summary;
+      setResult(buildSessionResult({ mode: practiceMode, summary, locks: locksRef.current }));
+      setIsResultDismissed(false);
     }
+  }, [controllerState.sessionSummary, controllerState.isRunning, practiceMode]);
 
-    return () => {
-      controller.dispose();
-    };
-  }, [timeline, practiceMode]); // Recreate on timeline (score) or mode changes
+  // --- Transport ----------------------------------------------------------------
+  const resetNoteColors = () => {
+    const scoreContainer = document.getElementById('osmd-score-container');
+    if (scoreContainer) resetSvgNoteColors(scoreContainer);
+  };
 
-  // Update dynamic properties on the existing controller
-  useEffect(() => {
-    const c = controllerRef.current;
-    if (!c) return;
-    c.setToleranceCents(toleranceCents);
-  }, [toleranceCents]);
-
-  useEffect(() => {
-    const c = controllerRef.current;
-    if (!c) return;
-    c.setReferenceA4Hz(referenceA4Hz);
-  }, [referenceA4Hz]);
-
-  useEffect(() => {
-    const c = controllerRef.current;
-    if (!c) return;
-    c.setTempoScale(tempoScale);
-  }, [tempoScale]);
-
-  useEffect(() => {
-    const c = controllerRef.current;
-    if (!c) return;
-    c.setLoopRange(loopRange);
-  }, [loopRange]);
-
-  useEffect(() => {
-    const c = controllerRef.current;
-    if (!c) return;
-    c.beatScheduler.setCountInBars(countInBars);
-  }, [countInBars]);
-
-  // Clean up audio on unmount
-  useEffect(() => {
-    return () => {
-      controllerRef.current?.dispose();
-    };
-  }, []);
-
-  // Transport handlers
   const handleStartPractice = async () => {
-    setIsSummaryDismissed(false);
-    const scoreContainer = document.getElementById('osmd-score-container');
-    if (scoreContainer) {
-      resetSvgNoteColors(scoreContainer);
+    setResult(null);
+    setIsResultDismissed(false);
+    locksRef.current = [];
+    resetNoteColors();
+    const controller = controllerRef.current;
+    if (controller) {
+      await controller.start();
+      if (micStatus !== 'unavailable') setMicStatus(micManager.isRunning ? 'live' : 'unavailable');
     }
-    if (controllerRef.current) {
-      await controllerRef.current.start();
-    }
   };
-
-  const handlePausePractice = () => {
-    controllerRef.current?.pause();
-  };
-
-  const handleResumePractice = () => {
-    controllerRef.current?.resume();
-  };
-
+  const handlePausePractice = () => controllerRef.current?.pause();
+  const handleResumePractice = () => controllerRef.current?.resume();
   const handleStopPractice = () => {
     controllerRef.current?.stop();
-    const scoreContainer = document.getElementById('osmd-score-container');
-    if (scoreContainer) {
-      resetSvgNoteColors(scoreContainer);
-    }
+    resetNoteColors();
   };
 
-  // Switch score handler
-  const handleSelectScore = (score: StoredScore) => {
-    if (controllerRef.current) {
-      controllerRef.current.stop();
-    }
-    setCurrentScore(score);
-    setLoopRange(null);
-  };
-
-  // Reference Drone toggle handler
   const handleToggleDrone = () => {
     const isPlaying = controllerRef.current?.toggleReferenceDrone();
     setMixer((prev) => ({ ...prev, droneActive: Boolean(isPlaying) }));
   };
-
-  // Mixer change handler
   const handleMixerChange = (newMixer: MixerSettings) => {
     setMixer(newMixer);
     audioEngine.applyMixerSettings(newMixer);
   };
 
-  // Simulate In-Tune Note test helper
+  /** Feeds a perfect pitch for the current note: lets you try the flow without a microphone. */
   const handleSimulateInTuneNote = async () => {
     const controller = controllerRef.current;
     if (!controller) return;
-
-    if (!controller.isRunning) {
-      await controller.start();
-    }
-
+    if (!controller.isRunning) await handleStartPractice();
     const active = controller.activeNote;
     if (!active?.pitch) return;
-
     const targetHz = midiNoteToFrequency(active.pitch.midiNumber, referenceA4Hz);
-
+    const t0 = audioEngine.audioContext.currentTime;
     if (controller.mode === 'wait-for-me') {
-      // Feed two samples spaced 160ms apart to fulfill continuous >= 150ms hold
-      const t0 = audioEngine.audioContext.currentTime;
-      controller.handlePitchSample({
-        frequencyHz: targetHz,
-        clarity: 0.98,
-        rms: 0.08,
-        audioTimeSec: t0,
-      });
-      controller.handlePitchSample({
-        frequencyHz: targetHz,
-        clarity: 0.98,
-        rms: 0.08,
-        audioTimeSec: t0 + 0.16,
-      });
+      controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 });
+      controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 + 0.16 });
     } else {
-      // Play-Along mode
-      const now = audioEngine.audioContext.currentTime;
-      controller.handlePitchSample({
-        frequencyHz: targetHz,
-        clarity: 0.98,
-        rms: 0.08,
-        audioTimeSec: now,
-      });
+      controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 });
     }
   };
 
-  // 1-Click Loop Problem Measures
-  const handleLoopProblemMeasures = () => {
-    const summary = controllerState.sessionSummary;
-    if (!summary || summary.problemMeasures.length === 0) return;
-
-    const minM = Math.min(...summary.problemMeasures);
-    const maxM = Math.max(...summary.problemMeasures);
-    const range: MeasureLoopRange = { startMeasure: minM, endMeasure: maxM };
-
-    setLoopRange(range);
-    controllerRef.current?.setLoopRange(range);
-    setIsSummaryDismissed(true);
-    handleStartPractice();
+  // --- Opening the play screen ------------------------------------------------
+  const handlePlayScore = (score: StoredScore) => {
+    controllerRef.current?.stop();
+    setCurrentScore(score);
+    setLoopRange(null);
+    setResult(null);
+    handleNavigate('play');
   };
 
-  const showSessionSummary =
-    controllerState.sessionSummary !== null &&
-    !controllerState.isRunning &&
-    !isSummaryDismissed;
+  const handleClosePlay = () => {
+    controllerRef.current?.stop();
+    if (mixer.droneActive) setMixer((prev) => ({ ...prev, droneActive: false }));
+    handleNavigate('songs');
+  };
+
+  const handleLoopHardBars = () => {
+    const range = result ? loopRangeFor(result.hardBars) : null;
+    if (!range) return;
+    setLoopRange(range);
+    controllerRef.current?.setLoopRange(range);
+    setIsResultDismissed(true);
+    void handleStartPractice();
+  };
+
+  const handlePlayAgain = () => {
+    setIsResultDismissed(true);
+    void handleStartPractice();
+  };
+
+  // --- Play screen copy -------------------------------------------------------
+  const barsText = (range: MeasureLoopRange | null) =>
+    range
+      ? range.startMeasure === range.endMeasure
+        ? `Bar ${range.startMeasure}`
+        : `Bars ${range.startMeasure} to ${range.endMeasure}`
+      : `${totalMeasures} ${totalMeasures === 1 ? 'bar' : 'bars'}`;
+  const playTitle = currentScore.title;
+  const playSubtitle = barsText(loopRange);
+  const idleHint = loopRange
+    ? 'The passage repeats until you stop. Slow it down in options if it helps.'
+    : practiceMode === 'wait-for-me'
+      ? 'Tap Start, then play. The music waits for each note.'
+      : 'Tap Start for a count-in. The piano keeps going, so keep playing.';
+  const barsInPlay = (() => {
+    const first = loopRange?.startMeasure ?? 1;
+    const last = loopRange?.endMeasure ?? Math.max(totalMeasures, 1);
+    return Array.from({ length: last - first + 1 }, (_, i) => first + i);
+  })();
+
+  const livePitch = useLivePitch(micManager, activePage === 'play' && isActive);
+  const showResult = result !== null && !isResultDismissed && !controllerState.isRunning && activePage === 'play';
 
   return (
     <NotationProvider system={notation}>
-    <AppShell
-      activePage={activePage}
-      onNavigate={handleNavigate}
-      activeScoreTitle={currentScore.title}
-      referenceA4Hz={referenceA4Hz}
-      toleranceCents={toleranceCents}
-      onOpenCalibration={() => setIsCalibrationOpen(true)}
-    >
-      {/* 1. Practice Studio Page View */}
-      {activePage === 'studio' && (
-        <div className="flex-1 flex flex-col w-full">
-          {/* End-of-Session Accuracy Summary Card */}
-          {showSessionSummary && controllerState.sessionSummary && (
-            <div className="max-w-7xl mx-auto w-full px-2 sm:px-4 pt-2">
-              <section
-                aria-label="Session Accuracy Summary"
-                className="rounded-xl p-4 sm:p-5 border shadow-lg space-y-4 font-sans animate-in fade-in"
-                style={{
-                  backgroundColor: 'var(--color-paper-2)',
-                  borderColor: 'var(--color-accent)',
-                  color: 'var(--color-ink)',
-                }}
-                data-testid="session-summary-card"
-              >
-                <div
-                  className="flex items-center justify-between border-b pb-3"
-                  style={{ borderColor: 'var(--color-rule)' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5" style={{ color: 'var(--color-intonation-match)' }} />
-                    <h2 className="font-display text-base sm:text-lg font-bold">
-                      Session Accuracy Summary
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsSummaryDismissed(true)}
-                    aria-label="Dismiss Session Summary"
-                    className="p-1 rounded text-xs hover:opacity-75 cursor-pointer"
-                    style={{ color: 'var(--color-muted)' }}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+      <AppShell activePage={activePage} onNavigate={handleNavigate}>
+        {activePage === 'songs' && (
+          <SongsPage currentScoreId={currentScore.id} onPlayScore={handlePlayScore} />
+        )}
 
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                  <div
-                    className="p-3 rounded-lg border text-center"
-                    style={{
-                      backgroundColor: 'var(--color-paper)',
-                      borderColor: 'var(--color-rule)',
-                    }}
-                  >
-                    <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>Accuracy</p>
-                    <p
-                      className="text-xl sm:text-2xl font-bold font-mono"
-                      style={{ color: 'var(--color-intonation-match)' }}
-                    >
-                      {controllerState.sessionSummary.accuracyPercent.toFixed(1)}%
-                    </p>
-                  </div>
-
-                  <div
-                    className="p-3 rounded-lg border text-center"
-                    style={{
-                      backgroundColor: 'var(--color-paper)',
-                      borderColor: 'var(--color-rule)',
-                    }}
-                  >
-                    <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>In-Tune (Green)</p>
-                    <p
-                      className="text-xl sm:text-2xl font-bold font-mono flex items-center justify-center gap-1"
-                      style={{ color: 'var(--color-intonation-match)' }}
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      {controllerState.sessionSummary.greenCount}
-                    </p>
-                  </div>
-
-                  <div
-                    className="p-3 rounded-lg border text-center"
-                    style={{
-                      backgroundColor: 'var(--color-paper)',
-                      borderColor: 'var(--color-rule)',
-                    }}
-                  >
-                    <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>Close (Yellow)</p>
-                    <p
-                      className="text-xl sm:text-2xl font-bold font-mono flex items-center justify-center gap-1"
-                      style={{ color: 'var(--color-intonation-close)' }}
-                    >
-                      <AlertTriangle className="w-4 h-4" />
-                      {controllerState.sessionSummary.yellowCount}
-                    </p>
-                  </div>
-
-                  <div
-                    className="p-3 rounded-lg border text-center"
-                    style={{
-                      backgroundColor: 'var(--color-paper)',
-                      borderColor: 'var(--color-rule)',
-                    }}
-                  >
-                    <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>Missed (Red)</p>
-                    <p
-                      className="text-xl sm:text-2xl font-bold font-mono flex items-center justify-center gap-1"
-                      style={{ color: 'var(--color-intonation-miss)' }}
-                    >
-                      <XCircle className="w-4 h-4" />
-                      {controllerState.sessionSummary.redCount}
-                    </p>
-                  </div>
-
-                  <div
-                    className="p-3 rounded-lg border text-center col-span-2 sm:col-span-1"
-                    style={{
-                      backgroundColor: 'var(--color-paper)',
-                      borderColor: 'var(--color-rule)',
-                    }}
-                  >
-                    <p className="text-xs mb-1" style={{ color: 'var(--color-muted)' }}>Avg Cents Offset</p>
-                    <p className="text-xl sm:text-2xl font-bold font-mono" style={{ color: 'var(--color-ink)' }}>
-                      {controllerState.sessionSummary.averageAbsCentsDelta !== null
-                        ? `±${controllerState.sessionSummary.averageAbsCentsDelta.toFixed(1)}¢`
-                        : '--'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Problem Measures & 1-Click Loop Action */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                  <div className="text-xs" style={{ color: 'var(--color-ink-2)' }}>
-                    <span className="font-semibold" style={{ color: 'var(--color-ink)' }}>
-                      Problem Measures:{' '}
-                    </span>
-                    {controllerState.sessionSummary.problemMeasures.length > 0 ? (
-                      <span className="font-mono font-medium" style={{ color: 'var(--color-intonation-close)' }}>
-                        Measures {controllerState.sessionSummary.problemMeasures.join(', ')}
-                      </span>
-                    ) : (
-                      <span className="font-medium" style={{ color: 'var(--color-intonation-match)' }}>
-                        None! Perfect intonation across all measures.
-                      </span>
-                    )}
-                  </div>
-
-                  {controllerState.sessionSummary.problemMeasures.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleLoopProblemMeasures}
-                      aria-label="Loop Problem Measures"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold text-white shadow-xs transition cursor-pointer"
-                      style={{ backgroundColor: 'var(--color-accent)' }}
-                    >
-                      <Repeat className="w-3.5 h-3.5" />
-                      <span>Loop Problem Measures (1-Click)</span>
-                    </button>
-                  )}
-                </div>
-              </section>
-            </div>
-          )}
-
-          {/* Primary Distraction-free PracticeStudioPage */}
-          <PracticeStudioPage
+        {activePage === 'play' && (
+          <PlayPage
+            title={playTitle}
+            subtitle={playSubtitle}
+            idleHint={idleHint}
             currentScore={currentScore}
             totalMeasures={totalMeasures}
             controllerState={controllerState}
             practiceMode={practiceMode}
-            onPracticeModeChange={(m) => setPracticeMode(m)}
+            onPracticeModeChange={setPracticeMode}
             viewMode={viewMode}
-            onViewModeChange={(m) => setViewMode(m)}
+            onViewModeChange={setViewMode}
             loopRange={loopRange}
-            onLoopRangeChange={(r) => setLoopRange(r)}
+            onLoopRangeChange={setLoopRange}
             onStartPractice={handleStartPractice}
             onPausePractice={handlePausePractice}
             onResumePractice={handleResumePractice}
             onStopPractice={handleStopPractice}
+            onClose={handleClosePlay}
             onSimulateInTuneNote={handleSimulateInTuneNote}
+            showSimulate={micStatus === 'unavailable'}
             onToggleDrone={handleToggleDrone}
             mixer={mixer}
             onMixerChange={handleMixerChange}
             tempoScale={tempoScale}
-            onTempoScaleChange={(s) => setTempoScale(s)}
+            onTempoScaleChange={setTempoScale}
             countInBars={countInBars}
-            onCountInBarsChange={(b) => setCountInBars(b)}
-            onOpenLibrary={() => setIsLibraryOpen(true)}
+            onCountInBarsChange={setCountInBars}
+            strictness={strictness}
+            onStrictnessChange={setStrictness}
+            toleranceCents={toleranceCents}
+            referenceA4Hz={referenceA4Hz}
+            livePitch={livePitch}
           />
-        </div>
-      )}
+        )}
 
-      {/* 2. Repertoire Library Page */}
-      {activePage === 'library' && (
-        <LibraryPage
-          currentScoreId={currentScore.id}
-          onSelectScore={handleSelectScore}
-          onNavigateToStudio={() => handleNavigate('studio')}
-        />
-      )}
+        {activePage === 'tune' && (
+          <TunerPage
+            referenceA4Hz={referenceA4Hz}
+            toleranceCents={toleranceCents}
+            audioEngine={audioEngine}
+            micManager={micManager}
+          />
+        )}
 
-      {/* 3. 4-String Violin Pegbox Tuner Page */}
-      {activePage === 'tuner' && (
-        <TunerPage
-          referenceA4Hz={referenceA4Hz}
-          toleranceCents={toleranceCents}
-          audioEngine={audioEngine}
-          micManager={micManager}
-        />
-      )}
+        {activePage === 'settings' && (
+          <SettingsPage
+            referenceA4Hz={referenceA4Hz}
+            onReferenceA4Change={setReferenceA4Hz}
+            strictness={strictness}
+            onStrictnessChange={setStrictness}
+            customToleranceCents={customToleranceCents}
+            onCustomToleranceCentsChange={setCustomToleranceCents}
+            selectedMicDeviceId={selectedMicDeviceId}
+            onSelectedMicDeviceIdChange={setSelectedMicDeviceId}
+            notation={notation}
+            onNotationChange={handleNotationChange}
+          />
+        )}
 
-      {/* 4. Settings & Calibration Page */}
-      {activePage === 'settings' && (
-        <SettingsPage
-          referenceA4Hz={referenceA4Hz}
-          onReferenceA4Change={(hz) => setReferenceA4Hz(hz)}
-          strictness={strictness}
-          onStrictnessChange={(s) => setStrictness(s)}
-          customToleranceCents={customToleranceCents}
-          onCustomToleranceCentsChange={(c) => setCustomToleranceCents(c)}
-          selectedMicDeviceId={selectedMicDeviceId}
-          onSelectedMicDeviceIdChange={(id) => setSelectedMicDeviceId(id)}
-          notation={notation}
-          onNotationChange={handleNotationChange}
-        />
-      )}
-
-      {/* Quick Library Modal */}
-      <LibraryModal
-        isOpen={isLibraryOpen}
-        onClose={() => setIsLibraryOpen(false)}
-        currentScoreId={currentScore.id}
-        onSelectScore={handleSelectScore}
-      />
-
-      {/* Quick Calibration Drawer */}
-      <CalibrationDrawer
-        isOpen={isCalibrationOpen}
-        onClose={() => setIsCalibrationOpen(false)}
-        referenceA4Hz={referenceA4Hz}
-        onReferenceA4Change={(hz) => setReferenceA4Hz(hz)}
-        strictness={strictness}
-        onStrictnessChange={(s) => setStrictness(s)}
-        customToleranceCents={customToleranceCents}
-        onCustomToleranceCentsChange={(c) => setCustomToleranceCents(c)}
-      />
-    </AppShell>
+        {showResult && result && (
+          <ResultSheet
+            result={result}
+            title={playTitle}
+            subtitle={playSubtitle}
+            barsInPlay={barsInPlay}
+            onLoopHardBars={handleLoopHardBars}
+            onPlayAgain={handlePlayAgain}
+            onDismiss={() => setIsResultDismissed(true)}
+          />
+        )}
+      </AppShell>
     </NotationProvider>
   );
 }

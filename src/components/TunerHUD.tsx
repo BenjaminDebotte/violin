@@ -197,7 +197,7 @@ export function TunerHUD({
         backgroundColor: 'var(--color-score-paper)',
         borderColor: 'var(--color-rule)',
         color: 'var(--color-ink)',
-        borderRadius: '2px',
+        borderRadius: '22px',
       }}
     >
       {/* Controls row: Mic Toggle, Device Selector & Reference Indicator */}
@@ -210,7 +210,7 @@ export function TunerHUD({
             type="button"
             onClick={toggleMic}
             aria-label={isMicActive ? 'Stop Tuner Microphone' : 'Start Tuner Microphone'}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded text-sm font-semibold transition cursor-pointer min-h-[38px]"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[15px] font-bold transition cursor-pointer min-h-11"
             style={{
               backgroundColor: isMicActive ? 'var(--color-intonation-miss)' : 'var(--color-accent)',
               color: 'var(--color-accent-ink)',
@@ -224,7 +224,7 @@ export function TunerHUD({
             aria-label="Microphone Device Selector"
             value={selectedDeviceId}
             onChange={handleDeviceChange}
-            className="text-xs sm:text-sm rounded px-3 py-1.5 border min-h-[38px] max-w-[220px] truncate"
+            className="text-[14px] rounded-full px-3 py-1.5 border min-h-11 max-w-[200px] truncate"
             style={{
               backgroundColor: 'var(--color-paper-2)',
               borderColor: 'var(--color-rule)',
