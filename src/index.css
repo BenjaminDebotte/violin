@@ -27,7 +27,14 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
+/* Phone-first layout: bottom tab bar height incl. iOS/Android gesture inset */
+:root {
+  --bottom-nav-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 body {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
   font-family: var(--font-sans);
   background-color: var(--color-paper);
   color: var(--color-ink);
@@ -46,3 +53,15 @@ body {
   font-variant-numeric: tabular-nums slashed-zero;
 }
 
+
+/* Practice transport dock: pinned above the bottom tab bar on phones */
+.dock-sticky {
+  position: sticky;
+  bottom: var(--bottom-nav-h);
+  z-index: 30;
+}
+@media (min-width: 640px) {
+  .dock-sticky {
+    position: static;
+  }
+}

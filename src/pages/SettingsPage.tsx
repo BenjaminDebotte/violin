@@ -7,7 +7,9 @@ import {
   Music2,
   RefreshCw,
   Info,
+  Languages,
 } from 'lucide-react';
+import { type NotationSystem, formatNoteName } from '../modules/notation/noteNames';
 import { type IntonationStrictness, getToleranceCents } from '../types/music';
 import {
   listAudioInputDevices,
@@ -23,6 +25,8 @@ export interface SettingsPageProps {
   readonly onCustomToleranceCentsChange: (cents: number) => void;
   readonly selectedMicDeviceId: string | null;
   readonly onSelectedMicDeviceIdChange?: (deviceId: string | null) => void;
+  readonly notation?: NotationSystem;
+  readonly onNotationChange?: (system: NotationSystem) => void;
 }
 
 const STRICTNESS_PRESETS: readonly {
@@ -72,6 +76,8 @@ export function SettingsPage({
   onCustomToleranceCentsChange,
   selectedMicDeviceId,
   onSelectedMicDeviceIdChange,
+  notation = 'letters',
+  onNotationChange,
 }: SettingsPageProps) {
   const [devices, setDevices] = useState<readonly AudioInputDeviceInfo[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -133,6 +139,51 @@ export function SettingsPage({
           boxShadow: '0 2px 8px var(--color-shadow)',
         }}
       >
+        {/* 0. Note-name notation */}
+        <div className="p-4 sm:p-5 space-y-3">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <Languages className="w-4 h-4" style={{ color: 'var(--color-accent)' }} />
+              <span className="font-display text-base font-bold" style={{ color: 'var(--color-ink)' }}>
+                Note Names
+              </span>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+              How notes are labelled in the tuner, target note and drone.
+            </p>
+          </div>
+          <div role="radiogroup" aria-label="Note name notation" className="grid grid-cols-2 gap-2">
+            {([
+              { id: 'solfege', title: 'Do Ré Mi', sample: 'Do · Ré · Mi · Fa · Sol · La · Si' },
+              { id: 'letters', title: 'A B C D E', sample: 'C · D · E · F · G · A · B' },
+            ] as const).map((opt) => {
+              const selected = notation === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => onNotationChange?.(opt.id)}
+                  className="px-3 py-3 border text-left transition cursor-pointer min-h-11"
+                  style={{
+                    backgroundColor: selected ? 'var(--color-accent)' : 'var(--color-paper-2)',
+                    borderColor: selected ? 'var(--color-accent)' : 'var(--color-rule)',
+                    color: selected ? 'var(--color-accent-ink)' : 'var(--color-ink)',
+                    borderRadius: '2px',
+                  }}
+                >
+                  <div className="text-sm font-semibold">{opt.title}</div>
+                  <div className="text-[11px] font-mono opacity-80 mt-0.5">{opt.sample}</div>
+                  <div className="text-[11px] font-mono opacity-80">
+                    A4 → {formatNoteName('A4', opt.id)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* 1. Microphone Input Device Selection */}
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1 max-w-md">

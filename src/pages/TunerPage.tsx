@@ -4,6 +4,7 @@ import { TunerHUD } from '../components/TunerHUD';
 import { AudioPlaybackEngine } from '../modules/audio-playback/audioEngine';
 import { MicSessionManager } from '../modules/pitch-detection/micSessionManager';
 import { midiNoteToFrequency } from '../modules/pitch-detection/pitchMath';
+import { useNoteName } from '../modules/notation/NotationContext';
 
 export interface TunerPageProps {
   readonly referenceA4Hz: number;
@@ -38,6 +39,7 @@ export function TunerPage({
   audioEngine: injectedEngine,
   micManager: injectedMic,
 }: TunerPageProps) {
+  const noteName = useNoteName();
   const localEngineRef = useRef<AudioPlaybackEngine | null>(null);
   if (!injectedEngine && !localEngineRef.current) {
     localEngineRef.current = new AudioPlaybackEngine();
@@ -182,7 +184,7 @@ export function TunerPage({
               className="font-display text-2xl font-bold"
               style={{ color: 'var(--color-ink)' }}
             >
-              String {activeStringDef.label} · {activeStringDef.note}
+              String {activeStringDef.label} · {noteName(activeStringDef.note)}
             </div>
             <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
               {midiNoteToFrequency(activeStringDef.midi, referenceA4Hz).toFixed(1)} Hz · Reference Tone
@@ -201,7 +203,7 @@ export function TunerPage({
                 key={str.note}
                 type="button"
                 onClick={() => handleToggleString(str.midi)}
-                aria-label={`String ${str.note} drone`}
+                aria-label={`String ${noteName(str.note)} drone`}
                 aria-pressed={isPlaying}
                 className="p-3.5 border flex flex-col items-center justify-center gap-1 transition cursor-pointer text-center relative overflow-hidden"
                 style={{
@@ -215,12 +217,12 @@ export function TunerPage({
                 <span className="text-[11px] font-mono tracking-wider opacity-75 uppercase">
                   String {str.label}
                 </span>
-                <span className="font-display text-2xl font-bold">{str.note}</span>
+                <span className="font-display text-2xl font-bold">{noteName(str.note)}</span>
                 <span className="text-xs font-mono tabular-nums opacity-85">
                   {currentHz.toFixed(1)} Hz
                 </span>
                 <span className="text-[10px] opacity-75 line-clamp-1">
-                  {str.description}
+                  {str.description.replace(str.note, noteName(str.note))}
                 </span>
 
                 <div
@@ -264,7 +266,7 @@ export function TunerPage({
               <span>
                 Sustaining drone for{' '}
                 <strong style={{ color: 'var(--color-accent)' }}>
-                  {VIOLIN_STRINGS.find((s) => s.midi === activeDroneMidi)?.note}
+                  {noteName(VIOLIN_STRINGS.find((s) => s.midi === activeDroneMidi)?.note ?? '')}
                 </strong>{' '}
                 ({midiNoteToFrequency(activeDroneMidi, referenceA4Hz).toFixed(1)} Hz)
               </span>

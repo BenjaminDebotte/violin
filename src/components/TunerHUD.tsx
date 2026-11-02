@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Mic, MicOff } from 'lucide-react';
+import { useNoteName } from '../modules/notation/NotationContext';
 import { type PlayableNote, type PitchSample } from '../types/music';
 import {
   MicSessionManager,
@@ -40,6 +41,7 @@ export function TunerHUD({
   onPitchSample,
   className = '',
 }: TunerHUDProps) {
+  const noteName = useNoteName();
   const internalManagerRef = useRef<MicSessionManager | null>(null);
   const activeManager = micManager ?? (internalManagerRef.current ??= new MicSessionManager());
 
@@ -135,7 +137,7 @@ export function TunerHUD({
 
     if (targetNote && targetNote.pitch) {
       // Practicing against a specific target note
-      detectedLabel = detected.label;
+      detectedLabel = noteName(detected.label);
       centsDelta = frequencyToCentsDelta(
         currentSample.frequencyHz,
         targetNote.pitch.midiNumber,
@@ -143,7 +145,7 @@ export function TunerHUD({
       );
     } else {
       // General chromatic tuner
-      detectedLabel = detected.label;
+      detectedLabel = noteName(detected.label);
       centsDelta = detected.centsDelta;
     }
 
@@ -287,7 +289,7 @@ export function TunerHUD({
             Target Note:
           </span>
           <span className="font-mono font-bold text-sm" style={{ color: 'var(--color-ink)' }}>
-            {targetNote.pitch?.label ?? 'Rest'}
+            {targetNote.pitch ? noteName(targetNote.pitch.label) : 'Rest'}
           </span>
           <span className="font-mono" style={{ color: 'var(--color-muted)' }}>
             {targetNote.pitch

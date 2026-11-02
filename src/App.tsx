@@ -38,6 +38,8 @@ import {
   getToleranceCents,
 } from './types/music';
 import { midiNoteToFrequency } from './modules/pitch-detection/pitchMath';
+import { NotationProvider } from './modules/notation/NotationContext';
+import { loadNotation, saveNotation, type NotationSystem } from './modules/notation/noteNames';
 
 export interface AppProps {
   readonly initialAudioEngine?: AudioPlaybackEngine;
@@ -105,7 +107,19 @@ export default function App({
 
   // Settings State
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('wait-for-me');
-  const [viewMode, setViewMode] = useState<'page' | 'ribbon'>('page');
+  // Phones default to the single-line ribbon score view
+  const [viewMode, setViewMode] = useState<'page' | 'ribbon'>(() =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 639px)').matches
+      ? 'ribbon'
+      : 'page',
+  );
+  const [notation, setNotation] = useState<NotationSystem>(() => loadNotation());
+  const handleNotationChange = (system: NotationSystem) => {
+    setNotation(system);
+    saveNotation(system);
+  };
   const [referenceA4Hz, setReferenceA4Hz] = useState<number>(440);
   const [strictness, setStrictness] = useState<IntonationStrictness>('medium');
   const [customToleranceCents, setCustomToleranceCents] = useState<number>(15);
@@ -353,6 +367,7 @@ export default function App({
     !isSummaryDismissed;
 
   return (
+    <NotationProvider system={notation}>
     <AppShell
       activePage={activePage}
       onNavigate={handleNavigate}
@@ -575,6 +590,8 @@ export default function App({
           onCustomToleranceCentsChange={(c) => setCustomToleranceCents(c)}
           selectedMicDeviceId={selectedMicDeviceId}
           onSelectedMicDeviceIdChange={(id) => setSelectedMicDeviceId(id)}
+          notation={notation}
+          onNotationChange={handleNotationChange}
         />
       )}
 
@@ -598,5 +615,6 @@ export default function App({
         onCustomToleranceCentsChange={(c) => setCustomToleranceCents(c)}
       />
     </AppShell>
+    </NotationProvider>
   );
 }

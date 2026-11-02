@@ -17,6 +17,7 @@ import {
 import { type StoredScore } from '../modules/score-engine/scoreStore';
 import { ScoreViewport } from '../components/ScoreViewport';
 import { MixerPanel } from '../components/MixerPanel';
+import { useNoteName } from '../modules/notation/NotationContext';
 import {
   type PracticeControllerState,
 } from '../modules/practice-coach/practiceController';
@@ -86,6 +87,7 @@ export function PracticeStudioPage({
   onCountInBarsChange,
   onOpenLibrary,
 }: PracticeStudioPageProps) {
+  const noteName = useNoteName();
   const [isMixerPopoverOpen, setIsMixerPopoverOpen] = useState<boolean>(false);
   const [isLoopPopoverOpen, setIsLoopPopoverOpen] = useState<boolean>(false);
 
@@ -97,7 +99,9 @@ export function PracticeStudioPage({
   const clockAngleDeg = progressPercent * 360;
 
   // Active target note label
-  const activeNoteLabel = controllerState.activeNote?.pitch?.label ?? '--';
+  const activeNoteLabel = controllerState.activeNote?.pitch
+    ? noteName(controllerState.activeNote.pitch.label)
+    : '--';
 
   const handleStartMeasureChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = Number(e.target.value);
@@ -131,7 +135,7 @@ export function PracticeStudioPage({
       {/* 1. Compact Studio Sub-header Bar (Matches .pitch-hud-bar in direction-1-urtext.html) */}
       <section
         aria-label="Studio Sub-header Bar"
-        className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 border transition max-w-[860px] w-full mx-auto"
+        className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-3 sm:px-4 py-2 border transition max-w-[860px] w-full mx-auto"
         style={{
           backgroundColor: 'var(--color-score-paper)',
           borderColor: 'var(--color-rule)',
@@ -247,7 +251,7 @@ export function PracticeStudioPage({
             onClick={onSimulateInTuneNote}
             aria-label="Simulate In-Tune Note"
             title="Feeds continuous in-tune pitch sample (>= 150ms in Wait-for-Me) without microphone"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition cursor-pointer border shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 min-h-11 sm:min-h-0 text-xs font-semibold transition cursor-pointer border shrink-0"
             style={{
               backgroundColor: 'var(--color-accent)',
               borderColor: 'var(--color-accent)',
@@ -256,7 +260,7 @@ export function PracticeStudioPage({
             }}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Simulate 150ms Hold</span>
+            <span className="hidden sm:inline">Simulate 150ms Hold</span>
           </button>
 
           <button
@@ -326,7 +330,7 @@ export function PracticeStudioPage({
       {/* 2. Center Score Plate: 85-90% Viewport Warm Ivory Plate */}
       <section
         aria-label="Center Score Plate"
-        className="flex-1 min-h-[460px] sm:min-h-[520px] p-4 sm:p-6 flex flex-col justify-start overflow-auto"
+        className="flex-1 min-h-[55dvh] sm:min-h-[520px] p-2 sm:p-6 flex flex-col justify-start overflow-auto"
         style={{
           backgroundColor: 'var(--color-score-paper)',
           border: '1px solid var(--color-rule)',
@@ -336,7 +340,7 @@ export function PracticeStudioPage({
       >
         {/* Engraved Urtext Score Header Box */}
         <div
-          className="text-center border-b pb-3 mb-4 select-none"
+          className="text-center border-b pb-2 sm:pb-3 mb-2 sm:mb-4 select-none"
           style={{ borderColor: 'var(--color-rule)' }}
         >
           <h2
@@ -346,7 +350,7 @@ export function PracticeStudioPage({
             {currentScore.title}
           </h2>
           <div className="text-[13px] mt-1" style={{ color: 'var(--color-muted)' }}>
-            G. Henle Verlag Urtext Archive Edition · Solo Violin &amp; Accompaniment
+            <span className="hidden sm:inline">G. Henle Verlag Urtext Archive Edition · Solo Violin &amp; Accompaniment</span>
           </div>
           <div
             className="text-[12px] italic mt-0.5 font-mono"
@@ -367,7 +371,7 @@ export function PracticeStudioPage({
       {/* 3. Bottom Urtext Transport Dock */}
       <footer
         aria-label="Urtext Transport Dock"
-        className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 border"
+        className="dock-sticky relative flex flex-wrap items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 border"
         style={{
           backgroundColor: 'var(--color-paper-2)',
           borderColor: 'var(--color-rule)',
@@ -384,7 +388,7 @@ export function PracticeStudioPage({
                 type="button"
                 onClick={onStartPractice}
                 aria-label="Start Practice"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition cursor-pointer shadow-xs border"
+                className="inline-flex items-center gap-1.5 px-4 sm:px-3 py-1.5 min-h-11 sm:min-h-0 text-xs font-semibold transition cursor-pointer shadow-xs border"
                 style={{
                   backgroundColor: 'var(--color-accent)',
                   borderColor: 'var(--color-accent)',
@@ -400,7 +404,7 @@ export function PracticeStudioPage({
                 type="button"
                 onClick={onResumePractice}
                 aria-label="Resume Practice"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition cursor-pointer border"
+                className="inline-flex items-center gap-1.5 px-4 sm:px-3 py-1.5 min-h-11 sm:min-h-0 text-xs font-semibold transition cursor-pointer border"
                 style={{
                   backgroundColor: 'var(--color-accent)',
                   borderColor: 'var(--color-accent)',
@@ -416,7 +420,7 @@ export function PracticeStudioPage({
                 type="button"
                 onClick={onPausePractice}
                 aria-label="Pause Practice"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 sm:px-3 py-1.5 min-h-11 sm:min-h-0 text-xs font-semibold border transition cursor-pointer"
                 style={{
                   backgroundColor: 'var(--color-accent)',
                   borderColor: 'var(--color-accent)',
@@ -434,7 +438,7 @@ export function PracticeStudioPage({
               onClick={onStopPractice}
               aria-label="Stop and Reset Practice"
               title="Stop and Reset Practice"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border transition cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-11 sm:min-h-0 text-xs font-medium border transition cursor-pointer"
               style={{
                 backgroundColor: 'var(--color-paper)',
                 borderColor: 'var(--color-rule)',
@@ -464,7 +468,7 @@ export function PracticeStudioPage({
               aria-checked={practiceMode === 'wait-for-me'}
               aria-label="Wait-for-Me Mode"
               onClick={() => onPracticeModeChange('wait-for-me')}
-              className="px-2.5 py-1 text-xs transition cursor-pointer"
+              className="px-2.5 py-2 sm:py-1 text-xs transition cursor-pointer"
               style={{
                 backgroundColor:
                   practiceMode === 'wait-for-me' ? 'var(--color-paper-3)' : 'transparent',
@@ -482,7 +486,7 @@ export function PracticeStudioPage({
               aria-checked={practiceMode === 'play-along'}
               aria-label="Play-Along Mode"
               onClick={() => onPracticeModeChange('play-along')}
-              className="px-2.5 py-1 text-xs transition cursor-pointer"
+              className="px-2.5 py-2 sm:py-1 text-xs transition cursor-pointer"
               style={{
                 backgroundColor:
                   practiceMode === 'play-along' ? 'var(--color-paper-3)' : 'transparent',
@@ -504,7 +508,7 @@ export function PracticeStudioPage({
             type="button"
             onClick={onToggleDrone}
             aria-label="Toggle Reference Drone"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 min-h-11 sm:min-h-0 text-xs font-medium border transition cursor-pointer"
             style={{
               backgroundColor: mixer.droneActive ? 'var(--color-accent)' : 'var(--color-paper)',
               borderColor: mixer.droneActive ? 'var(--color-accent)' : 'var(--color-rule)',
@@ -514,19 +518,19 @@ export function PracticeStudioPage({
           >
             {mixer.droneActive ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             <span>
-              {mixer.droneActive
-                ? `Stop Drone (${activeNoteLabel})`
-                : `Drone (${activeNoteLabel})`}
+              <span className="hidden sm:inline">{mixer.droneActive ? 'Stop Drone ' : 'Drone '}</span>
+              <span className="sm:hidden">{mixer.droneActive ? 'Stop ' : ''}</span>
+              ({activeNoteLabel})
             </span>
           </button>
 
           {/* Loop Popover / Inline Selects */}
-          <div className="relative">
+          <div className="sm:relative">
             <button
               type="button"
               onClick={() => setIsLoopPopoverOpen((prev) => !prev)}
               aria-label="Toggle Loop Controls"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border transition cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 min-h-11 sm:min-h-0 text-xs font-medium border transition cursor-pointer"
               style={{
                 backgroundColor: loopRange ? 'var(--color-paper-3)' : 'var(--color-paper)',
                 borderColor: 'var(--color-rule)',
@@ -545,7 +549,7 @@ export function PracticeStudioPage({
               <div
                 role="dialog"
                 aria-label="Measure Loop Settings"
-                className="absolute right-0 bottom-full mb-2 w-64 p-3 border shadow-lg z-30"
+                className="absolute inset-x-0 sm:inset-x-auto sm:right-0 bottom-full mb-2 sm:w-64 p-3 border shadow-lg z-30"
                 style={{
                   backgroundColor: 'var(--color-paper)',
                   borderColor: 'var(--color-rule)',
@@ -633,12 +637,12 @@ export function PracticeStudioPage({
           </div>
 
           {/* Mixer & Tempo Popover Button */}
-          <div className="relative">
+          <div className="sm:relative">
             <button
               type="button"
               onClick={() => setIsMixerPopoverOpen((prev) => !prev)}
               aria-label="Toggle Mixer Popover"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border transition cursor-pointer tabular"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-11 sm:min-h-0 text-xs font-medium border transition cursor-pointer tabular"
               style={{
                 backgroundColor: isMixerPopoverOpen ? 'var(--color-paper-3)' : 'var(--color-paper)',
                 borderColor: 'var(--color-rule)',
@@ -647,7 +651,7 @@ export function PracticeStudioPage({
               }}
             >
               <Sliders className="w-3.5 h-3.5" style={{ color: 'var(--color-accent)' }} />
-              <span>Mixer · {Math.round(tempoScale * 100)}%</span>
+              <span><span className="hidden sm:inline">Mixer · </span>{Math.round(tempoScale * 100)}%</span>
             </button>
 
             {/* Floating Urtext Mixer & Tempo Popover Drawer */}
@@ -655,7 +659,7 @@ export function PracticeStudioPage({
               <div
                 role="dialog"
                 aria-label="Mixer & Tempo Popover"
-                className="absolute right-0 bottom-full mb-2 w-80 sm:w-96 p-4 border shadow-xl z-30"
+                className="absolute inset-x-0 sm:inset-x-auto sm:right-0 bottom-full mb-2 sm:w-96 max-h-[70dvh] overflow-y-auto p-4 border shadow-xl z-30"
                 style={{
                   backgroundColor: 'var(--color-paper)',
                   borderColor: 'var(--color-rule)',
@@ -689,7 +693,7 @@ export function PracticeStudioPage({
                   onTempoScaleChange={onTempoScaleChange}
                   countInBars={countInBars}
                   onCountInBarsChange={onCountInBarsChange}
-                  droneTargetNoteName={controllerState.activeNote?.pitch?.label ?? null}
+                  droneTargetNoteName={controllerState.activeNote?.pitch ? activeNoteLabel : null}
                   onToggleDrone={onToggleDrone}
                 />
               </div>

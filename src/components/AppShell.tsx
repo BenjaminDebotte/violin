@@ -1,3 +1,5 @@
+import { Music, Library, AudioLines, Settings, type LucideIcon } from 'lucide-react';
+
 export type AppPage = 'studio' | 'library' | 'tuner' | 'settings';
 
 export interface AppShellProps {
@@ -15,20 +17,20 @@ interface NavItem {
   readonly label: string;
   readonly ariaLabel: string;
   readonly route: string;
+  readonly Icon: LucideIcon;
 }
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { page: 'studio', label: 'Studio', ariaLabel: 'Practice Studio Tab', route: '#/practice' },
-  { page: 'library', label: 'Library', ariaLabel: 'Repertoire Library Tab', route: '#/library' },
-  { page: 'tuner', label: 'Tuner', ariaLabel: 'Violin Tuner Tab', route: '#/tuner' },
-  { page: 'settings', label: 'Settings', ariaLabel: 'Calibration Settings Tab', route: '#/settings' },
+  { page: 'studio', label: 'Studio', ariaLabel: 'Practice Studio Tab', route: '#/practice', Icon: Music },
+  { page: 'library', label: 'Library', ariaLabel: 'Repertoire Library Tab', route: '#/library', Icon: Library },
+  { page: 'tuner', label: 'Tuner', ariaLabel: 'Violin Tuner Tab', route: '#/tuner', Icon: AudioLines },
+  { page: 'settings', label: 'Settings', ariaLabel: 'Calibration Settings Tab', route: '#/settings', Icon: Settings },
 ];
 
 /**
- * Ruled Urtext Archive AppShell Masthead with 4 edge-aligned tabs:
- * Studio, Library, Tuner, Settings.
- * Has Henle Prussian Blue 2px bottom border on the active tab and
- * quick status badge showing A4 Hz and intonation tolerance cents.
+ * Phone-first AppShell. A single <nav> (Studio, Library, Tuner, Settings) is pinned to the
+ * bottom of the screen as a tab bar on phones (safe-area aware) and sits in the masthead
+ * from `sm` upwards. Includes a quick status badge showing A4 Hz and tolerance cents.
  */
 export function AppShell({
   activePage,
@@ -60,7 +62,7 @@ export function AppShell({
 
   return (
     <div
-      className="min-h-screen flex flex-col font-sans"
+      className="min-h-dvh flex flex-col font-sans"
       style={{
         backgroundColor: 'var(--color-paper)',
         color: 'var(--color-ink)',
@@ -69,11 +71,10 @@ export function AppShell({
     >
       {/* Ruled Urtext Masthead Header */}
       <header
-        className="border-b flex flex-wrap items-center justify-between gap-4 sticky top-0 z-40 select-none"
+        className="border-b flex items-center justify-between gap-3 sm:gap-4 sticky top-0 z-40 select-none px-3 py-2 sm:px-6 sm:py-3 pt-[max(0.5rem,env(safe-area-inset-top))]"
         style={{
           borderColor: 'var(--color-rule)',
           backgroundColor: 'var(--color-paper)',
-          padding: '12px 24px',
         }}
       >
         {/* Brand Group */}
@@ -104,10 +105,11 @@ export function AppShell({
         </div>
 
         {/* Right-aligned navigation tabs and calibration badge */}
-        <div className="flex items-center gap-4 sm:gap-6 ml-auto">
+        <div className="flex items-center gap-3 sm:gap-6 ml-auto shrink-0">
           {/* 4 Quiet Navigation Tabs */}
           <nav
-            className="flex items-center gap-1 sm:gap-4 overflow-x-auto"
+            className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t sm:static sm:z-auto sm:flex sm:items-center sm:gap-4 sm:border-t-0 pb-[env(safe-area-inset-bottom)] sm:pb-0"
+            style={{ backgroundColor: 'var(--color-paper)', borderColor: 'var(--color-rule)' }}
             aria-label="Main Navigation"
           >
             {NAV_ITEMS.map((item) => {
@@ -119,13 +121,14 @@ export function AppShell({
                   onClick={(e) => handleTabClick(item.page, item.route, e)}
                   aria-label={item.ariaLabel}
                   aria-current={isActive ? 'page' : undefined}
-                  className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm font-medium transition cursor-pointer shrink-0 border-b-2"
+                  className="flex flex-col items-center justify-center gap-0.5 h-14 sm:h-auto sm:flex-row px-2.5 sm:px-3 sm:py-2 text-[11px] sm:text-sm font-medium transition cursor-pointer shrink-0 sm:border-b-2 border-t-2 sm:border-t-0 -mt-px sm:mt-0"
                   style={{
                     color: isActive ? 'var(--color-accent)' : 'var(--color-ink-2)',
                     borderColor: isActive ? 'var(--color-accent)' : 'transparent',
                     fontWeight: isActive ? 600 : 500,
                   }}
                 >
+                  <item.Icon className="w-5 h-5 sm:hidden" aria-hidden="true" />
                   {item.label}
                 </a>
               );
@@ -139,7 +142,7 @@ export function AppShell({
               onClick={handleStatusBadgeClick}
               aria-label="Calibration Settings Badge"
               title="Click to view calibration and audio settings"
-              className="px-2.5 py-1 text-xs font-mono transition border cursor-pointer hover:opacity-90"
+              className="px-2.5 py-1.5 text-[11px] sm:text-xs font-mono transition border cursor-pointer hover:opacity-90 whitespace-nowrap"
               style={{
                 backgroundColor: 'var(--color-score-paper)',
                 borderColor: 'var(--color-rule)',
@@ -147,18 +150,18 @@ export function AppShell({
                 borderRadius: '2px',
               }}
             >
-              A4={referenceA4Hz}Hz · ±{toleranceCents}¢
+              A4={referenceA4Hz}Hz<span className="hidden min-[400px]:inline"> · ±{toleranceCents}¢</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main className="flex-1 flex flex-col pb-[var(--bottom-nav-h)] sm:pb-0">{children}</main>
 
       {/* Urtext Minimal Guild Mast Footer */}
       <footer
-        className="border-t flex flex-wrap items-center justify-between gap-3 text-xs select-none"
+        className="hidden sm:flex border-t flex-wrap items-center justify-between gap-3 text-xs select-none"
         style={{
           borderColor: 'var(--color-rule)',
           backgroundColor: 'var(--color-paper)',
