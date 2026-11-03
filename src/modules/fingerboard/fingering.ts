@@ -108,3 +108,27 @@ export function fingeringsFor(midi: number | null | undefined): PositionFingerin
 export function positionLabel(position: PositionId): string {
   return position === 1 ? '1st' : '3rd';
 }
+
+/**
+ * Where the hand's reference sits, as semitones above the open string: the nut for 1st
+ * position, the first finger (a perfect fourth up: D on A, G on D, C on G, A on E) for 3rd.
+ */
+export const REFERENCE_OFFSET: Readonly<Record<PositionId, number>> = { 1: 0, 3: 5 };
+
+/**
+ * Every finger of every position on every string, in its normal place (open string
+ * included for 1st position). Used to draw the whole hand faintly behind the target.
+ * Ordered 3rd position first so that 1st-position marks draw on top where they coincide.
+ */
+export function referenceFingers(): FingerPlacement[] {
+  const all: FingerPlacement[] = [];
+  for (const position of [3, 1] as const) {
+    for (let s = 0; s < OPEN_STRING_MIDI.length; s++) {
+      for (const [offsetText, entry] of Object.entries(TABLES[position])) {
+        if (entry.variant !== 'normal') continue;
+        all.push({ position, string: s as StringIndex, finger: entry.finger, variant: 'normal', offset: Number(offsetText) });
+      }
+    }
+  }
+  return all;
+}

@@ -106,6 +106,19 @@ describe('FeedbackPanel fingering hint', () => {
     expect(screen.getByTestId('target-note')).toBeInTheDocument();
   });
 
+  it('draws the 3rd-position reference line, every finger faintly, and colours the positions', () => {
+    renderPanel(null);
+    fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
+    const hint = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hint).getByTestId('third-position-line')).toBeInTheDocument();
+    const ghosts = within(hint).getByTestId('ghost-fingers');
+    expect(ghosts.querySelectorAll('[data-ghost="1"]')).toHaveLength(20);
+    expect(ghosts.querySelectorAll('[data-ghost="3"]')).toHaveLength(16);
+    // Position tags carry the position colours
+    expect(within(hint).getByText('1st')).toHaveStyle({ backgroundColor: 'var(--pos1)' });
+    expect(within(hint).getByText('3rd')).toHaveStyle({ backgroundColor: 'var(--pos3)' });
+  });
+
   it('shows an offered hint with its reason and can be dismissed for this note', () => {
     renderPanel(null, running({ hint: stuck }));
     const hint = screen.getByRole('region', { name: 'Fingering hint' });

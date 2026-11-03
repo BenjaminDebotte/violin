@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fingeringsFor, OPEN_STRING_MIDI, positionLabel } from '../../src/modules/fingerboard/fingering';
+import { fingeringsFor, OPEN_STRING_MIDI, positionLabel, referenceFingers, REFERENCE_OFFSET } from '../../src/modules/fingerboard/fingering';
 
 const G = 0, D = 1, A = 2, E = 3;
 
@@ -71,5 +71,23 @@ describe('fingeringsFor', () => {
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
     expect(positionLabel(1)).toBe('1st');
     expect(positionLabel(3)).toBe('3rd');
+  });
+
+  it('puts the reference of 3rd position on its first finger and of 1st on the nut', () => {
+    expect(REFERENCE_OFFSET).toEqual({ 1: 0, 3: 5 });
+    for (let st = 0; st < 4; st++) {
+      const f1 = fingeringsFor(OPEN_STRING_MIDI[st] + REFERENCE_OFFSET[3]).find((f) => f.position === 3);
+      expect(f1?.primary).toMatchObject({ string: st, finger: 1, variant: 'normal' });
+    }
+  });
+
+  it('lists every normal finger of both positions on every string, 3rd position first', () => {
+    const all = referenceFingers();
+    // 1st: open + f1..f4 = 5 per string; 3rd: f1..f4 = 4 per string
+    expect(all.filter((p) => p.position === 1)).toHaveLength(20);
+    expect(all.filter((p) => p.position === 3)).toHaveLength(16);
+    expect(all.every((p) => p.variant === 'normal')).toBe(true);
+    expect(all[0].position).toBe(3);
+    expect(all.at(-1)?.position).toBe(1);
   });
 });

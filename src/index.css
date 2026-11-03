@@ -47,6 +47,8 @@
   --tune: #12905a;        /* in tune */
   --flat: #2c66d8;        /* too low: go higher */
   --sharp: #d1335d;       /* too high: go lower */
+  --pos1: #f0a630;        /* 1st position marks (amber) */
+  --pos3: #63d2ee;        /* 3rd position marks (cyan) */
   --bone: #f6f2ea;        /* text on ebony */
 
   --font-ui: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
