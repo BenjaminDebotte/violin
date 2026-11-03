@@ -62,6 +62,11 @@ export interface PracticeControllerState {
   readonly hint: PracticeHint | null;
   /** Why the microphone could not start, or null. The session still runs, but cannot hear you. */
   readonly micError: MicErrorInfo | null;
+  /**
+   * Wait-for-Me: the target repeats the note just played, and the player has to lift or
+   * re-bow before it counts.
+   */
+  readonly awaitingReattack: boolean;
 }
 
 export type PracticeStateSubscriber = (state: PracticeControllerState) => void;
@@ -268,6 +273,7 @@ export class PracticeController {
       countInBeat: this._countInBeat,
       hint: this._hint,
       micError: this._micError,
+      awaitingReattack: this._mode === 'wait-for-me' && this._waitForMeEvaluator.awaitingReattack,
     };
   }
 
@@ -449,7 +455,7 @@ export class PracticeController {
     }
 
     if (this._mode === 'wait-for-me') {
-      const step = this._waitForMeEvaluator.processPitch(sample);
+      const step = this._waitForMeEvaluator.processPitch(sample, audioTimeSec);
 
       if (step.advanced && step.completedNote && step.completedResult) {
         const gradeEvent: NoteGradedEvent = {
@@ -487,7 +493,7 @@ export class PracticeController {
         }
       }
 
-      this._updateHint(sample, audioTimeSec, step.advanced);
+      this._updateHint(sample, audioTimeSec, step.advanced, step.awaitingReattack);
       this._holdProgress = step.holdProgress;
       this._emitState();
     } else {
@@ -624,7 +630,12 @@ export class PracticeController {
    * clock keeps going, records how long a note took to lock, and exposes a hint only when
    * hints are on and the reference drone is silent (the drone would be heard as the player).
    */
-  private _updateHint(sample: PitchSample | null, audioTimeSec: number | undefined, advanced: boolean): void {
+  private _updateHint(
+    sample: PitchSample | null,
+    audioTimeSec: number | undefined,
+    advanced: boolean,
+    awaitingReattack: boolean,
+  ): void {
     const t = audioTimeSec ?? sample?.audioTimeSec ?? this._audioEngine.audioContext.currentTime;
     const tracker = this._hintTracker;
     const exposed = this._hintsEnabled && !this._isDronePlaying;
@@ -639,6 +650,12 @@ export class PracticeController {
         lockSec,
         afterHintSec: reason !== null && shownAt !== null ? t - shownAt : null,
       });
+    }
+
+    // The player is still on the previous (identical) note: nothing to hint about yet
+    if (awaitingReattack) {
+      this._hint = null;
+      return;
     }
 
     const midi = this._activeNote?.pitch?.midiNumber ?? null;

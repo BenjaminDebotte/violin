@@ -119,6 +119,10 @@ export function FeedbackPanel({
   if (countInBeat && isRunning) {
     headline = `${countInBeat.beat}`;
     detail = `Count-in, beat ${countInBeat.beat} of ${countInBeat.total}`;
+  } else if (controllerState.awaitingReattack && isRunning && !isPaused && livePitch !== null && reading.verdict === 'in-tune') {
+    // The previous identical note is still ringing: ask for a new bow stroke
+    headline = `${targetLabel} again`;
+    detail = 'Same note: lift the bow, then play it again';
   } else if (reading.verdict === 'in-tune') {
     headline = 'In tune';
     detail = practiceMode === 'wait-for-me' ? 'Hold it…' : 'Lovely';

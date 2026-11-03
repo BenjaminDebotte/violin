@@ -138,6 +138,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
     countInBeat: null,
     hint: null,
     micError: null,
+    awaitingReattack: false,
   });
   const controllerRef = useRef<PracticeController | null>(null);
 
@@ -247,8 +248,11 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
     const targetHz = midiNoteToFrequency(active.pitch.midiNumber, referenceA4Hz);
     const t0 = audioEngine.audioContext.currentTime;
     if (controller.mode === 'wait-for-me') {
-      controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 });
-      controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 + 0.16 });
+      // A short silence first, like a fresh bow stroke, so a repeated note counts again
+      controller.handlePitchSample(null, t0);
+      controller.handlePitchSample(null, t0 + 0.05);
+      controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 + 0.1 });
+      controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 + 0.26 });
     } else {
       controller.handlePitchSample({ frequencyHz: targetHz, clarity: 0.98, rms: 0.08, audioTimeSec: t0 });
     }

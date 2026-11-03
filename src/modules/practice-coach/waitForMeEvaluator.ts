@@ -40,7 +40,21 @@ export interface WaitForMeStepResult {
   readonly loopRestarted: boolean;
   /** True when all notes in score/range are completed and loop is not active */
   readonly isComplete: boolean;
+  /**
+   * True while the target repeats the note just locked and the player has not yet
+   * re-articulated it (a gap, a dip in loudness or a pitch change). The evaluator does not
+   * count the still-ringing previous note toward the new one.
+   */
+  readonly awaitingReattack: boolean;
 }
+
+/** Silence (or a loudness dip) at least this long counts as a new bow stroke. */
+const REATTACK_GAP_SEC = 0.04;
+/** Loudness below this fraction of the locked note's level counts as a dip. */
+const REATTACK_DIP_RATIO = 0.5;
+/** Assumed spacing of null samples when the caller gives no timestamp. */
+const DEFAULT_FRAME_SEC = 0.02;
+
 
 /**
  * Pure, deterministic Wait-for-Me intonation evaluator.
@@ -64,6 +78,12 @@ export class WaitForMeEvaluator {
   private _lastInTuneAudioTimeSec: number | null = null;
   private _results: NoteEvaluationResult[] = [];
   private _isComplete = false;
+
+  // Re-articulation gate for a target that repeats the previous note
+  private _awaitingReattack = false;
+  private _reattackRefRms = 0;
+  private _reattackGapStartSec: number | null = null;
+  private _lastSampleTimeSec = 0;
 
   constructor(options: WaitForMeEvaluatorOptions) {
     // Filter out rests (note.pitch === null) from the score timeline
@@ -139,6 +159,10 @@ export class WaitForMeEvaluator {
     return this._isComplete;
   }
 
+  public get awaitingReattack(): boolean {
+    return this._awaitingReattack;
+  }
+
   // --- Configuration Mutators ---
 
   public setToleranceCents(toleranceCents: number): void {
@@ -170,6 +194,7 @@ export class WaitForMeEvaluator {
     this._lastInTuneAudioTimeSec = null;
     this._results = [];
     this._isComplete = this._activeNotes.length === 0;
+    this._clearReattack();
   }
 
   public seekToNoteIndex(index: number): void {
@@ -178,6 +203,7 @@ export class WaitForMeEvaluator {
       this._accumulatedHoldSec = 0;
       this._lastInTuneAudioTimeSec = null;
       this._isComplete = false;
+      this._clearReattack();
     }
   }
 
@@ -199,7 +225,15 @@ export class WaitForMeEvaluator {
    * the note locks 'green' and advances to the next playable note.
    * Dropped pitches (sample === null) or out-of-tune samples reset the hold timer to 0.
    */
-  public processPitch(sample: PitchSample | null): WaitForMeStepResult {
+  public processPitch(sample: PitchSample | null, audioTimeSec?: number): WaitForMeStepResult {
+    const step = this._processPitch(sample, audioTimeSec);
+    return { ...step, awaitingReattack: this._awaitingReattack };
+  }
+
+  private _processPitch(
+    sample: PitchSample | null,
+    audioTimeSec?: number,
+  ): Omit<WaitForMeStepResult, 'awaitingReattack'> {
     const targetNote = this.currentNote;
 
     // Score already complete or no playable notes in range
@@ -216,6 +250,13 @@ export class WaitForMeEvaluator {
         loopRestarted: false,
         isComplete: true,
       };
+    }
+
+    // 0. A target that repeats the note just played needs a fresh bow stroke first
+    const nowSec = sample?.audioTimeSec ?? audioTimeSec ?? this._lastSampleTimeSec + DEFAULT_FRAME_SEC;
+    this._lastSampleTimeSec = nowSec;
+    if (this._awaitingReattack) {
+      this._observeReattack(sample, nowSec, targetNote.pitch.midiNumber);
     }
 
     // 1. Silent or null sample -> pitch drop, immediately reset hold accumulator
@@ -263,6 +304,22 @@ export class WaitForMeEvaluator {
       };
     }
 
+    // 3b. Still ringing from the previous identical note: nothing to accumulate yet
+    if (this._awaitingReattack) {
+      return {
+        advanced: false,
+        completedNote: null,
+        completedResult: null,
+        svgTargetIds: [],
+        currentNote: targetNote,
+        nextNote: null,
+        holdProgress: 0,
+        centsDelta: roundedCents,
+        loopRestarted: false,
+        isComplete: false,
+      };
+    }
+
     // 4. In-tune sample -> accumulate hold duration via hardware timestamps
     if (this._lastInTuneAudioTimeSec === null) {
       this._lastInTuneAudioTimeSec = sample.audioTimeSec;
@@ -295,11 +352,13 @@ export class WaitForMeEvaluator {
       // Reset hold accumulator for the next note
       this._accumulatedHoldSec = 0;
       this._lastInTuneAudioTimeSec = null;
+      const lockedRms = sample.rms;
 
       // Determine next note / loop wrap
       if (this._currentIndex + 1 < this._activeNotes.length) {
         this._currentIndex++;
         const nextNote = this._activeNotes[this._currentIndex];
+        this._armReattack(completedNote, nextNote, lockedRms);
         return {
           advanced: true,
           completedNote,
@@ -319,6 +378,7 @@ export class WaitForMeEvaluator {
         // Wrap back to the first note of startMeasure
         this._currentIndex = 0;
         const nextNote = this._activeNotes[0] ?? null;
+        this._armReattack(completedNote, nextNote, lockedRms);
         return {
           advanced: true,
           completedNote,
@@ -369,6 +429,61 @@ export class WaitForMeEvaluator {
   }
 
   // --- Private Helpers ---
+
+  private _clearReattack(): void {
+    this._awaitingReattack = false;
+    this._reattackRefRms = 0;
+    this._reattackGapStartSec = null;
+  }
+
+  /** Requires a new bow stroke when the next target has the same pitch as the note just locked. */
+  private _armReattack(
+    completed: PlayableNote,
+    next: PlayableNote | null,
+    lockedRms: number,
+  ): void {
+    this._clearReattack();
+    if (
+      next?.pitch != null &&
+      completed.pitch != null &&
+      next.pitch.midiNumber === completed.pitch.midiNumber
+    ) {
+      this._awaitingReattack = true;
+      this._reattackRefRms = lockedRms;
+    }
+  }
+
+  /**
+   * Releases the gate when the player breaks the sound (silence or a loudness dip lasting
+   * REATTACK_GAP_SEC) or leaves the pitch. A steady, ringing note never releases it.
+   */
+  private _observeReattack(
+    sample: PitchSample | null,
+    nowSec: number,
+    targetMidi: number,
+  ): void {
+    const silent = sample === null || sample.frequencyHz <= 0;
+    let leftPitch = false;
+    let dipped = false;
+    if (sample !== null && !silent) {
+      const cents = frequencyToCentsDelta(sample.frequencyHz, targetMidi, this._referenceA4Hz);
+      leftPitch = Math.abs(cents) > this._toleranceCents;
+      dipped = this._reattackRefRms > 0 && sample.rms < this._reattackRefRms * REATTACK_DIP_RATIO;
+    }
+
+    if (leftPitch) {
+      this._clearReattack();
+      return;
+    }
+    if (silent || dipped) {
+      this._reattackGapStartSec ??= nowSec;
+      if (nowSec - this._reattackGapStartSec >= REATTACK_GAP_SEC) {
+        this._clearReattack();
+      }
+    } else {
+      this._reattackGapStartSec = null;
+    }
+  }
 
   private _filterNotesByLoop(
     notes: readonly PlayableNote[],

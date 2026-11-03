@@ -898,3 +898,94 @@ describe('PracticeController fingering hints (Wait-for-Me)', () => {
     controller.dispose();
   });
 });
+
+// =============================================================================
+// Unit Tests: repeated notes need a fresh bow stroke
+// =============================================================================
+
+describe('WaitForMeEvaluator repeated notes', () => {
+  const d4 = 293.66;
+  const a4 = 440;
+  const sample = (hz: number, t: number, rms = 0.08): PitchSample => ({
+    frequencyHz: hz,
+    clarity: 0.98,
+    rms,
+    audioTimeSec: t,
+  });
+  const make = () =>
+    new WaitForMeEvaluator({
+      notes: [
+        createSoloNote('n1', 1, 62, 'D4', d4, 0),
+        createSoloNote('n2', 1, 62, 'D4', d4, 1),
+        createSoloNote('n3', 1, 69, 'A4', a4, 2),
+      ],
+      holdDurationSec: 0.15,
+      toleranceCents: 15,
+    });
+  /** Plays `hz` from `from` for `dur` seconds, 20 ms apart. Returns the time after the last frame. */
+  const play = (ev: WaitForMeEvaluator, hz: number, from: number, dur: number, rms = 0.08) => {
+    let t = from;
+    for (; t < from + dur - 1e-9; t += 0.02) ev.processPitch(sample(hz, t, rms), t);
+    return t;
+  };
+  const silence = (ev: WaitForMeEvaluator, from: number, dur: number) => {
+    let t = from;
+    for (; t < from + dur - 1e-9; t += 0.02) ev.processPitch(null, t);
+    return t;
+  };
+
+  it('does not count a still-ringing note toward the same note again', () => {
+    const ev = make();
+    play(ev, d4, 0, 3);
+    expect(ev.currentNote?.id).toBe('n2');
+    expect(ev.awaitingReattack).toBe(true);
+    expect(ev.holdProgress).toBe(0);
+  });
+
+  it('advances once the note was broken by silence and played again', () => {
+    const ev = make();
+    let t = play(ev, d4, 0, 0.3);
+    expect(ev.currentNote?.id).toBe('n2');
+    t = silence(ev, t, 0.06);
+    expect(ev.awaitingReattack).toBe(false);
+    play(ev, d4, t, 0.3);
+    expect(ev.currentNote?.id).toBe('n3');
+  });
+
+  it('treats a dip in loudness (a bow change that never fully stops) as a new stroke', () => {
+    const ev = make();
+    let t = play(ev, d4, 0, 0.3);
+    t = play(ev, d4, t, 0.06, 0.02);
+    expect(ev.awaitingReattack).toBe(false);
+    play(ev, d4, t, 0.3);
+    expect(ev.currentNote?.id).toBe('n3');
+  });
+
+  it('ignores a single dropped frame in the middle of a sustained note', () => {
+    const ev = make();
+    let t = play(ev, d4, 0, 0.3);
+    t = silence(ev, t, 0.02);
+    play(ev, d4, t, 1);
+    expect(ev.awaitingReattack).toBe(true);
+    expect(ev.currentNote?.id).toBe('n2');
+  });
+
+  it('does not gate a following note of a different pitch', () => {
+    const ev = make();
+    let t = play(ev, d4, 0, 0.3);
+    t = silence(ev, t, 0.06);
+    t = play(ev, d4, t, 0.3);
+    expect(ev.currentNote?.id).toBe('n3');
+    expect(ev.awaitingReattack).toBe(false);
+    play(ev, a4, t, 0.3);
+    expect(ev.isComplete).toBe(true);
+  });
+
+  it('clears the gate on reset and when seeking', () => {
+    const ev = make();
+    play(ev, d4, 0, 0.3);
+    expect(ev.awaitingReattack).toBe(true);
+    ev.seekToNoteIndex(1);
+    expect(ev.awaitingReattack).toBe(false);
+  });
+});
