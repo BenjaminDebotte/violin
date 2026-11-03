@@ -184,6 +184,16 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
   }, [timeline, practiceMode]);
 
   useEffect(() => controllerRef.current?.setHintsEnabled(hintsEnabled), [hintsEnabled]);
+
+  // The drone button always shows what the controller is really doing (it stops by itself when
+  // the piece ends, or when practice stops)
+  useEffect(() => {
+    setMixer((prev) =>
+      prev.droneActive === controllerState.isDronePlaying
+        ? prev
+        : { ...prev, droneActive: controllerState.isDronePlaying },
+    );
+  }, [controllerState.isDronePlaying]);
   useEffect(() => controllerRef.current?.setToleranceCents(toleranceCents), [toleranceCents]);
   useEffect(() => controllerRef.current?.setReferenceA4Hz(referenceA4Hz), [referenceA4Hz]);
   useEffect(() => controllerRef.current?.setTempoScale(tempoScale), [tempoScale]);

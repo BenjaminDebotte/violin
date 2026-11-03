@@ -45,6 +45,7 @@ export function applyNoteGradeToSvg(
   let anyModified = false;
   for (const id of ids) {
     if (!id) continue;
+    recordPainted(target, id, color);
 
     // Check if target itself has this note ID
     if (target.getAttribute('data-note-id') === id) {
@@ -62,6 +63,31 @@ export function applyNoteGradeToSvg(
   }
 
   return anyModified;
+}
+
+/**
+ * What was painted on each score container (note id -> colour). OSMD rebuilds the whole SVG
+ * on every render (window resize, zoom, layout change), which drops the tags and the colours,
+ * so they are recorded here and painted again after the next tagging.
+ */
+const paintedNotes = new WeakMap<Element, Map<string, string>>();
+
+function recordPainted(container: Element, id: string, color: string): void {
+  let map = paintedNotes.get(container);
+  if (!map) {
+    map = new Map();
+    paintedNotes.set(container, map);
+  }
+  map.set(id, color);
+}
+
+/** Paints the recorded notes again onto a freshly rendered score. */
+export function repaintRecordedNotes(container: Element): void {
+  const map = paintedNotes.get(container);
+  if (!map) return;
+  for (const [id, color] of map) {
+    container.querySelectorAll(`[data-note-id="${id}"]`).forEach((el) => colorSingleSvgElement(el, color));
+  }
 }
 
 function colorSingleSvgElement(el: Element, color: string): void {
@@ -112,6 +138,7 @@ export function resetSvgNoteColors(
     const ids = Array.isArray(noteIdOrIds) ? noteIdOrIds : [noteIdOrIds];
     let anyReset = false;
     for (const id of ids) {
+      paintedNotes.get(root)?.delete(id);
       if (root.getAttribute('data-note-id') === id) {
         restoreSingleSvgElement(root);
         anyReset = true;
@@ -126,6 +153,7 @@ export function resetSvgNoteColors(
   }
 
   // Reset all elements with original fill/stroke recorded
+  paintedNotes.delete(root);
   if (root.hasAttribute('data-original-fill')) {
     restoreSingleSvgElement(root);
   }
@@ -211,6 +239,40 @@ export function tagOsmdSvgNotes(osmd: OpenSheetMusicDisplay): void {
   }
 }
 
+/** Marks the violin notes under the OSMD cursor so CSS can colour and glow them. */
+export const CURRENT_NOTE_CLASS = 'score-note-current';
+
+export function highlightCurrentNotes(osmd: OpenSheetMusicDisplay, previous: readonly Element[]): Element[] {
+  for (const el of previous) el.classList.remove(CURRENT_NOTE_CLASS);
+  const next: Element[] = [];
+  try {
+    const instrument = osmd.Sheet?.Instruments?.[0];
+    const gNotes = osmd.cursor?.GNotesUnderCursor(instrument) ?? [];
+    for (const gNote of gNotes) {
+      const el = (gNote as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.();
+      if (el) {
+        el.classList.add(CURRENT_NOTE_CLASS);
+        next.push(el);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to highlight the current note:', err);
+  }
+  return next;
+}
+
+/** Puts the OSMD cursor on a step after a fresh render (which resets it). */
+function restoreCursor(osmd: OpenSheetMusicDisplay, step: number): void {
+  if (!osmd.cursor) return;
+  osmd.cursor.show();
+  osmd.cursor.reset();
+  for (let s = 0; s < step; s++) {
+    osmd.cursor.next();
+    if (osmd.cursor.iterator.EndReached) break;
+  }
+  osmd.cursor.update();
+}
+
 export interface ScoreViewportProps {
   readonly xmlContent?: string;
   readonly viewMode?: 'page' | 'ribbon';
@@ -231,6 +293,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
   const currentStepRef = useRef<number>(0);
+  const highlightedRef = useRef<Element[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -279,14 +342,9 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         try {
           osmd.render();
           tagOsmdSvgNotes(osmd);
-          if (osmd.cursor) {
-            osmd.cursor.show();
-            osmd.cursor.reset();
-            for (let s = 0; s < currentStepRef.current; s++) {
-              osmd.cursor.next();
-              if (osmd.cursor.iterator.EndReached) break;
-            }
-          }
+          restoreCursor(osmd, currentStepRef.current);
+          if (containerRef.current) repaintRecordedNotes(containerRef.current);
+          highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
         } catch (err) {
           console.warn('Failed to re-render OSMD on viewMode toggle:', err);
         }
@@ -312,11 +370,8 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         osmd.render();
         tagOsmdSvgNotes(osmd);
         currentStepRef.current = 0;
-        if (osmd.cursor) {
-          osmd.cursor.show();
-          osmd.cursor.reset();
-          osmd.cursor.update();
-        }
+        restoreCursor(osmd, 0);
+        highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -330,6 +385,35 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     };
   }, [xmlContent, zoom]);
 
+  // OSMD also re-renders on its own (window resize, phone rotation). That rebuilds the SVG, so the
+  // note tags, the played colours, the cursor and the current-note highlight are put back.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof MutationObserver === 'undefined') return;
+    let frame = 0;
+    const observer = new MutationObserver(() => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const osmd = osmdRef.current;
+        if (!osmd || !container.querySelector('svg') || container.querySelector('[data-note-id]')) return;
+        try {
+          tagOsmdSvgNotes(osmd);
+          restoreCursor(osmd, currentStepRef.current);
+          repaintRecordedNotes(container);
+          highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
+        } catch (err) {
+          console.warn('Failed to restore the score after a re-render:', err);
+        }
+      });
+    });
+    observer.observe(container, { childList: true });
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+
   // Cursor synchronization
   useEffect(() => {
     const osmd = osmdRef.current;
@@ -338,7 +422,10 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     const targetStep = Math.max(0, cursorStepIndex);
     const currentStep = currentStepRef.current;
 
-    if (targetStep === currentStep) return;
+    if (targetStep === currentStep) {
+      highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
+      return;
+    }
 
     if (targetStep > currentStep) {
       for (let s = currentStep; s < targetStep; s++) {
@@ -354,15 +441,18 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     }
 
     currentStepRef.current = targetStep;
+    highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
     onCursorStepChange?.(targetStep);
 
-    // Smoothly scroll cursor into center view in Ribbon mode
-    if (viewMode === 'ribbon' && containerRef.current && osmd.cursor.cursorElement) {
-      osmd.cursor.cursorElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center',
-      });
+    // Keep the note to play in view. The OSMD cursor image is 1 px tall and sits behind the
+    // score, so the highlighted note itself is the better scroll target.
+    const follow = highlightedRef.current[0] ?? osmd.cursor.cursorElement;
+    if (containerRef.current && follow && typeof follow.scrollIntoView === 'function') {
+      follow.scrollIntoView(
+        viewMode === 'ribbon'
+          ? { behavior: 'smooth', block: 'center', inline: 'center' }
+          : { behavior: 'smooth', block: 'nearest', inline: 'nearest' },
+      );
     }
   }, [cursorStepIndex, viewMode, isLoading, onCursorStepChange]);
 

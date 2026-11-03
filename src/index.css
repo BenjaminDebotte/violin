@@ -195,3 +195,14 @@ input[type='range'] {
 @media (prefers-reduced-motion: reduce) {
   .mic-dot--live { animation: none; }
 }
+
+/* The note to play now: amber with a soft glow, so it can be found at a glance. Wins over the
+   played / graded colours painted inline on the SVG (the note is not graded yet). */
+.score-note-current {
+  filter: drop-shadow(0 0 2px rgb(240 166 48 / 0.95)) drop-shadow(0 0 6px rgb(240 166 48 / 0.6));
+}
+.score-note-current path,
+.score-note-current ellipse {
+  fill: #e08a00 !important;
+  stroke: #e08a00 !important;
+}

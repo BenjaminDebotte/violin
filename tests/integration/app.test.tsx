@@ -251,6 +251,20 @@ describe('App integration: mobile-first Songs / Play / Tune / Settings', () => {
     expect(drone).toHaveTextContent('Hear D4');
   });
 
+  it('keeps the drone button in step with the drone: Stop silences it and the button resets', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start Practice' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Pause Practice' })).toBeInTheDocument());
+
+    const drone = screen.getByRole('button', { name: 'Hear D4' });
+    fireEvent.click(drone);
+    expect(drone).toHaveTextContent('Stop drone');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop and Reset Practice' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Hear D4' })).toHaveTextContent('Hear D4'));
+    expect(screen.getByRole('button', { name: 'Hear D4' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
   // 8. Loop sheet --------------------------------------------------------------------
   it('sets and clears a bar loop from the loop sheet', () => {
     render(<App />);

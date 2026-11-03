@@ -390,10 +390,7 @@ export class PracticeController {
       this._stopPlayAlongPollTimer();
     }
 
-    if (this._isDronePlaying) {
-      this._audioEngine.stopDrone();
-      this._isDronePlaying = false;
-    }
+    this._stopDrone();
 
     if (this._micUnsubscribe) {
       this._micUnsubscribe();
@@ -401,6 +398,14 @@ export class PracticeController {
     }
 
     this._emitState();
+  }
+
+  /** Silences the reference drone if it is playing. */
+  private _stopDrone(): void {
+    if (this._isDronePlaying) {
+      this._audioEngine.stopDrone();
+      this._isDronePlaying = false;
+    }
   }
 
   /**
@@ -490,6 +495,8 @@ export class PracticeController {
             this._waitForMeEvaluator.results,
           );
           this._isRunning = false;
+          // The piece is over: the drone must not keep sounding
+          this._stopDrone();
         }
       }
 
@@ -764,6 +771,7 @@ export class PracticeController {
 
     this._sessionSummary = this._playAlongEvaluator.getSummary();
     this._isRunning = false;
+    this._stopDrone();
     this._stopPlayAlongPollTimer();
     this._emitState();
   }

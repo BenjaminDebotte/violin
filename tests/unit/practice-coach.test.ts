@@ -794,6 +794,49 @@ describe('PracticeController Coordination', () => {
     controller.dispose();
   });
 
+  it('silences the reference drone when the last note of a Wait-for-Me piece locks', async () => {
+    const stopDrone = vi.spyOn(audioEngine, 'stopDrone');
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      settings: { mode: 'wait-for-me', referenceA4Hz: 440, strictness: 'medium' },
+    });
+    await controller.start();
+    expect(controller.toggleReferenceDrone()).toBe(true);
+
+    let t = 0;
+    for (const hz of [440, 493.88, 523.25, 587.33]) {
+      for (let i = 0; i < 12; i++, t += 0.02) {
+        controller.handlePitchSample({ frequencyHz: hz, clarity: 0.98, rms: 0.08, audioTimeSec: t }, t);
+      }
+    }
+
+    expect(controller.isRunning).toBe(false);
+    expect(controller.isDronePlaying).toBe(false);
+    expect(controller.getState().isDronePlaying).toBe(false);
+    expect(stopDrone).toHaveBeenCalled();
+    controller.dispose();
+  });
+
+  it('silences the reference drone when a Play-Along piece ends', async () => {
+    const stopDrone = vi.spyOn(audioEngine, 'stopDrone');
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      settings: { mode: 'play-along', referenceA4Hz: 440, strictness: 'medium' },
+    });
+    await controller.start();
+    controller.toggleReferenceDrone();
+    expect(controller.isDronePlaying).toBe(true);
+
+    (controller as unknown as { _handleSchedulerComplete(): void })._handleSchedulerComplete();
+
+    expect(controller.isRunning).toBe(false);
+    expect(controller.isDronePlaying).toBe(false);
+    expect(stopDrone).toHaveBeenCalled();
+    controller.dispose();
+  });
+
   it('allows dynamic seeking to a measure', async () => {
     const controller = new PracticeController({
       timeline,
