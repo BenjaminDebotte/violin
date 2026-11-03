@@ -837,6 +837,53 @@ describe('PracticeController Coordination', () => {
     controller.dispose();
   });
 
+  it('opens the microphone once when Start is tapped twice during the permission prompt', async () => {
+    let release: () => void = () => {};
+    const start = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const mic = { isRunning: false, start, subscribe: vi.fn(() => () => {}) } as unknown as MicSessionManager;
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      micSessionManager: mic,
+      settings: { mode: 'wait-for-me', referenceA4Hz: 440, strictness: 'medium' },
+    });
+
+    const first = controller.start();
+    const retry = controller.retryMic();
+    expect(controller.isRunning).toBe(true);
+    release();
+    await Promise.all([first, retry]);
+
+    expect(start).toHaveBeenCalledTimes(1);
+    controller.dispose();
+  });
+
+  it('lets the player retry the microphone after the session has stopped', async () => {
+    const start = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('denied'), { name: 'NotAllowedError' }))
+      .mockResolvedValue(undefined);
+    const mic = { isRunning: false, start, subscribe: vi.fn(() => () => {}) } as unknown as MicSessionManager;
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      micSessionManager: mic,
+      settings: { mode: 'wait-for-me', referenceA4Hz: 440, strictness: 'medium' },
+    });
+    await controller.start();
+    controller.stop();
+    expect(controller.getState().micError?.kind).toBe('denied');
+
+    await controller.retryMic();
+    expect(controller.getState().micError).toBeNull();
+    controller.dispose();
+  });
+
   it('allows dynamic seeking to a measure', async () => {
     const controller = new PracticeController({
       timeline,
@@ -995,13 +1042,35 @@ describe('WaitForMeEvaluator repeated notes', () => {
     expect(ev.currentNote?.id).toBe('n3');
   });
 
-  it('treats a dip in loudness (a bow change that never fully stops) as a new stroke', () => {
+  it('treats a dip in loudness followed by a new attack as a new stroke', () => {
     const ev = make();
     let t = play(ev, d4, 0, 0.3);
     t = play(ev, d4, t, 0.06, 0.02);
+    // The dip alone is not enough: the sound has to come back up
+    expect(ev.awaitingReattack).toBe(true);
+    t = play(ev, d4, t, 0.04, 0.08);
     expect(ev.awaitingReattack).toBe(false);
     play(ev, d4, t, 0.3);
     expect(ev.currentNote?.id).toBe('n3');
+  });
+
+  it('does not mistake a note that fades away for a new stroke', () => {
+    const ev = make();
+    let t = play(ev, d4, 0, 0.3);
+    for (let rms = 0.07; rms > 0.005; rms *= 0.8) t = play(ev, d4, t, 0.02, rms);
+    t = play(ev, d4, t, 1, 0.012);
+    expect(ev.awaitingReattack).toBe(true);
+    expect(ev.currentNote?.id).toBe('n2');
+  });
+
+  it('ignores one off-pitch frame but releases when the pitch is really left', () => {
+    const ev = make();
+    let t = play(ev, d4, 0, 0.3);
+    t = play(ev, d4 * 1.1, t, 0.02);
+    t = play(ev, d4, t, 0.3);
+    expect(ev.awaitingReattack).toBe(true);
+    play(ev, d4 * 1.1, t, 0.1);
+    expect(ev.awaitingReattack).toBe(false);
   });
 
   it('ignores a single dropped frame in the middle of a sustained note', () => {
@@ -1030,5 +1099,14 @@ describe('WaitForMeEvaluator repeated notes', () => {
     expect(ev.awaitingReattack).toBe(true);
     ev.seekToNoteIndex(1);
     expect(ev.awaitingReattack).toBe(false);
+  });
+
+  it('clears the gate on reset too', () => {
+    const ev = make();
+    play(ev, d4, 0, 0.3);
+    expect(ev.awaitingReattack).toBe(true);
+    ev.reset();
+    expect(ev.awaitingReattack).toBe(false);
+    expect(ev.currentNote?.id).toBe('n1');
   });
 });

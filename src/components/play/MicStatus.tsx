@@ -169,12 +169,12 @@ export function MicErrorBanner({ error, onRetry }: MicErrorBannerProps) {
     <div
       role="alert"
       className="flex items-center gap-3 rounded-[20px] px-3.5 py-2.5"
-      style={{ backgroundColor: 'var(--sharp)', color: 'var(--bone)' }}
+      style={{ backgroundColor: '#a81f45', color: '#ffffff' }}
     >
       <MicOff className="h-5 w-5 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1 space-y-0.5">
         <p className="text-[14px] font-bold leading-snug">{error.title}</p>
-        <p className="text-[13px] leading-snug" style={{ opacity: 0.92 }}>
+        <p className="text-[13px] leading-snug">
           {error.detail}
         </p>
       </div>

@@ -348,7 +348,7 @@ describe('App integration: mobile-first Songs / Play / Tune / Settings', () => {
     window.location.hash = '#/settings';
     const { unmount } = render(<App />);
 
-    const toggle = screen.getByRole('switch', { name: 'Show finger hints' });
+    const toggle = screen.getByRole('switch', { name: /finger hints/i });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-checked', 'false');

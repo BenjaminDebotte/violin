@@ -23,7 +23,7 @@ export function classifyMicError(err: unknown): MicErrorInfo {
   const name = err instanceof Error || (typeof err === 'object' && err !== null && 'name' in err) ? String((err as { name?: unknown }).name) : '';
   const message = err instanceof Error ? err.message : '';
 
-  if (/not supported/i.test(message) || name === 'TypeError') {
+  if (/not supported/i.test(message)) {
     if (isInsecureOrigin()) {
       return {
         kind: 'insecure',
@@ -39,7 +39,23 @@ export function classifyMicError(err: unknown): MicErrorInfo {
       retryable: false,
     };
   }
-  if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+  if (name === 'SecurityError') {
+    // Refused for this page itself (insecure origin or a permissions policy): settings cannot fix it
+    return isInsecureOrigin()
+      ? {
+          kind: 'insecure',
+          title: "Mic blocked: this page isn't https",
+          detail: 'Browsers only allow the microphone on https:// pages or localhost. Open the app over https.',
+          retryable: false,
+        }
+      : {
+          kind: 'denied',
+          title: 'The browser refused the microphone for this page',
+          detail: 'Check that the page is opened directly (not embedded) and that the site may use the microphone.',
+          retryable: false,
+        };
+  }
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
     return {
       kind: 'denied',
       title: 'Microphone is blocked',

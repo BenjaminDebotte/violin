@@ -67,12 +67,18 @@ export function FeedbackPanel({
 
   // Fingering hint: offered by the controller (stuck / wrong note) or requested with the button.
   // Both are per target note: they clear when the note locks or changes.
-  const [requested, setRequested] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  // Keyed by note (and loop pass), so a request never leaks onto the next note for a frame
+  const hintKey = `${controllerState.activeNote?.id ?? ''}|${controllerState.loopCount}`;
+  const [requestedFor, setRequestedFor] = useState<string | null>(null);
+  const [dismissedFor, setDismissedFor] = useState<string | null>(null);
+  const requested = requestedFor === hintKey;
+  const dismissed = dismissedFor === hintKey;
+  const setRequested = (on: boolean) => setRequestedFor(on ? hintKey : null);
+  const setDismissed = (on: boolean) => setDismissedFor(on ? hintKey : null);
   useEffect(() => {
-    setRequested(false);
-    setDismissed(false);
-  }, [controllerState.activeNote?.id, controllerState.latestNoteGrade]);
+    setRequestedFor(null);
+    setDismissedFor(null);
+  }, [controllerState.isRunning]);
   const canHint = practiceMode === 'wait-for-me' && target !== null && !controllerState.countInBeat;
   const offered = controllerState.hint !== null && !dismissed;
   const showHint = canHint && (offered || requested);

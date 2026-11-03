@@ -134,6 +134,7 @@ export class PracticeController {
   private _subscribers = new Set<PracticeStateSubscriber>();
   private _micUnsubscribe: (() => void) | null = null;
   private _micError: MicErrorInfo | null = null;
+  private _micConnecting: Promise<void> | null = null;
   private _playAlongPollTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: PracticeControllerOptions) {
@@ -313,22 +314,34 @@ export class PracticeController {
       this._beatScheduler.start();
     }
 
+    // Show the running state at once: the permission prompt can stay open for a long time
+    this._emitState();
     await this._connectMic();
     this._emitState();
   }
 
   /**
-   * Tries again to open the microphone during a running session (e.g. after the player
-   * allowed it in the browser settings).
+   * Tries again to open the microphone (e.g. after the player allowed it in the browser
+   * settings). Works while running and also after the session stopped or ended.
    */
   public async retryMic(): Promise<void> {
-    if (!this._isRunning) return;
     await this._connectMic();
     this._emitState();
   }
 
-  /** Starts (or reuses) the mic and subscribes to its pitch samples. Records why it failed. */
-  private async _connectMic(): Promise<void> {
+  /**
+   * Starts (or reuses) the mic and subscribes to its pitch samples. Records why it failed.
+   * Single-flight: a second call while the first waits for the permission prompt joins it
+   * instead of opening a second stream.
+   */
+  private _connectMic(): Promise<void> {
+    this._micConnecting ??= this._openMic().finally(() => {
+      this._micConnecting = null;
+    });
+    return this._micConnecting;
+  }
+
+  private async _openMic(): Promise<void> {
     this._micError = null;
     if (!this._micSessionManager) return;
     try {

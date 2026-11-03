@@ -34,9 +34,13 @@ export function median(values: readonly number[]): number | null {
 }
 
 export function summarize(episodes: readonly HintEpisode[]): HintStatsSummary {
-  const on = episodes.filter((e) => e.hintsEnabled);
-  const off = episodes.filter((e) => !e.hintsEnabled);
-  const after = on.flatMap((e) => (e.afterHintSec === null ? [] : [e.afterHintSec]));
+  // Compare like with like: a hint can fire on a note that locked in under 2 s (a wrong note),
+  // while notes searched for without hints only count from 2 s on. So both groups use the
+  // same cut; the time after a hint is shown is read from every episode that had one.
+  const slow = episodes.filter((e) => e.lockSec >= MIN_EPISODE_SEC);
+  const on = slow.filter((e) => e.hintsEnabled);
+  const off = slow.filter((e) => !e.hintsEnabled);
+  const after = episodes.flatMap((e) => (e.hintsEnabled && e.afterHintSec !== null ? [e.afterHintSec] : []));
   return {
     withHints: { n: on.length, medianLockSec: median(on.map((e) => e.lockSec)), medianAfterHintSec: median(after) },
     withoutHints: { n: off.length, medianLockSec: median(off.map((e) => e.lockSec)) },

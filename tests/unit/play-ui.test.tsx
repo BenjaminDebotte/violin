@@ -128,6 +128,17 @@ describe('FeedbackPanel fingering hint', () => {
     expect(within(hint).getByText('3rd')).toHaveStyle({ backgroundColor: 'var(--pos3)' });
   });
 
+  it('asks for a fresh bow stroke when the same note is still ringing', () => {
+    renderPanel(440, running({ awaitingReattack: true }));
+    expect(screen.getByText('A4 again')).toBeInTheDocument();
+    expect(screen.getByText(/lift the bow/i)).toBeInTheDocument();
+  });
+
+  it('does not say "again" while nothing is sounding', () => {
+    renderPanel(null, running({ awaitingReattack: true }));
+    expect(screen.queryByText('A4 again')).not.toBeInTheDocument();
+  });
+
   it('draws no faint notes when the bar is unknown', () => {
     renderPanel(null);
     fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));

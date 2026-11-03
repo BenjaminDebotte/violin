@@ -164,6 +164,18 @@ describe('hintStats', () => {
     expect(s.withoutHints).toEqual({ n: 1, medianLockSec: 6 });
   });
 
+  it('does not let a fast wrong-note lock skew the comparison, but keeps its time after the hint', () => {
+    const s = summarize([
+      ep({ reason: 'wrong-note', lockSec: 0.8, afterHintSec: 0.3 }),
+      ep({ reason: 'stuck', lockSec: 4, afterHintSec: 1.5 }),
+      ep({ hintsEnabled: false, lockSec: 3 }),
+    ]);
+    expect(s.withHints.n).toBe(1);
+    expect(s.withHints.medianLockSec).toBe(4);
+    expect(s.withHints.medianAfterHintSec).toBe(0.9);
+    expect(s.withoutHints).toEqual({ n: 1, medianLockSec: 3 });
+  });
+
   it('stores episodes locally, skips quick locks without hints, and clears', () => {
     localStorage.clear();
     recordEpisode(ep({ lockSec: 0.4 }));

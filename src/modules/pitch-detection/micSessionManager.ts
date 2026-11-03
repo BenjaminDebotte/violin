@@ -170,36 +170,42 @@ export class MicSessionManager {
     this._stream = stream;
     this._selectedDeviceId = deviceId ?? null;
 
-    // Create or resume AudioContext AFTER stream acquisition
-    if (!this._audioContext) {
-      const CtxClass =
-        this._options.AudioContextClass ??
-        (typeof window !== 'undefined'
-          ? window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-          : undefined);
+    try {
+      // Create or resume AudioContext AFTER stream acquisition
+      if (!this._audioContext) {
+        const CtxClass =
+          this._options.AudioContextClass ??
+          (typeof window !== 'undefined'
+            ? window.AudioContext ||
+              (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+            : undefined);
 
-      if (!CtxClass) {
-        throw new Error('AudioContext is not supported in this environment');
+        if (!CtxClass) {
+          throw new Error('AudioContext is not supported in this environment');
+        }
+
+        this._audioContext = new CtxClass();
+        this._ownsAudioContext = true;
       }
 
-      this._audioContext = new CtxClass();
-      this._ownsAudioContext = true;
+      if (this._audioContext.state === 'suspended') {
+        await this._audioContext.resume();
+      }
+
+      // Connect MediaStreamAudioSourceNode -> AnalyserNode
+      this._sourceNode = this._audioContext.createMediaStreamSource(stream);
+      this._analyserNode = this._audioContext.createAnalyser();
+      this._analyserNode.fftSize = this.fftSize;
+      this._sourceNode.connect(this._analyserNode);
+
+      // Initialize pitch detector & scratch buffer
+      this._detector = PitchDetector.forFloat32Array(this.fftSize);
+      this._buffer = new Float32Array(this.fftSize);
+    } catch (err) {
+      // Do not leave the microphone open (and its indicator on) after a failed start
+      this.stop();
+      throw err;
     }
-
-    if (this._audioContext.state === 'suspended') {
-      await this._audioContext.resume();
-    }
-
-    // Connect MediaStreamAudioSourceNode -> AnalyserNode
-    this._sourceNode = this._audioContext.createMediaStreamSource(stream);
-    this._analyserNode = this._audioContext.createAnalyser();
-    this._analyserNode.fftSize = this.fftSize;
-    this._sourceNode.connect(this._analyserNode);
-
-    // Initialize pitch detector & scratch buffer
-    this._detector = PitchDetector.forFloat32Array(this.fftSize);
-    this._buffer = new Float32Array(this.fftSize);
 
     this._isRunning = true;
 

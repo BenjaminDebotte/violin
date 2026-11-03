@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { OpenSheetMusicDisplay, CursorType } from 'opensheetmusicdisplay';
 
 export type NoteGradeColor = 'green' | 'yellow' | 'red' | 'active' | 'reset' | 'pending';
@@ -79,6 +79,11 @@ function recordPainted(container: Element, id: string, color: string): void {
     paintedNotes.set(container, map);
   }
   map.set(id, color);
+}
+
+/** Forgets what was painted (a different score was loaded, or practice was reset). */
+export function clearRecordedNotes(container: Element): void {
+  paintedNotes.delete(container);
 }
 
 /** Paints the recorded notes again onto a freshly rendered score. */
@@ -294,6 +299,8 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
   const currentStepRef = useRef<number>(0);
   const highlightedRef = useRef<Element[]>([]);
+  const renderedSvgRef = useRef<Element | null>(null);
+  const loadedXmlRef = useRef<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -323,11 +330,31 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     }
 
     return () => {
+      // OSMD's window resize listener outlives the instance unless it is switched off
+      try {
+        if (osmdRef.current) osmdRef.current.AutoResizeEnabled = false;
+      } catch {
+        /* instance already torn down */
+      }
       osmdRef.current = null;
       if (container) {
         container.innerHTML = '';
       }
     };
+  }, []);
+
+  /**
+   * After any OSMD render the SVG is brand new: tag the notes, put the cursor back, paint the
+   * played colours again and re-mark the current note.
+   */
+  const restoreAfterRender = useCallback((osmd: OpenSheetMusicDisplay) => {
+    const container = containerRef.current;
+    if (!container) return;
+    tagOsmdSvgNotes(osmd);
+    restoreCursor(osmd, currentStepRef.current);
+    repaintRecordedNotes(container);
+    highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
+    renderedSvgRef.current = container.querySelector('svg');
   }, []);
 
   // Update EngravingRules when viewMode changes
@@ -341,10 +368,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       if (xmlContent) {
         try {
           osmd.render();
-          tagOsmdSvgNotes(osmd);
-          restoreCursor(osmd, currentStepRef.current);
-          if (containerRef.current) repaintRecordedNotes(containerRef.current);
-          highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
+          restoreAfterRender(osmd);
         } catch (err) {
           console.warn('Failed to re-render OSMD on viewMode toggle:', err);
         }
@@ -367,11 +391,14 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         if (!isMounted) return;
         osmd.EngravingRules.RenderSingleHorizontalStaffline = viewMode === 'ribbon';
         osmd.zoom = zoom;
+        // A different score starts clean; a zoom or layout change of the same score keeps its colours
+        if (loadedXmlRef.current !== xmlContent) {
+          if (containerRef.current) clearRecordedNotes(containerRef.current);
+          currentStepRef.current = 0;
+          loadedXmlRef.current = xmlContent;
+        }
         osmd.render();
-        tagOsmdSvgNotes(osmd);
-        currentStepRef.current = 0;
-        restoreCursor(osmd, 0);
-        highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
+        restoreAfterRender(osmd);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -390,29 +417,20 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   useEffect(() => {
     const container = containerRef.current;
     if (!container || typeof MutationObserver === 'undefined') return;
-    let frame = 0;
     const observer = new MutationObserver(() => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        const osmd = osmdRef.current;
-        if (!osmd || !container.querySelector('svg') || container.querySelector('[data-note-id]')) return;
-        try {
-          tagOsmdSvgNotes(osmd);
-          restoreCursor(osmd, currentStepRef.current);
-          repaintRecordedNotes(container);
-          highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
-        } catch (err) {
-          console.warn('Failed to restore the score after a re-render:', err);
-        }
-      });
+      // Observer callbacks run before the next paint, so the restore is never seen half done
+      const osmd = osmdRef.current;
+      const svg = container.querySelector('svg');
+      if (!osmd || !svg || svg === renderedSvgRef.current) return;
+      try {
+        restoreAfterRender(osmd);
+      } catch (err) {
+        console.warn('Failed to restore the score after a re-render:', err);
+      }
     });
     observer.observe(container, { childList: true });
-    return () => {
-      observer.disconnect();
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, []);
+    return () => observer.disconnect();
+  }, [restoreAfterRender]);
 
   // Cursor synchronization
   useEffect(() => {
@@ -448,10 +466,13 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     // score, so the highlighted note itself is the better scroll target.
     const follow = highlightedRef.current[0] ?? osmd.cursor.cursorElement;
     if (containerRef.current && follow && typeof follow.scrollIntoView === 'function') {
+      const reduceMotion =
+        typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const behavior = reduceMotion ? 'auto' : 'smooth';
       follow.scrollIntoView(
         viewMode === 'ribbon'
-          ? { behavior: 'smooth', block: 'center', inline: 'center' }
-          : { behavior: 'smooth', block: 'nearest', inline: 'nearest' },
+          ? { behavior, block: 'center', inline: 'center' }
+          : { behavior, block: 'nearest', inline: 'nearest' },
       );
     }
   }, [cursorStepIndex, viewMode, isLoading, onCursorStepChange]);

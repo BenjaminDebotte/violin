@@ -36,6 +36,16 @@ describe('classifyMicError', () => {
   it('falls back to a generic message', () => {
     expect(classifyMicError(new Error('boom')).kind).toBe('other');
   });
+
+  it('does not call a programming TypeError an unsupported browser', () => {
+    expect(classifyMicError(new TypeError("Cannot read properties of undefined (reading 'x')")).kind).toBe('other');
+  });
+
+  it('treats a SecurityError as not fixable from settings', () => {
+    setSecure(true);
+    const info = classifyMicError(Object.assign(new Error('x'), { name: 'SecurityError' }));
+    expect(info.retryable).toBe(false);
+  });
 });
 
 describe('MicErrorBanner', () => {

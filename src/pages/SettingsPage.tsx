@@ -145,7 +145,6 @@ export function SettingsPage({
             type="button"
             role="switch"
             aria-checked={hintsEnabled}
-            aria-label="Show finger hints"
             onClick={() => onHintsEnabledChange?.(!hintsEnabled)}
             className="w-full min-h-12 px-4 rounded-full inline-flex items-center justify-between text-[17px] font-bold cursor-pointer"
             style={{
@@ -154,8 +153,8 @@ export function SettingsPage({
               border: '1px solid var(--rule)',
             }}
           >
-            <span>{hintsEnabled ? 'Hints on' : 'Hints off'}</span>
-            <span aria-hidden="true">{hintsEnabled ? '●' : '○'}</span>
+            <span>Finger hints</span>
+            <span aria-hidden="true">{hintsEnabled ? 'On ●' : 'Off ○'}</span>
           </button>
           <div className="text-[14px] leading-snug space-y-1" style={{ color: 'var(--ink-2)' }}>
             <p>

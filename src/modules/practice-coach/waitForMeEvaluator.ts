@@ -48,8 +48,12 @@ export interface WaitForMeStepResult {
   readonly awaitingReattack: boolean;
 }
 
-/** Silence (or a loudness dip) at least this long counts as a new bow stroke. */
+/** Silence (or a loudness dip) spanning at least this long counts as a new bow stroke. */
 const REATTACK_GAP_SEC = 0.04;
+/** Float slack for timestamps that are sums of 20 ms frames. */
+const TIME_EPSILON_SEC = 1e-6;
+/** After a dip, the loudness must come back up by this factor to count as a new stroke. */
+const REATTACK_RISE_RATIO = 1.5;
 /** Loudness below this fraction of the locked note's level counts as a dip. */
 const REATTACK_DIP_RATIO = 0.5;
 /** Assumed spacing of null samples when the caller gives no timestamp. */
@@ -83,6 +87,9 @@ export class WaitForMeEvaluator {
   private _awaitingReattack = false;
   private _reattackRefRms = 0;
   private _reattackGapStartSec: number | null = null;
+  private _reattackDipMinRms = Infinity;
+  private _reattackDipLongEnough = false;
+  private _reattackOffPitchStartSec: number | null = null;
   private _lastSampleTimeSec = 0;
 
   constructor(options: WaitForMeEvaluatorOptions) {
@@ -434,6 +441,9 @@ export class WaitForMeEvaluator {
     this._awaitingReattack = false;
     this._reattackRefRms = 0;
     this._reattackGapStartSec = null;
+    this._reattackDipMinRms = Infinity;
+    this._reattackDipLongEnough = false;
+    this._reattackOffPitchStartSec = null;
   }
 
   /** Requires a new bow stroke when the next target has the same pitch as the note just locked. */
@@ -457,6 +467,12 @@ export class WaitForMeEvaluator {
    * Releases the gate when the player breaks the sound (silence or a loudness dip lasting
    * REATTACK_GAP_SEC) or leaves the pitch. A steady, ringing note never releases it.
    */
+  /**
+   * Releases the gate when the player breaks the sound, or leaves the pitch for a moment. A
+   * steady or slowly fading note never releases it. Silence of REATTACK_GAP_SEC releases at
+   * once; a loudness dip of that length only releases once the sound comes back up (a new
+   * attack), so a note that simply dies away is not mistaken for a re-bow.
+   */
   private _observeReattack(
     sample: PitchSample | null,
     nowSec: number,
@@ -471,17 +487,42 @@ export class WaitForMeEvaluator {
       dipped = this._reattackRefRms > 0 && sample.rms < this._reattackRefRms * REATTACK_DIP_RATIO;
     }
 
+    // Off pitch for a moment (not a single glitched frame)
     if (leftPitch) {
+      this._reattackOffPitchStartSec ??= nowSec;
+      if (nowSec - this._reattackOffPitchStartSec >= REATTACK_GAP_SEC - TIME_EPSILON_SEC) {
+        this._clearReattack();
+      }
+      return;
+    }
+    this._reattackOffPitchStartSec = null;
+
+    if (silent || dipped) {
+      this._reattackGapStartSec ??= nowSec;
+      if (sample !== null && dipped) {
+        this._reattackDipMinRms = Math.min(this._reattackDipMinRms, sample.rms);
+      }
+      const longEnough = nowSec - this._reattackGapStartSec >= REATTACK_GAP_SEC - TIME_EPSILON_SEC;
+      if (longEnough && silent) {
+        this._clearReattack();
+      } else if (longEnough) {
+        this._reattackDipLongEnough = true;
+      }
+      return;
+    }
+
+    // Sounding at a normal level again
+    if (
+      this._reattackDipLongEnough &&
+      sample !== null &&
+      sample.rms >= this._reattackDipMinRms * REATTACK_RISE_RATIO
+    ) {
       this._clearReattack();
       return;
     }
-    if (silent || dipped) {
-      this._reattackGapStartSec ??= nowSec;
-      if (nowSec - this._reattackGapStartSec >= REATTACK_GAP_SEC) {
-        this._clearReattack();
-      }
-    } else {
+    if (!this._reattackDipLongEnough) {
       this._reattackGapStartSec = null;
+      this._reattackDipMinRms = Infinity;
     }
   }
 
