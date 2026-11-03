@@ -14,6 +14,7 @@ import {
 import { AudioPlaybackEngine } from '../audio-playback/audioEngine';
 import { BeatScheduler } from '../audio-playback/beatScheduler';
 import { MicSessionManager } from '../pitch-detection/micSessionManager';
+import { classifyMicError, type MicErrorInfo } from '../pitch-detection/micErrors';
 import { WaitForMeEvaluator } from './waitForMeEvaluator';
 import { PlayAlongEvaluator, computeSessionSummary } from './playAlongEvaluator';
 import { HintTracker, type HintReason } from './hintTracker';
@@ -59,6 +60,8 @@ export interface PracticeControllerState {
   } | null;
   /** Fingering hint for the current target note, or null. */
   readonly hint: PracticeHint | null;
+  /** Why the microphone could not start, or null. The session still runs, but cannot hear you. */
+  readonly micError: MicErrorInfo | null;
 }
 
 export type PracticeStateSubscriber = (state: PracticeControllerState) => void;
@@ -125,6 +128,7 @@ export class PracticeController {
 
   private _subscribers = new Set<PracticeStateSubscriber>();
   private _micUnsubscribe: (() => void) | null = null;
+  private _micError: MicErrorInfo | null = null;
   private _playAlongPollTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: PracticeControllerOptions) {
@@ -263,6 +267,7 @@ export class PracticeController {
       loopCount: this._loopCount,
       countInBeat: this._countInBeat,
       hint: this._hint,
+      micError: this._micError,
     };
   }
 
@@ -302,22 +307,37 @@ export class PracticeController {
       this._beatScheduler.start();
     }
 
-    // Subscribe to mic pitch detector if available
-    if (this._micSessionManager) {
-      try {
-        if (!this._micSessionManager.isRunning) {
-          await this._micSessionManager.start();
-        }
-        this._micUnsubscribe = this._micSessionManager.subscribe((sample, rawSample) => {
-          // The raw sample always carries a hardware timestamp, so silence still advances clocks.
-          this.handlePitchSample(sample, rawSample?.audioTimeSec);
-        });
-      } catch (err) {
-        console.warn('Microphone not available for practice session:', err);
-      }
-    }
-
+    await this._connectMic();
     this._emitState();
+  }
+
+  /**
+   * Tries again to open the microphone during a running session (e.g. after the player
+   * allowed it in the browser settings).
+   */
+  public async retryMic(): Promise<void> {
+    if (!this._isRunning) return;
+    await this._connectMic();
+    this._emitState();
+  }
+
+  /** Starts (or reuses) the mic and subscribes to its pitch samples. Records why it failed. */
+  private async _connectMic(): Promise<void> {
+    this._micError = null;
+    if (!this._micSessionManager) return;
+    try {
+      if (!this._micSessionManager.isRunning) {
+        await this._micSessionManager.start();
+      }
+      this._micUnsubscribe?.();
+      this._micUnsubscribe = this._micSessionManager.subscribe((sample, rawSample) => {
+        // The raw sample always carries a hardware timestamp, so silence still advances clocks.
+        this.handlePitchSample(sample, rawSample?.audioTimeSec);
+      });
+    } catch (err) {
+      console.warn('Microphone not available for practice session:', err);
+      this._micError = classifyMicError(err);
+    }
   }
 
   /**

@@ -1,3 +1,4 @@
+import { classifyMicError } from '../modules/pitch-detection/micErrors';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { useNoteName } from '../modules/notation/NotationContext';
@@ -102,8 +103,8 @@ export function TunerHUD({
         // Refresh devices post-permission to get real hardware labels
         await refreshDevices();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to access microphone';
-        setErrorMessage(msg);
+        const info = classifyMicError(err);
+        setErrorMessage(`${info.title}. ${info.detail}`);
         setIsMicActive(false);
         onMicStateChange?.(false);
       }

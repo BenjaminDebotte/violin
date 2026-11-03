@@ -3,6 +3,7 @@ import type { InlineConfig } from 'vitest/node';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
 interface VitestConfigExport extends UserConfig {
   test?: InlineConfig;
@@ -10,6 +11,8 @@ interface VitestConfigExport extends UserConfig {
 
 export default defineConfig({
   plugins: [
+    // `npm run dev:phone`: self-signed https so a phone on the LAN may use the microphone
+    ...(process.env.DEV_HTTPS ? [basicSsl()] : []),
     react(),
     tailwindcss(),
     VitePWA({

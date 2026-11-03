@@ -14,6 +14,12 @@ export {
 } from './pitchFilter';
 
 export {
+  classifyMicError,
+  type MicErrorInfo,
+  type MicErrorKind,
+} from './micErrors';
+
+export {
   MicSessionManager,
   listAudioInputDevices,
   type AudioInputDeviceInfo,

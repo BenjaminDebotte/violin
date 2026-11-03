@@ -185,3 +185,13 @@ input[type='range'] {
   .play-layout > .play-panel { grid-column: 2; grid-row: 1 / span 2; }
   .play-layout > .play-dock { grid-column: 2; grid-row: 3; }
 }
+
+/* Microphone status dot: breathes while the mic is live */
+@keyframes mic-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(18 144 90 / 0.55); }
+  50% { box-shadow: 0 0 0 6px rgb(18 144 90 / 0); }
+}
+.mic-dot--live { animation: mic-breathe 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mic-dot--live { animation: none; }
+}

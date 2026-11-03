@@ -4,6 +4,8 @@ import { type StoredScore } from '../modules/score-engine/scoreStore';
 import { ScoreViewport } from '../components/ScoreViewport';
 import { MixerPanel } from '../components/MixerPanel';
 import { FeedbackPanel } from '../components/play/FeedbackPanel';
+import { MicErrorBanner, MicPill } from '../components/play/MicStatus';
+import type { MicSessionManager } from '../modules/pitch-detection/micSessionManager';
 import { Segmented, Sheet } from '../components/ui';
 import { useNoteName } from '../modules/notation/NotationContext';
 import type { PracticeControllerState } from '../modules/practice-coach/practiceController';
@@ -48,6 +50,9 @@ export interface PlayPageProps {
   readonly referenceA4Hz: number;
   readonly livePitch: PitchSample | null;
   readonly barMidis?: readonly number[];
+  /** Lets the play screen show that the microphone is live and how loud it hears you. */
+  readonly micManager?: MicSessionManager;
+  readonly onRetryMic?: () => void;
 }
 
 const ICON_BTN =
@@ -159,6 +164,14 @@ export function PlayPage(props: PlayPageProps) {
           className="play-score relative rounded-[22px] overflow-hidden flex flex-col min-h-0"
           style={{ backgroundColor: 'var(--plate)', boxShadow: '0 1px 0 var(--rule), 0 8px 24px rgb(34 29 25 / 0.06)' }}
         >
+          <div className="absolute left-2 top-2 z-10">
+            <MicPill
+              isRunning={controllerState.isRunning}
+              isPaused={controllerState.isPaused}
+              hasError={controllerState.micError !== null}
+              micManager={props.micManager}
+            />
+          </div>
           <div className="absolute right-2 top-2 z-10 flex rounded-full p-0.5" role="radiogroup" aria-label="Score layout" style={{ backgroundColor: 'var(--plate-2)', border: '1px solid var(--rule)' }}>
             {([
               { mode: 'ribbon', label: 'Single line', Icon: AlignJustify },
@@ -190,6 +203,8 @@ export function PlayPage(props: PlayPageProps) {
             />
           </div>
         </section>
+
+        {controllerState.micError && <MicErrorBanner error={controllerState.micError} onRetry={props.onRetryMic} />}
 
         <FeedbackPanel
           controllerState={controllerState}

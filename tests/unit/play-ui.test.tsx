@@ -36,6 +36,7 @@ const running = (overrides: Partial<PracticeControllerState> = {}): PracticeCont
   loopCount: 0,
   countInBeat: null,
   hint: null,
+  micError: null,
   ...overrides,
 });
 

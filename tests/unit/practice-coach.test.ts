@@ -13,6 +13,7 @@ import {
   LATE_GRACE_SEC,
   PracticeController,
 } from '../../src/modules/practice-coach';
+import type { MicSessionManager } from '../../src/modules/pitch-detection/micSessionManager';
 import { AudioPlaybackEngine } from '../../src/modules/audio-playback/audioEngine';
 
 // =============================================================================
@@ -761,6 +762,34 @@ describe('PracticeController Coordination', () => {
 
     controller.resume();
     expect(controller.isPaused).toBe(false);
+
+    controller.dispose();
+  });
+
+  it('reports why the microphone could not start instead of failing silently, and can retry', async () => {
+    const start = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('denied'), { name: 'NotAllowedError' }))
+      .mockResolvedValue(undefined);
+    const mic = {
+      isRunning: false,
+      start,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as MicSessionManager;
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      micSessionManager: mic,
+      settings: { mode: 'wait-for-me', referenceA4Hz: 440, strictness: 'medium' },
+    });
+
+    await controller.start();
+    expect(controller.isRunning).toBe(true);
+    expect(controller.getState().micError?.kind).toBe('denied');
+
+    await controller.retryMic();
+    expect(controller.getState().micError).toBeNull();
+    expect(mic.subscribe).toHaveBeenCalledTimes(1);
 
     controller.dispose();
   });

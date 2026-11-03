@@ -137,6 +137,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
     loopCount: 0,
     countInBeat: null,
     hint: null,
+    micError: null,
   });
   const controllerRef = useRef<PracticeController | null>(null);
 
@@ -354,6 +355,8 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
             referenceA4Hz={referenceA4Hz}
             livePitch={livePitch}
             barMidis={barMidis}
+            micManager={micManager}
+            onRetryMic={() => void controllerRef.current?.retryMic()}
           />
         )}
 
