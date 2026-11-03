@@ -3,8 +3,8 @@ import { useNoteName } from '../../modules/notation/NotationContext';
 import {
   OPEN_STRING_LABELS,
   REFERENCE_OFFSET,
+  placementsForNotes,
   positionLabel,
-  referenceFingers,
   type FingerPlacement,
   type PositionFingering,
 } from '../../modules/fingerboard/fingering';
@@ -15,6 +15,8 @@ export type FingeringHintReason = HintReason | 'request';
 export interface FingeringHintProps {
   readonly fingerings: readonly PositionFingering[];
   readonly reason: FingeringHintReason;
+  /** MIDI numbers of the notes in the current bar, drawn faintly behind the target. */
+  readonly barMidis?: readonly number[];
   readonly onDismiss: () => void;
 }
 
@@ -33,27 +35,7 @@ const stringY = (s: number) => 56 - 14 * s;
 const offsetX = (n: number) => NUT_X + SPAN * (1 - Math.pow(2, -n / 12));
 
 const POSITION_COLOR = { 1: 'var(--pos1)', 3: 'var(--pos3)' } as const;
-const GHOST_OPACITY = 0.32;
-const GHOSTS = referenceFingers();
-
-/** A faint finger: just the digit in the position colour, nudged apart where both positions meet. */
-function Ghost({ p }: { readonly p: FingerPlacement }) {
-  const shared = p.offset === 5 || p.offset === 7; // 1st f3/f4 and 3rd f1/f2 land on the same spot
-  const nudge = shared ? (p.position === 3 ? -4 : 4) : 0;
-  return (
-    <text
-      x={offsetX(p.offset) + nudge}
-      y={stringY(p.string) + 3.5}
-      textAnchor="middle"
-      fontSize={10}
-      fontWeight={700}
-      fill={POSITION_COLOR[p.position]}
-      opacity={GHOST_OPACITY}
-    >
-      {p.finger}
-    </text>
-  );
-}
+const GHOST_OPACITY = 0.2;
 
 /** One mark. 3rd position is the larger disc, so where both positions share a spot, 1st sits inside 3rd. */
 function Mark({ p, opacity }: { readonly p: FingerPlacement; readonly opacity: number }) {
@@ -70,7 +52,13 @@ function Mark({ p, opacity }: { readonly p: FingerPlacement; readonly opacity: n
   );
 }
 
-function FingerboardDiagram({ fingerings }: { readonly fingerings: readonly PositionFingering[] }) {
+function FingerboardDiagram({
+  fingerings,
+  barMidis,
+}: {
+  readonly fingerings: readonly PositionFingering[];
+  readonly barMidis: readonly number[];
+}) {
   const refX = offsetX(REFERENCE_OFFSET[3]);
   const alternates = fingerings.flatMap((f) => f.alternates);
   // Draw 3rd position under 1st so a shared spot reads as an amber dot inside a cyan ring.
@@ -106,11 +94,11 @@ function FingerboardDiagram({ fingerings }: { readonly fingerings: readonly Posi
         strokeWidth={2}
         strokeOpacity={0.7}
       />
-      {/* The whole hand, barely there */}
-      <g data-testid="ghost-fingers">
-        {GHOSTS.map((p) => (
+      {/* The rest of this bar, barely there: spacing between dots is the real interval */}
+      <g data-testid="bar-notes">
+        {placementsForNotes(barMidis).map((p) => (
           <g key={`${p.position}-${p.string}-${p.offset}`} data-ghost={`${p.position}`}>
-            <Ghost p={p} />
+            <Mark p={p} opacity={GHOST_OPACITY} />
           </g>
         ))}
       </g>
@@ -129,7 +117,7 @@ function FingerboardDiagram({ fingerings }: { readonly fingerings: readonly Posi
  * target note stay visible. Text first (readable from the music stand), diagram second.
  * Two positions can show at once, told apart by colour (1st amber, 3rd cyan) and size.
  */
-export function FingeringHint({ fingerings, reason, onDismiss }: FingeringHintProps) {
+export function FingeringHint({ fingerings, reason, barMidis = [], onDismiss }: FingeringHintProps) {
   const noteName = useNoteName();
   const stringName = (s: number) => `${noteName(OPEN_STRING_LABELS[s]).replace(/-?\d+$/, '')} string`;
 
@@ -193,7 +181,7 @@ export function FingeringHint({ fingerings, reason, onDismiss }: FingeringHintPr
 
       {fingerings.length > 0 && (
         <div className="mt-1.5">
-          <FingerboardDiagram fingerings={fingerings} />
+          <FingerboardDiagram fingerings={fingerings} barMidis={barMidis} />
         </div>
       )}
     </div>

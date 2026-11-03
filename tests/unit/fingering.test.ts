@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fingeringsFor, OPEN_STRING_MIDI, positionLabel, referenceFingers, REFERENCE_OFFSET } from '../../src/modules/fingerboard/fingering';
+import { fingeringsFor, OPEN_STRING_MIDI, positionLabel, placementsForNotes, REFERENCE_OFFSET } from '../../src/modules/fingerboard/fingering';
 
 const G = 0, D = 1, A = 2, E = 3;
 
@@ -81,13 +81,18 @@ describe('fingeringsFor', () => {
     }
   });
 
-  it('lists every normal finger of both positions on every string, 3rd position first', () => {
-    const all = referenceFingers();
-    // 1st: open + f1..f4 = 5 per string; 3rd: f1..f4 = 4 per string
-    expect(all.filter((p) => p.position === 1)).toHaveLength(20);
-    expect(all.filter((p) => p.position === 3)).toHaveLength(16);
-    expect(all.every((p) => p.variant === 'normal')).toBe(true);
-    expect(all[0].position).toBe(3);
-    expect(all.at(-1)?.position).toBe(1);
+  it('places the notes of a bar at their own spots, both positions, without duplicates', () => {
+    // F#4 (D string) and C5 (A string), plus repeats: 2nd finger is at offset 4 on one string and 3 on the other
+    const spots = placementsForNotes([66, 72, 66, 69, 62]);
+    const keys = spots.map((p) => `${p.position}-${p.string}-${p.offset}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    // 3rd position first so 1st-position marks draw on top
+    expect(spots[0].position).toBe(3);
+    expect(spots.at(-1)?.position).toBe(1);
+    // Not a uniform grid: the same finger lands on different offsets on different strings
+    const second = spots.filter((p) => p.position === 1 && p.finger === 2);
+    expect(new Set(second.map((p) => p.offset)).size).toBeGreaterThan(1);
+    expect(placementsForNotes([])).toEqual([]);
+    expect(placementsForNotes([30])).toEqual([]);
   });
 });

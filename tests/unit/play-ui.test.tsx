@@ -41,7 +41,12 @@ const running = (overrides: Partial<PracticeControllerState> = {}): PracticeCont
 
 const centsAbove = (cents: number) => midiNoteToFrequency(69, 440) * Math.pow(2, cents / 1200);
 
-function renderPanel(frequencyHz: number | null, state = running(), system: 'letters' | 'solfege' = 'letters') {
+function renderPanel(
+  frequencyHz: number | null,
+  state = running(),
+  system: 'letters' | 'solfege' = 'letters',
+  barMidis?: readonly number[],
+) {
   return render(
     <NotationProvider system={system}>
       <FeedbackPanel
@@ -55,6 +60,7 @@ function renderPanel(frequencyHz: number | null, state = running(), system: 'let
         onToggleDrone={vi.fn()}
         showSimulate={false}
         onSimulateInTuneNote={vi.fn()}
+        barMidis={barMidis}
       />
     </NotationProvider>,
   );
@@ -106,17 +112,24 @@ describe('FeedbackPanel fingering hint', () => {
     expect(screen.getByTestId('target-note')).toBeInTheDocument();
   });
 
-  it('draws the 3rd-position reference line, every finger faintly, and colours the positions', () => {
-    renderPanel(null);
+  it('draws the 3rd-position reference line, the bar\'s notes faintly, and colours the positions', () => {
+    // A bar of D4 E4 F#4 A4 (the target is D4)
+    renderPanel(null, running(), 'letters', [62, 64, 66, 69]);
     fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
     const hint = screen.getByRole('region', { name: 'Fingering hint' });
     expect(within(hint).getByTestId('third-position-line')).toBeInTheDocument();
-    const ghosts = within(hint).getByTestId('ghost-fingers');
-    expect(ghosts.querySelectorAll('[data-ghost="1"]')).toHaveLength(20);
-    expect(ghosts.querySelectorAll('[data-ghost="3"]')).toHaveLength(16);
+    const ghosts = within(hint).getByTestId('bar-notes');
+    expect(ghosts.querySelectorAll('[data-ghost="1"]').length).toBeGreaterThanOrEqual(4);
+    expect(ghosts.querySelectorAll('[data-ghost="3"]').length).toBeGreaterThanOrEqual(3);
     // Position tags carry the position colours
     expect(within(hint).getByText('1st')).toHaveStyle({ backgroundColor: 'var(--pos1)' });
     expect(within(hint).getByText('3rd')).toHaveStyle({ backgroundColor: 'var(--pos3)' });
+  });
+
+  it('draws no faint notes when the bar is unknown', () => {
+    renderPanel(null);
+    fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
+    expect(within(screen.getByRole('region', { name: 'Fingering hint' })).getByTestId('bar-notes').children).toHaveLength(0);
   });
 
   it('shows an offered hint with its reason and can be dismissed for this note', () => {

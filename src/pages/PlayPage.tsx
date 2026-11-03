@@ -47,6 +47,7 @@ export interface PlayPageProps {
   readonly toleranceCents: number;
   readonly referenceA4Hz: number;
   readonly livePitch: PitchSample | null;
+  readonly barMidis?: readonly number[];
 }
 
 const ICON_BTN =
@@ -201,6 +202,7 @@ export function PlayPage(props: PlayPageProps) {
           onToggleDrone={props.onToggleDrone}
           showSimulate={props.showSimulate}
           onSimulateInTuneNote={props.onSimulateInTuneNote}
+          barMidis={props.barMidis}
         />
 
         {/* Thumb zone */}

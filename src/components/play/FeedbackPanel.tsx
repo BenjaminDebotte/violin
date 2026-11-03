@@ -23,6 +23,8 @@ export interface FeedbackPanelProps {
   readonly onToggleDrone: () => void;
   readonly showSimulate: boolean;
   readonly onSimulateInTuneNote: () => void;
+  /** MIDI numbers of the notes in the current bar, for the fingering hint's faint context. */
+  readonly barMidis?: readonly number[];
 }
 
 const PANEL_COLORS: Record<PitchReading['verdict'], string> = {
@@ -58,6 +60,7 @@ export function FeedbackPanel({
   onToggleDrone,
   showSimulate,
   onSimulateInTuneNote,
+  barMidis,
 }: FeedbackPanelProps) {
   const noteName = useNoteName();
   const target = controllerState.activeNote?.pitch ?? null;
@@ -255,6 +258,7 @@ export function FeedbackPanel({
       {showHint ? (
         <FingeringHint
           fingerings={fingeringsFor(target?.midiNumber)}
+          barMidis={barMidis}
           reason={hintReason}
           onDismiss={() => {
             setRequested(false);

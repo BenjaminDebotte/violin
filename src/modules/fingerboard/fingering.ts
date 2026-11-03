@@ -116,19 +116,21 @@ export function positionLabel(position: PositionId): string {
 export const REFERENCE_OFFSET: Readonly<Record<PositionId, number>> = { 1: 0, 3: 5 };
 
 /**
- * Every finger of every position on every string, in its normal place (open string
- * included for 1st position). Used to draw the whole hand faintly behind the target.
- * Ordered 3rd position first so that 1st-position marks draw on top where they coincide.
+ * The suggested spots for a set of notes (e.g. one bar), both positions, duplicates removed.
+ * The distances between them are the real intervals of the passage, so they differ from
+ * string to string. Ordered 3rd position first so 1st-position marks draw on top.
  */
-export function referenceFingers(): FingerPlacement[] {
-  const all: FingerPlacement[] = [];
-  for (const position of [3, 1] as const) {
-    for (let s = 0; s < OPEN_STRING_MIDI.length; s++) {
-      for (const [offsetText, entry] of Object.entries(TABLES[position])) {
-        if (entry.variant !== 'normal') continue;
-        all.push({ position, string: s as StringIndex, finger: entry.finger, variant: 'normal', offset: Number(offsetText) });
+export function placementsForNotes(midis: readonly number[]): FingerPlacement[] {
+  const seen = new Set<string>();
+  const out: FingerPlacement[] = [];
+  for (const midi of midis) {
+    for (const f of fingeringsFor(midi)) {
+      const key = `${f.position}-${f.primary.string}-${f.primary.offset}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(f.primary);
       }
     }
   }
-  return all;
+  return out.sort((a, b) => b.position - a.position);
 }

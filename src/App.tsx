@@ -302,6 +302,14 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
     return Array.from({ length: last - first + 1 }, (_, i) => first + i);
   })();
 
+  // Notes of the bar being played, for the fingering hint's faint context
+  const barMidis = useMemo(() => {
+    const bar = controllerState.currentMeasureNumber;
+    return timeline.soloNotes
+      .filter((n) => n.measureNumber === bar && n.pitch !== null)
+      .map((n) => n.pitch!.midiNumber);
+  }, [timeline, controllerState.currentMeasureNumber]);
+
   const livePitch = useLivePitch(micManager, activePage === 'play' && isActive);
   const showResult = result !== null && !isResultDismissed && !controllerState.isRunning && activePage === 'play';
 
@@ -345,6 +353,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
             toleranceCents={toleranceCents}
             referenceA4Hz={referenceA4Hz}
             livePitch={livePitch}
+            barMidis={barMidis}
           />
         )}
 
