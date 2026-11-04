@@ -1042,6 +1042,15 @@ describe('WaitForMeEvaluator repeated notes', () => {
     expect(ev.currentNote?.id).toBe('n3');
   });
 
+  it('counts even a very short break (two silent frames, about 40 ms) as a new stroke', () => {
+    const ev = make();
+    let t = play(ev, d4, 0, 0.3);
+    t = silence(ev, t, 0.04);
+    expect(ev.awaitingReattack).toBe(false);
+    play(ev, d4, t, 0.3);
+    expect(ev.currentNote?.id).toBe('n3');
+  });
+
   it('treats a dip in loudness followed by a new attack as a new stroke', () => {
     const ev = make();
     let t = play(ev, d4, 0, 0.3);

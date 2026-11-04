@@ -2,15 +2,14 @@
 
 Things noticed while playing, not done yet. Newest first.
 
-## Needs your judgement (from the code review)
-- **Finger table in sharp keys.** In 3rd position the 4th finger is "normal" at offset 10 and
-  "stretched" at 11, but in sharp keys (A, E, B major) offset 11 is the normal spot. Check with
-  a teacher or the violin whether the low / high / stretched wording should depend on the key.
-- **Repeated-note gate tuning** (dip ratio 0.5, 40 ms gap, 1.5x rise for a new attack): needs
-  feel on a real violin. A legato same-pitch bow change with no dip and no gap leaves you on
-  "again: lift the bow".
-- **Hint stats:** keep the hints on/off comparison (bias is now fixed) or drop it.
+## Needs your judgement
+- **Repeated-note gate tuning** (gap 20 ms = two silent frames, dip ratio 0.6, 1.5x rise for a
+  new attack): a smaller gap means two repeated notes are never missed, at the price that a
+  2-frame dropout inside one long note also counts as a new stroke. A legato same-pitch bow
+  change with no dip and no gap still leaves you on "again: lift the bow". Try it on the violin.
+- **Hint stats:** keep the on/off comparison in Settings (bias is fixed) or drop it. Default: keep.
 - **Colours:** amber highlight on white (about 2.7:1) and the red mic banner: design call.
+- _Decided:_ the finger table stays as is. The tuner is the source of truth for sharp keys.
 
 ## Known, not done
 - Main-thread stalls longer than 40 ms can swallow a real gap in the repeated-note gate.

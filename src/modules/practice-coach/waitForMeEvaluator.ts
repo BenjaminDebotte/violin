@@ -49,13 +49,13 @@ export interface WaitForMeStepResult {
 }
 
 /** Silence (or a loudness dip) spanning at least this long counts as a new bow stroke. */
-const REATTACK_GAP_SEC = 0.04;
+const REATTACK_GAP_SEC = 0.02;
 /** Float slack for timestamps that are sums of 20 ms frames. */
 const TIME_EPSILON_SEC = 1e-6;
 /** After a dip, the loudness must come back up by this factor to count as a new stroke. */
 const REATTACK_RISE_RATIO = 1.5;
 /** Loudness below this fraction of the locked note's level counts as a dip. */
-const REATTACK_DIP_RATIO = 0.5;
+const REATTACK_DIP_RATIO = 0.6;
 /** Assumed spacing of null samples when the caller gives no timestamp. */
 const DEFAULT_FRAME_SEC = 0.02;
 
