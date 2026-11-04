@@ -19,6 +19,12 @@ COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Where the shared score library lives. The cluster mounts a volume here; a plain
+# `docker run` just uses this folder.
+USER root
+RUN mkdir -p /srv/library && chown 101:101 /srv/library
+USER 101
+
 # Runs as uid 101 (nginx) and listens on 8080, so no privileges are needed.
 EXPOSE 8080
 

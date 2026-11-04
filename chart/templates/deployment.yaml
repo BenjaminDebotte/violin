@@ -45,15 +45,28 @@ spec:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          # nginx keeps its pid file and temp files in /tmp; the rest of the filesystem is read-only
+          # nginx keeps its pid file and upload buffers in /tmp; the rest of the filesystem is read-only
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: library
+              mountPath: /srv/library
+              {{- with .Values.library.persistence.subPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
       volumes:
         - name: tmp
           emptyDir:
             medium: Memory
-            sizeLimit: 16Mi
+            sizeLimit: 32Mi
+        - name: library
+          {{- if .Values.library.persistence.existingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.library.persistence.existingClaim }}
+          {{- else }}
+          emptyDir:
+            sizeLimit: 256Mi
+          {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

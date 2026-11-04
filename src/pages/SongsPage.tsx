@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, ChevronRight, CloudUpload } from 'lucide-react';
 import {
   listStoredScores,
   saveStoredScore,
@@ -7,8 +7,12 @@ import {
   BUILT_IN_SCORES,
   type StoredScore,
 } from '../modules/score-engine/scoreStore';
-import { validateScoreFile, unpackScoreFile } from '../modules/score-engine/fileValidator';
+import { validateScoreFile } from '../modules/score-engine/fileValidator';
+import { importScoreBytes } from '../modules/score-engine/importScore';
 import { extractScoreTimeline } from '../modules/score-engine/timelineExtractor';
+import { useLibrary } from '../hooks/useLibrary';
+import { LibrarySection } from '../components/songs/LibrarySection';
+import { downloadLibraryFile, type LibraryEntry } from '../modules/library/libraryClient';
 
 export interface SongsPageProps {
   readonly currentScoreId: string;
@@ -39,6 +43,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const library = useLibrary();
 
   const refreshScores = async () => {
     try {
@@ -72,19 +77,13 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
               reader.onerror = () => reject(reader.error);
               reader.readAsArrayBuffer(file);
             });
-      const xmlContent = await unpackScoreFile(file.name, buffer);
-      const timeline = extractScoreTimeline(xmlContent);
-      const newScore: StoredScore = {
-        id: `user-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`,
-        title: timeline.title || file.name,
-        fileName: file.name,
-        format: validation.format,
-        isBuiltIn: false,
-        xmlContent,
-        uploadedAt: Date.now(),
-      };
+      const newScore = await importScoreBytes(file.name, buffer);
       await saveStoredScore(newScore);
       await refreshScores();
+      // Keep a copy in the shared library for the other devices. Playing must not wait for it.
+      if (library.autoUpload) {
+        library.upload(file.name, buffer).catch((err) => console.warn('Could not save to the library:', err));
+      }
       onPlayScore(newScore);
     } catch (err) {
       setUploadError(`Upload error: ${err instanceof Error ? err.message : 'Failed to process score file'}`);
@@ -100,6 +99,23 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
       await refreshScores();
     } catch (err) {
       console.warn('Failed to delete score:', err);
+    }
+  };
+
+  /** Brings a library file onto this device. */
+  const handleAddFromLibrary = async (entry: LibraryEntry) => {
+    const buffer = await downloadLibraryFile(entry.name);
+    await saveStoredScore(await importScoreBytes(entry.name, buffer));
+    await refreshScores();
+  };
+
+  /** Sends a score that is only on this device to the library, as plain MusicXML. */
+  const handleSendToLibrary = async (score: StoredScore) => {
+    setUploadError(null);
+    try {
+      await library.upload(`${score.fileName.replace(/\.[^.]+$/, '')}.musicxml`, score.xmlContent);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Could not save to the library.');
     }
   };
 
@@ -133,6 +149,17 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
           </span>
           <ChevronRight className="w-5 h-5 shrink-0" style={{ color: 'var(--muted)' }} />
         </button>
+        {!score.isBuiltIn && library.state !== 'loading' && library.state.status === 'available' && !library.has(score.fileName) && (
+          <button
+            type="button"
+            onClick={() => handleSendToLibrary(score)}
+            aria-label={`Save ${score.title} to the shared library`}
+            className="w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer"
+            style={{ color: 'var(--ink-2)' }}
+          >
+            <CloudUpload className="w-5 h-5" />
+          </button>
+        )}
         {!score.isBuiltIn && (
           <button
             type="button"
@@ -206,6 +233,8 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
         <Plus className="w-5 h-5" />
         {isUploading ? 'Reading the score…' : 'Add a score'}
       </button>
+      <LibrarySection library={library} localFileNames={mine.map((s) => s.fileName)} onAdd={handleAddFromLibrary} />
+
       <input
         ref={fileInputRef}
         type="file"

@@ -1,0 +1,171 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { SongsPage } from '../../src/pages/SongsPage';
+import { resetInMemoryScoreStore, listStoredScores } from '../../src/modules/score-engine/scoreStore';
+import { TWINKLE_MUSICXML } from '../../src/modules/score-engine/demoScores';
+
+const LIST_URL = '/library/files/';
+const listing = (names: string[]) =>
+  new Response(
+    JSON.stringify(names.map((name) => ({ name, type: 'file', mtime: 'Wed, 04 Nov 2026 13:06:00 GMT', size: 2048 }))),
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
+
+interface Server {
+  files: Map<string, string>;
+  puts: Array<{ url: string; headers: Record<string, string>; body: unknown }>;
+  mode: 'ok' | 'signin' | 'none' | 'down';
+}
+
+function installServer(initial: Record<string, string> = {}): Server {
+  const server: Server = { files: new Map(Object.entries(initial)), puts: [], mode: 'ok' };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string, init: RequestInit = {}) => {
+      if (server.mode === 'down') throw new TypeError('Failed to fetch');
+      if (server.mode === 'signin') return { type: 'opaqueredirect', status: 0, ok: false, headers: new Headers() } as unknown as Response;
+      if (server.mode === 'none') return new Response('', { status: 404 });
+      const method = init.method ?? 'GET';
+      if (input === LIST_URL) return listing([...server.files.keys()]);
+      const name = decodeURIComponent(input.slice(LIST_URL.length));
+      if (method === 'PUT') {
+        server.puts.push({ url: input, headers: init.headers as Record<string, string>, body: init.body });
+        server.files.set(name, typeof init.body === 'string' ? init.body : 'binary');
+        return new Response(null, { status: 201 });
+      }
+      if (method === 'DELETE') {
+        server.files.delete(name);
+        return new Response(null, { status: 204 });
+      }
+      const file = server.files.get(name);
+      return file === undefined ? new Response('', { status: 404 }) : new Response(file);
+    }),
+  );
+  return server;
+}
+
+const renderPage = (onPlayScore = vi.fn()) => ({ onPlayScore, ...render(<SongsPage currentScoreId="twinkle" onPlayScore={onPlayScore} />) });
+
+beforeEach(() => resetInMemoryScoreStore());
+afterEach(() => vi.unstubAllGlobals());
+
+describe('Shared library on the Songs page', () => {
+  it('lists the library and adds a piece to this device', async () => {
+    installServer({ 'Twinkle-Copy.musicxml': TWINKLE_MUSICXML });
+    renderPage();
+
+    const library = await screen.findByTestId('library-section');
+    expect(within(library).getByText('Twinkle Copy')).toBeInTheDocument();
+
+    fireEvent.click(within(library).getByRole('button', { name: /add twinkle copy to this device/i }));
+    await waitFor(() => expect(within(library).getByText('On this device')).toBeInTheDocument());
+    expect((await listStoredScores()).some((s) => s.fileName === 'Twinkle-Copy.musicxml')).toBe(true);
+  });
+
+  it('removes a piece from the library after confirming, keeping device copies', async () => {
+    const server = installServer({ 'a.musicxml': TWINKLE_MUSICXML });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPage();
+    const library = await screen.findByTestId('library-section');
+
+    fireEvent.click(within(library).getByRole('button', { name: /remove a from the library/i }));
+    await waitFor(() => expect(server.files.size).toBe(0));
+    expect(await within(library).findByText(/nothing here yet/i)).toBeInTheDocument();
+  });
+
+  it('does not remove anything when the player cancels', async () => {
+    const server = installServer({ 'a.musicxml': TWINKLE_MUSICXML });
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderPage();
+    const library = await screen.findByTestId('library-section');
+    fireEvent.click(within(library).getByRole('button', { name: /remove a from the library/i }));
+    expect(server.files.size).toBe(1);
+  });
+
+  it('saves a newly imported score to the library under a safe name', async () => {
+    const server = installServer();
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Étude n°3.musicxml', { type: 'application/xml' });
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+    await waitFor(() => expect(server.puts).toHaveLength(1));
+    expect(server.puts[0].url).toBe('/library/files/Etude-n-3.musicxml');
+    expect(server.puts[0].headers).toMatchObject({ 'X-Violin-Library': '1' });
+  });
+
+  it('keeps new scores on the device only when "also save" is switched off', async () => {
+    const server = installServer();
+    const { onPlayScore } = renderPage();
+    const library = await screen.findByTestId('library-section');
+    fireEvent.click(within(library).getByRole('checkbox', { name: /also save new scores/i }));
+
+    const file = new File([TWINKLE_MUSICXML], 'local.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+    expect(server.puts).toHaveLength(0);
+    localStorage.removeItem('violin-coach:library-autoupload');
+  });
+
+  it('does not upload a piece that is already in the library', async () => {
+    const server = installServer({ 'twinkle-again.musicxml': TWINKLE_MUSICXML });
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Twinkle again.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+    expect(server.puts).toHaveLength(0);
+  });
+
+  it('offers to send a device-only score to the library, and then stops offering it', async () => {
+    localStorage.setItem('violin-coach:library-autoupload', 'off');
+    const server = installServer();
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Only here.mxl.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+    expect(server.puts).toHaveLength(0);
+
+    const send = await screen.findByRole('button', { name: /to the shared library/i });
+    fireEvent.click(send);
+    await waitFor(() => expect(server.puts).toHaveLength(1));
+    expect(server.puts[0].url).toBe('/library/files/Only-here.mxl.musicxml');
+    expect(server.puts[0].body).toBe(TWINKLE_MUSICXML);
+    await waitFor(() => expect(screen.queryByRole('button', { name: /to the shared library/i })).not.toBeInTheDocument());
+    localStorage.removeItem('violin-coach:library-autoupload');
+  });
+
+  it('shows a Sign in button when the login middleware wants a session', async () => {
+    const server = installServer();
+    server.mode = 'signin';
+    renderPage();
+    const library = await screen.findByTestId('library-section');
+    expect(within(library).getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  it('shows nothing when the server has no library', async () => {
+    const server = installServer();
+    server.mode = 'none';
+    renderPage();
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(screen.queryByTestId('library-section')).not.toBeInTheDocument();
+  });
+
+  it('says so, and lets the player try again, when the library cannot be reached', async () => {
+    const server = installServer();
+    server.mode = 'down';
+    renderPage();
+    const library = await screen.findByTestId('library-section');
+    expect(within(library).getByText(/cannot be reached/i)).toBeInTheDocument();
+
+    server.mode = 'ok';
+    fireEvent.click(within(library).getByRole('button', { name: /try again/i }));
+    expect(await within(library).findByText(/nothing here yet/i)).toBeInTheDocument();
+  });
+});

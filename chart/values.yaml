@@ -53,6 +53,20 @@ ingress:
           pathType: Prefix
   tls: []
 
+# Shared score library: nginx stores the files under /srv/library so every device sees them.
+library:
+  persistence:
+    # Name of an existing PersistentVolumeClaim. Empty = an emptyDir (the files are lost on restart).
+    existingClaim: ""
+    # Folder inside the volume (created when missing)
+    subPath: ""
+  # A second Ingress for /library only, so a login middleware can protect the library
+  # while the app itself stays open (a PWA must fetch its manifest without a login redirect).
+  ingress:
+    enabled: false
+    annotations: {}
+    path: /library
+
 resources:
   requests:
     cpu: 10m
