@@ -1,0 +1,119 @@
+name: CI & container image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Typecheck, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx vitest run
+      - run: npm run build
+
+  chart:
+    name: Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: 'v3.15.3'
+      - name: Lint
+        run: helm lint chart/
+      - name: Render with the values used by the cluster (ingress on)
+        run: |
+          helm template violin chart/ \
+            --set ingress.enabled=true \
+            --set 'ingress.tls[0].secretName=violin-tls' \
+            --set 'ingress.tls[0].hosts[0]=violin.example.com' > /dev/null
+
+  image:
+    name: Build, smoke-test and push image
+    needs: [test, chart]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: A release tag must match the app and chart versions
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          app="$(node -p "require('./package.json').version")"
+          chart="$(sed -n 's/^appVersion: "\(.*\)"/\1/p' chart/Chart.yaml)"
+          echo "tag=$tag package.json=$app chart appVersion=$chart"
+          [ "$tag" = "$app" ] && [ "$tag" = "$chart" ]
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the image (not pushed yet)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: violin:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test, run as the cluster runs it (non-root, read-only filesystem)
+        run: |
+          docker run -d --name violin --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges -p 8080:8080 violin:ci
+          for i in $(seq 1 20); do curl -fsS http://localhost:8080/healthz && break; sleep 1; done
+          curl -fsS http://localhost:8080/ | grep -q '<div id="root">'
+          curl -fsSI http://localhost:8080/manifest.webmanifest | grep -i '^content-type: application/manifest+json'
+          curl -fsSI http://localhost:8080/ | grep -i '^permissions-policy: microphone=(self)'
+          docker rm -f violin
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/benjamindebotte/violin
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Push the image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha

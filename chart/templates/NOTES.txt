@@ -1,0 +1,11 @@
+Violin Coach {{ .Chart.AppVersion }}
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}
+{{- end }}
+The microphone only works over https:// (or localhost).
+{{- else }}
+Reach it with:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "violin.fullname" . }} 8080:{{ .Values.service.port }}
+and open http://localhost:8080 (localhost counts as secure, so the microphone works).
+{{- end }}

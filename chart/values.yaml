@@ -1,0 +1,80 @@
+# Violin Coach: a static site, so there is no state, no secret and nothing to scale.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/benjamindebotte/violin
+  pullPolicy: IfNotPresent
+  # Defaults to the chart appVersion. Pin it from the deployment (GitOps) values.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+# nginx-unprivileged runs as uid/gid 101 and listens on 8080
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+# The microphone only works on https:// (or localhost), so serve this behind TLS.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: violin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    cpu: 100m
+    memory: 64Mi
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 20
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 10
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
