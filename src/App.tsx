@@ -103,6 +103,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
   // --- Session ---------------------------------------------------------------
   const [result, setResult] = useState<SessionResult | null>(null);
   const [isResultDismissed, setIsResultDismissed] = useState(false);
+  const [libraryNotice, setLibraryNotice] = useState<string | null>(null);
   const locksRef = useRef<LockEvent[]>([]);
   const modeRef = useRef(practiceMode);
   modeRef.current = practiceMode;
@@ -331,8 +332,37 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
   return (
     <NotationProvider system={notation}>
       <AppShell activePage={activePage} onNavigate={handleNavigate}>
+        {activePage !== 'songs' && libraryNotice && (
+          <div
+            role="status"
+            aria-live="polite"
+            data-testid="library-notice"
+            className="w-full max-w-xl mx-auto px-4 pt-2"
+          >
+            <div
+              className="p-3 rounded-[16px] flex items-center justify-between gap-3 text-[14px] leading-snug"
+              style={{ backgroundColor: '#fde8ee', color: '#7a1832' }}
+            >
+              <span>{libraryNotice}</span>
+              <button
+                type="button"
+                onClick={() => setLibraryNotice(null)}
+                aria-label="Dismiss library notice"
+                className="px-2 py-1 rounded text-[13px] font-bold cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {activePage === 'songs' && (
-          <SongsPage currentScoreId={currentScore.id} onPlayScore={handlePlayScore} />
+          <SongsPage
+            currentScoreId={currentScore.id}
+            onPlayScore={handlePlayScore}
+            libraryNotice={libraryNotice}
+            onLibraryNotice={setLibraryNotice}
+          />
         )}
 
         {activePage === 'play' && (

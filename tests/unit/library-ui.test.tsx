@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { SongsPage } from '../../src/pages/SongsPage';
+import App from '../../src/App';
 import { resetInMemoryScoreStore, listStoredScores } from '../../src/modules/score-engine/scoreStore';
 import { TWINKLE_MUSICXML } from '../../src/modules/score-engine/demoScores';
 
@@ -49,11 +50,13 @@ const renderPage = (onPlayScore = vi.fn()) => ({ onPlayScore, ...render(<SongsPa
 beforeEach(() => {
   resetInMemoryScoreStore();
   localStorage.clear();
+  window.location.hash = '';
 });
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   localStorage.clear();
+  window.location.hash = '';
 });
 
 describe('Shared library on the Songs page', () => {
@@ -422,5 +425,40 @@ describe('Shared library on the Songs page', () => {
     server.mode = 'ok';
     fireEvent.click(within(library).getByRole('button', { name: /try again/i }));
     expect(await within(library).findByText(/nothing here yet/i)).toBeInTheDocument();
+  });
+
+  it('transitions LibrarySection to the Sign in button when Remove or Add receives 401', async () => {
+    let sessionExpired = false;
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const method = init.method ?? 'GET';
+        if (input === LIST_URL && method === 'GET') {
+          return sessionExpired ? new Response('', { status: 401 }) : listing(['expired.musicxml']);
+        }
+        sessionExpired = true;
+        return new Response('', { status: 401 });
+      }),
+    );
+
+    renderPage();
+    const library = await screen.findByTestId('library-section');
+    fireEvent.click(within(library).getByRole('button', { name: /remove expired from the library/i }));
+
+    expect(await within(library).findByRole('button', { name: /sign in/i })).toBeInTheDocument();
+  });
+
+  it('reports auto-upload notice via onLibraryNotice and keeps it visible in App when onPlayScore navigates to Play', async () => {
+    installServer({ 'Twinkle.musicxml': TWINKLE_MUSICXML });
+    render(<App />);
+    await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Twinkle.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+
+    // App navigates to Play (SongsPage unmounts), and the notice banner remains visible on Play
+    const notice = await screen.findByTestId('library-notice');
+    expect(within(notice).getByText(/already in the library/i)).toBeInTheDocument();
   });
 });

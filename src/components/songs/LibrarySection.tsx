@@ -128,8 +128,9 @@ export function LibrarySection({ library, localFileNames, onAdd }: LibrarySectio
           {state.entries.length > 0 ? (
             <ul className="space-y-2">
               {state.entries.map((entry) => {
-                const onDevice = localKeys.has(libraryKey(entry.name));
-                const working = busy === entry.name;
+                const key = libraryKey(entry.name);
+                const onDevice = localKeys.has(key);
+                const working = busy !== null && libraryKey(busy) === key;
                 return (
                   <li key={entry.name} className="flex items-stretch gap-1">
                     <div className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3 rounded-[20px]" style={CARD}>

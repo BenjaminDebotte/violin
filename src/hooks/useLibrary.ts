@@ -113,6 +113,11 @@ export function useLibrary(fetchLibraryImpl: typeof fetchLibrary = fetchLibrary)
 
   const upload = useCallback(
     async (fileName: string, body: ArrayBuffer | string): Promise<UploadOutcome> => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        if (alive.current) setState('offline');
+        throw new LibraryError('network', 'Library unavailable offline.');
+      }
+
       // If currently loading, wait for the in-flight list to finish instead of assuming absent
       if (stateRef.current === 'loading' && inFlightList.current) {
         await inFlightList.current;
@@ -123,6 +128,13 @@ export function useLibrary(fetchLibraryImpl: typeof fetchLibrary = fetchLibrary)
       const freshList = await fetchLibraryImpl();
       if (alive.current && freshSeq === refreshSeq.current) {
         setState(freshList);
+      }
+
+      if (freshList.status === 'unavailable') {
+        throw new LibraryError('unavailable', 'This server has no library.');
+      }
+      if (freshList.status === 'signin') {
+        throw new LibraryError('signin', 'Sign in to use the library.');
       }
 
       if (freshList.status === 'available') {
@@ -152,13 +164,34 @@ export function useLibrary(fetchLibraryImpl: typeof fetchLibrary = fetchLibrary)
     [fetchLibraryImpl, refresh],
   );
 
+  const download = useCallback(
+    async (name: string): Promise<ArrayBuffer> => {
+      try {
+        return await downloadLibraryFile(name);
+      } catch (err) {
+        if (err instanceof LibraryError && err.kind === 'signin') {
+          await refresh();
+        }
+        throw err;
+      }
+    },
+    [refresh],
+  );
+
   const remove = useCallback(
     async (name: string) => {
-      await deleteLibraryFile(name);
+      try {
+        await deleteLibraryFile(name);
+      } catch (err) {
+        if (err instanceof LibraryError && err.kind === 'signin') {
+          await refresh();
+        }
+        throw err;
+      }
       await refresh();
     },
     [refresh],
   );
 
-  return { state, autoUpload, setAutoUpload, refresh, has, upload, download: downloadLibraryFile, remove };
+  return { state, autoUpload, setAutoUpload, refresh, has, upload, download, remove };
 }

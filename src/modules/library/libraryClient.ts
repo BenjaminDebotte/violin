@@ -196,6 +196,9 @@ export async function uploadLibraryFile(
   fetchImpl: FetchLike = fetch,
 ): Promise<void> {
   const size = typeof body === 'string' ? new Blob([body]).size : body.byteLength;
+  if (size === 0) {
+    throw new LibraryError('rejected', 'The file is empty.');
+  }
   if (size > MAX_LIBRARY_FILE_BYTES) {
     throw new LibraryError('too-large', 'The file is too big for the library (5 MB at most).');
   }

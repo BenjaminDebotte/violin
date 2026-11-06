@@ -12,12 +12,16 @@ import { importScoreBytes } from '../modules/score-engine/importScore';
 import { extractScoreTimeline } from '../modules/score-engine/timelineExtractor';
 import { useLibrary } from '../hooks/useLibrary';
 import { LibrarySection } from '../components/songs/LibrarySection';
-import { downloadLibraryFile, LibraryError, type LibraryEntry } from '../modules/library/libraryClient';
+import { libraryKey, LibraryError, type LibraryEntry } from '../modules/library/libraryClient';
 
 export interface SongsPageProps {
   readonly currentScoreId: string;
   /** Opens the score on the play screen. */
   readonly onPlayScore: (score: StoredScore) => void;
+  /** Optional shared notice from a background library auto-upload that completed after navigation. */
+  readonly libraryNotice?: string | null;
+  /** Reports a background library auto-upload notice so it survives navigation to Play. */
+  readonly onLibraryNotice?: (msg: string | null) => void;
 }
 
 interface ScoreMeta {
@@ -37,7 +41,12 @@ function metaFor(score: StoredScore): ScoreMeta | null {
 /**
  * Songs: the home screen. Built-in pieces and your own MusicXML imports; tap one to play.
  */
-export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
+export function SongsPage({
+  currentScoreId,
+  onPlayScore,
+  libraryNotice,
+  onLibraryNotice,
+}: SongsPageProps) {
   const [scores, setScores] = useState<readonly StoredScore[]>(BUILT_IN_SCORES);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -63,6 +72,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
 
   const handleProcessFile = async (file: File) => {
     setUploadError(null);
+    onLibraryNotice?.(null);
     const validation = validateScoreFile({ name: file.name, size: file.size });
     if (!validation.valid) {
       setUploadError(validation.userMessage);
@@ -83,12 +93,13 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
       await saveStoredScore(newScore);
       await refreshScores();
       // Keep a copy in the shared library for the other devices. Playing must not wait for it.
-      if (library.autoUpload) {
+      if (library.autoUpload && typeof library.state === 'object' && library.state.status === 'available') {
         void library
           .upload(file.name, buffer)
           .then((outcome) => {
             if (outcome === 'exists') {
               setUploadError('Already in the library.');
+              onLibraryNotice?.('Already in the library.');
             }
           })
           .catch((err) => {
@@ -100,6 +111,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
                   : 'Could not save to the library.';
             console.warn('Could not save to the library:', err);
             setUploadError(msg);
+            onLibraryNotice?.(msg);
           });
       }
       onPlayScore(newScore);
@@ -120,10 +132,20 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
     }
   };
 
-  /** Brings a library file onto this device. */
+  /** Brings a library file onto this device (idempotent per libraryKey). */
   const handleAddFromLibrary = async (entry: LibraryEntry) => {
-    const buffer = await downloadLibraryFile(entry.name);
-    await saveStoredScore(await importScoreBytes(entry.name, buffer));
+    const key = libraryKey(entry.name);
+    if ((await listStoredScores()).some((s) => libraryKey(s.fileName) === key)) {
+      await refreshScores();
+      return;
+    }
+    const buffer = await library.download(entry.name);
+    const imported = await importScoreBytes(entry.name, buffer);
+    if ((await listStoredScores()).some((s) => libraryKey(s.fileName) === key)) {
+      await refreshScores();
+      return;
+    }
+    await saveStoredScore(imported);
     await refreshScores();
   };
 
@@ -132,6 +154,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
     if (savingId) return;
     setSavingId(score.id);
     setUploadError(null);
+    onLibraryNotice?.(null);
     setRowErrors((prev) => ({ ...prev, [score.id]: '' }));
     try {
       const outcome = await library.upload(
@@ -203,7 +226,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
                 </span>
               )}
             </span>
-            <ChevronRight className="w-5 h-5 shrink-0" style={{ color: 'var(--muted)' }} />
+            <ChevronRight className="w-5 h-5 shrink-0" style={{ color: 'var(--muted)' }} aria-hidden />
           </button>
           {onlyOnDevice && (
             <button
@@ -214,7 +237,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
               className="min-h-11 min-w-11 w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer disabled:opacity-50"
               style={{ color: 'var(--ink-2)' }}
             >
-              <CloudUpload className="w-5 h-5" />
+              <CloudUpload className="w-5 h-5" aria-hidden />
             </button>
           )}
           {!score.isBuiltIn && (
@@ -225,7 +248,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
               className="min-h-11 min-w-11 w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer"
               style={{ color: 'var(--sharp)' }}
             >
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-5 h-5" aria-hidden />
             </button>
           )}
         </div>
@@ -254,15 +277,15 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
         Play any piece from start to finish, at your own pace.
       </p>
 
-      {uploadError && (
+      {(uploadError ?? libraryNotice) && (
         <div
           role="alert"
           aria-label="Upload Validation Message"
           className="mt-4 p-4 rounded-[20px] flex gap-3 text-[15px] leading-snug"
           style={{ backgroundColor: '#fde8ee', color: '#7a1832' }}
         >
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <p className="whitespace-pre-line">{uploadError}</p>
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden />
+          <p className="whitespace-pre-line">{uploadError ?? libraryNotice}</p>
         </div>
       )}
 
@@ -293,7 +316,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
           color: 'var(--ink)',
         }}
       >
-        <Plus className="w-5 h-5" />
+        <Plus className="w-5 h-5" aria-hidden />
         {isUploading ? 'Reading the score…' : 'Add a score'}
       </button>
 

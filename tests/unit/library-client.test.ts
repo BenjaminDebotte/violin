@@ -146,6 +146,19 @@ describe('uploadLibraryFile / downloadLibraryFile / deleteLibraryFile', () => {
     expect(init).toMatchObject({ method: 'PUT', headers: { 'X-Violin-Library': '1' }, body: 'data' });
   });
 
+  it('refuses a 0-byte file before sending anything', async () => {
+    const fetchImpl = vi.fn();
+    await expect(uploadLibraryFile('empty.xml', '', fetchImpl)).rejects.toMatchObject({
+      kind: 'rejected',
+      message: 'The file is empty.',
+    });
+    await expect(uploadLibraryFile('empty.mxl', new ArrayBuffer(0), fetchImpl)).rejects.toMatchObject({
+      kind: 'rejected',
+      message: 'The file is empty.',
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('refuses a too-big file (>5 MB) before sending anything', async () => {
     const fetchImpl = vi.fn();
     await expect(uploadLibraryFile('big.mxl', new ArrayBuffer(MAX_LIBRARY_FILE_BYTES + 1), fetchImpl)).rejects.toMatchObject({

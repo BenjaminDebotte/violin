@@ -250,4 +250,97 @@ describe('useLibrary', () => {
       entries: [expect.objectContaining({ name: 'new-piece.musicxml' })],
     });
   });
+
+  it('upload() when offline keeps state "offline" and makes 0 fetch calls', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useLibrary());
+    expect(result.current.state).toBe('offline');
+
+    await act(async () => {
+      await expect(result.current.upload('offline.musicxml', '<score/>')).rejects.toMatchObject({
+        kind: 'network',
+        message: 'Library unavailable offline.',
+      });
+    });
+
+    expect(result.current.state).toBe('offline');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('upload() when server returns "unavailable" or "signin" does not send a PUT', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+
+    let mode: 'unavailable' | 'signin' = 'unavailable';
+    const fetchMock = vi.fn().mockImplementation(() => {
+      if (mode === 'unavailable') {
+        return Promise.resolve(new Response('', { status: 404 }));
+      }
+      return Promise.resolve(new Response('', { status: 401 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useLibrary());
+    await waitFor(() => {
+      expect(result.current.state).toEqual({ status: 'unavailable' });
+    });
+
+    await act(async () => {
+      await expect(result.current.upload('piece.musicxml', '<score/>')).rejects.toMatchObject({
+        kind: 'unavailable',
+      });
+    });
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(0);
+
+    mode = 'signin';
+    await act(async () => {
+      await expect(result.current.upload('piece.musicxml', '<score/>')).rejects.toMatchObject({
+        kind: 'signin',
+      });
+    });
+    expect(result.current.state).toEqual({ status: 'signin' });
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(0);
+  });
+
+  it('remove() and download() receiving 401 transition hook state to { status: "signin" }', async () => {
+    vi.stubGlobal('navigator', { onLine: true });
+
+    let sessionExpired = false;
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      if (url === '/library/files/' && method === 'GET') {
+        return Promise.resolve(
+          sessionExpired ? new Response('', { status: 401 }) : listing(['a.musicxml']),
+        );
+      }
+      return Promise.resolve(new Response('', { status: 401 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useLibrary());
+    await waitFor(() => {
+      expect(result.current.state).toMatchObject({ status: 'available' });
+    });
+
+    sessionExpired = true;
+    await act(async () => {
+      await expect(result.current.remove('a.musicxml')).rejects.toMatchObject({ kind: 'signin' });
+    });
+    expect(result.current.state).toEqual({ status: 'signin' });
+
+    // Reset back to available and verify download() also transitions to signin on 401
+    sessionExpired = false;
+    await act(async () => {
+      await result.current.refresh();
+    });
+    expect(result.current.state).toMatchObject({ status: 'available' });
+
+    sessionExpired = true;
+    await act(async () => {
+      await expect(result.current.download('a.musicxml')).rejects.toMatchObject({ kind: 'signin' });
+    });
+    expect(result.current.state).toEqual({ status: 'signin' });
+  });
 });
