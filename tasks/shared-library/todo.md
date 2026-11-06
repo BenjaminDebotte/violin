@@ -66,18 +66,18 @@ Every task leaves the suite green and is committed on its own (small, convention
   - Files: `src/hooks/useLibrary.ts`, `tests/unit/use-library.test.tsx`
   - Scope: S-M
 
-- [ ] **T5: Input budget for `.mxl` and XML** (S)
+- [x] **T5: Input budget for `.mxl` and XML** (S)
   - Description: refuse a `.mxl` entry above 20 MB uncompressed before inflating, and unpacked XML above 20 MB.
   - Acceptance:
-    - [ ] a generated bomb (64 KB deflating to 64 MB) is rejected with a clear message and without inflating it (A7)
-    - [ ] a normal `.mxl` and the sample scores still import; existing score-engine tests unchanged and green
+    - [x] a generated bomb (64 KB deflating to 64 MB) is rejected with a clear message and without inflating it (A7)
+    - [x] a normal `.mxl` and the sample scores still import; existing score-engine tests unchanged and green
   - Verification: `npx vitest run tests/unit/score-engine.test.ts` plus the new test; typecheck.
   - Dependencies: none
   - Files: `src/modules/score-engine/fileValidator.ts`, `tests/unit/file-validator-budget.test.ts`
   - Scope: S
 
 ### Checkpoint B: client core
-- [ ] `npx vitest run`, typecheck, build green; no change to the engines other than the size check in T5
+- [x] `npx vitest run`, typecheck, build green; no change to the engines other than the size check in T5
 
 ## Phase 3: UI
 

@@ -2,6 +2,8 @@ import JSZip from 'jszip';
 
 export type ScoreFormat = 'musicxml' | 'mxl';
 
+export const MAX_UNCOMPRESSED_SCORE_BYTES = 20 * 1024 * 1024;
+
 export type FileErrorCode =
   | 'MSCZ_NOT_SUPPORTED'
   | 'PDF_NOT_SUPPORTED'
@@ -89,6 +91,7 @@ export function validateScoreFile(file: {
 
 /**
  * Unpacks MusicXML from either raw XML text/buffer or a compressed .mxl (JSZip) container.
+ * Refuses uncompressed entries or XML above 20 MB (zip bomb and resource exhaustion protection).
  * Returns the decoded UTF-8 MusicXML string.
  */
 export async function unpackScoreFile(
@@ -101,10 +104,27 @@ export async function unpackScoreFile(
   if (ext === '.musicxml' || ext === '.xml') {
     let xmlString: string;
     if (typeof content === 'string') {
+      if (content.length > MAX_UNCOMPRESSED_SCORE_BYTES) {
+        throw new Error(
+          `Score file is too large (${Math.round(content.length / (1024 * 1024))} MB exceeds 20 MB limit)`,
+        );
+      }
       xmlString = content;
     } else {
+      const byteLength = content.byteLength;
+      if (byteLength > MAX_UNCOMPRESSED_SCORE_BYTES) {
+        throw new Error(
+          `Score file is too large (${Math.round(byteLength / (1024 * 1024))} MB exceeds 20 MB limit)`,
+        );
+      }
       const decoder = new TextDecoder('utf-8');
       xmlString = decoder.decode(content);
+    }
+
+    if (xmlString.length > MAX_UNCOMPRESSED_SCORE_BYTES) {
+      throw new Error(
+        `Score file is too large (${Math.round(xmlString.length / (1024 * 1024))} MB exceeds 20 MB limit)`,
+      );
     }
 
     if (!xmlString.includes('<score-partwise') && !xmlString.includes('<score-timewise')) {
@@ -119,6 +139,17 @@ export async function unpackScoreFile(
       zip = await JSZip.loadAsync(content);
     } catch (err) {
       throw new Error(`Failed to unpack .mxl archive: ${(err as Error).message}`);
+    }
+
+    // Refuse any uncompressed entry above 20 MB before inflating (zip bomb protection)
+    for (const [relativePath, fileObj] of Object.entries(zip.files)) {
+      if (fileObj.dir) continue;
+      const uncompressed = (fileObj as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
+      if (typeof uncompressed === 'number' && uncompressed > MAX_UNCOMPRESSED_SCORE_BYTES) {
+        throw new Error(
+          `Archive entry "${relativePath}" is too large (${Math.round(uncompressed / (1024 * 1024))} MB exceeds 20 MB limit)`,
+        );
+      }
     }
 
     let rootPath: string | null = null;
@@ -152,6 +183,10 @@ export async function unpackScoreFile(
     }
 
     const scoreXml = await scoreFile.async('string');
+    if (scoreXml.length > MAX_UNCOMPRESSED_SCORE_BYTES) {
+      throw new Error('Score file in .mxl archive exceeds 20 MB limit');
+    }
+
     if (!scoreXml.includes('<score-partwise') && !scoreXml.includes('<score-timewise')) {
       throw new Error('Invalid MusicXML in .mxl archive: missing <score-partwise> root element');
     }
