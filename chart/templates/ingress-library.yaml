@@ -1,6 +1,6 @@
-{{- if and .Values.ingress.enabled .Values.library.ingress.enabled -}}
+{{- if and .Values.library.enabled .Values.ingress.enabled .Values.library.ingress.enabled -}}
 {{- $fullName := include "violin.fullname" . -}}
-{{- $svcPort := .Values.service.port -}}
+{{- $libPort := .Values.service.libraryPort | default 8081 -}}
 {{- $path := .Values.library.ingress.path -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -38,6 +38,6 @@ spec:
               service:
                 name: {{ $fullName }}
                 port:
-                  number: {{ $svcPort }}
+                  number: {{ $libPort }}
     {{- end }}
 {{- end }}

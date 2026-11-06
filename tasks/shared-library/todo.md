@@ -20,23 +20,23 @@ Every task leaves the suite green and is committed on its own (small, convention
   - Files: `nginx/default.conf` (and optionally `nginx/library.conf`), `Dockerfile`, `scripts/smoke-library.sh`, `.github/workflows/ci.yml`
   - Scope: M
 
-- [ ] **T2: Chart fails closed and exposes 8081 only when enabled** (M)
+- [x] **T2: Chart fails closed and exposes 8081 only when enabled** (M)
   - Description: `library.enabled` (default false); library volume, Service port 8081 and library Ingress only when enabled;
     `fail` when enabled without `existingClaim`, `ingress.enabled` or `library.ingress.enabled`; `strategy: Recreate` with a claim;
     `/tmp` a 64 Mi disk emptyDir; library Ingress backend port 8081; remove the emptyDir library fallback.
   - Acceptance:
-    - [ ] defaults render no library volume, no port 8081, no library Ingress (A1)
-    - [ ] `library.enabled=true` without a claim, or without either Ingress, fails to render (A1)
-    - [ ] enabled with claim + both Ingresses renders the volume (with `subPath`), Service port 8081, a library Ingress to 8081, `Recreate`
-    - [ ] `scripts/test-chart.sh` asserts the three cases; CI runs it
+    - [x] defaults render no library volume, no port 8081, no library Ingress (A1)
+    - [x] `library.enabled=true` without a claim, or without either Ingress, fails to render (A1)
+    - [x] enabled with claim + both Ingresses renders the volume (with `subPath`), Service port 8081, a library Ingress to 8081, `Recreate`
+    - [x] `scripts/test-chart.sh` asserts the three cases; CI runs it
   - Verification: `scripts/test-chart.sh`; `helm lint chart`.
   - Dependencies: T1 (port name / number)
   - Files: `chart/values.yaml`, `chart/templates/deployment.yaml`, `chart/templates/service.yaml`, `chart/templates/ingress-library.yaml`, `scripts/test-chart.sh`, `.github/workflows/ci.yml`
   - Scope: M
 
 ### Checkpoint A: server side
-- [ ] Docker smoke (app + library) and chart tests green; `npx vitest run` and build still pass
-- [ ] Review with human before the client work (optional: only if the nginx approach changed)
+- [x] Docker smoke (app + library) and chart tests green; `npx vitest run` and build still pass
+- [x] Review with human before the client work (optional: only if the nginx approach changed)
 
 ## Phase 2: Client core
 

@@ -11,5 +11,11 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    {{- if .Values.library.enabled }}
+    - port: {{ .Values.service.libraryPort | default 8081 }}
+      targetPort: library
+      protocol: TCP
+      name: library
+    {{- end }}
   selector:
     {{- include "violin.selectorLabels" . | nindent 4 }}

@@ -1,3 +1,14 @@
+{{- if .Values.library.enabled }}
+  {{- if not .Values.library.persistence.existingClaim }}
+    {{- fail "library.enabled=true requires library.persistence.existingClaim to be set" }}
+  {{- end }}
+  {{- if not .Values.ingress.enabled }}
+    {{- fail "library.enabled=true requires ingress.enabled=true" }}
+  {{- end }}
+  {{- if not .Values.library.ingress.enabled }}
+    {{- fail "library.enabled=true requires library.ingress.enabled=true" }}
+  {{- end }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,6 +16,10 @@ metadata:
   labels:
     {{- include "violin.labels" . | nindent 4 }}
 spec:
+  {{- if and .Values.library.enabled .Values.library.persistence.existingClaim }}
+  strategy:
+    type: Recreate
+  {{- end }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -39,6 +54,11 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+            {{- if .Values.library.enabled }}
+            - name: library
+              containerPort: {{ .Values.service.libraryTargetPort | default 8081 }}
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -49,24 +69,22 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.library.enabled }}
             - name: library
               mountPath: /srv/library
               {{- with .Values.library.persistence.subPath }}
               subPath: {{ . | quote }}
               {{- end }}
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir:
-            medium: Memory
-            sizeLimit: 32Mi
+            sizeLimit: 64Mi
+        {{- if and .Values.library.enabled .Values.library.persistence.existingClaim }}
         - name: library
-          {{- if .Values.library.persistence.existingClaim }}
           persistentVolumeClaim:
             claimName: {{ .Values.library.persistence.existingClaim }}
-          {{- else }}
-          emptyDir:
-            sizeLimit: 256Mi
-          {{- end }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

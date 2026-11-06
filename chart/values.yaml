@@ -40,6 +40,8 @@ service:
   type: ClusterIP
   port: 80
   targetPort: 8080
+  libraryPort: 8081
+  libraryTargetPort: 8081
 
 # The microphone only works on https:// (or localhost), so serve this behind TLS.
 ingress:
@@ -54,13 +56,15 @@ ingress:
   tls: []
 
 # Shared score library: nginx stores the files under /srv/library so every device sees them.
+# Disabled by default: enabling requires an existing claim and both Ingresses to be configured.
 library:
+  enabled: false
   persistence:
-    # Name of an existing PersistentVolumeClaim. Empty = an emptyDir (the files are lost on restart).
+    # Name of an existing PersistentVolumeClaim. Required when library is enabled (no emptyDir fallback).
     existingClaim: ""
     # Folder inside the volume (created when missing)
     subPath: ""
-  # A second Ingress for /library only, so a login middleware can protect the library
+  # A second Ingress for /library only (pointing to 8081), so a login middleware can protect the library
   # while the app itself stays open (a PWA must fetch its manifest without a login redirect).
   ingress:
     enabled: false
