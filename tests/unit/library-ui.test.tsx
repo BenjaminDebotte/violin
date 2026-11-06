@@ -50,7 +50,7 @@ beforeEach(() => resetInMemoryScoreStore());
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Shared library on the Songs page', () => {
-  it('lists the library and adds a piece to this device', async () => {
+  it('lists the library and adds a piece to this device, focusing the heading', async () => {
     installServer({ 'Twinkle-Copy.musicxml': TWINKLE_MUSICXML });
     renderPage();
 
@@ -60,17 +60,50 @@ describe('Shared library on the Songs page', () => {
     fireEvent.click(within(library).getByRole('button', { name: /add twinkle copy to this device/i }));
     await waitFor(() => expect(within(library).getByText('On this device')).toBeInTheDocument());
     expect((await listStoredScores()).some((s) => s.fileName === 'Twinkle-Copy.musicxml')).toBe(true);
+    expect(document.activeElement).toBe(within(library).getByRole('heading', { name: /shared library/i }));
   });
 
-  it('removes a piece from the library after confirming, keeping device copies', async () => {
+  it('removes a piece from the library after confirming, keeping device copies and focusing heading', async () => {
     const server = installServer({ 'a.musicxml': TWINKLE_MUSICXML });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPage();
     const library = await screen.findByTestId('library-section');
 
-    fireEvent.click(within(library).getByRole('button', { name: /remove a from the library/i }));
+    const removeBtn = within(library).getByRole('button', { name: /remove a from the library/i });
+    expect(removeBtn.getAttribute('aria-label')).toBe('Remove a from the library');
+
+    fireEvent.click(removeBtn);
     await waitFor(() => expect(server.files.size).toBe(0));
     expect(await within(library).findByText(/nothing here yet/i)).toBeInTheDocument();
+    expect(document.activeElement).toBe(within(library).getByRole('heading', { name: /shared library/i }));
+  });
+
+  it('shows an admin-only message when DELETE returns 403', async () => {
+    const server = installServer({ 'protected.musicxml': TWINKLE_MUSICXML });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    // Mock DELETE returning 403
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const method = init.method ?? 'GET';
+      if (input === LIST_URL) return listing(['protected.musicxml']);
+      if (method === 'DELETE') return new Response('', { status: 403 });
+      return new Response(TWINKLE_MUSICXML);
+    }));
+
+    renderPage();
+    const library = await screen.findByTestId('library-section');
+    fireEvent.click(within(library).getByRole('button', { name: /remove protected from the library/i }));
+
+    expect(await within(library).findByText(/writing to the library is for administrators/i)).toBeInTheDocument();
+  });
+
+  it('renders muted line when offline, without showing an error card', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    installServer();
+    renderPage();
+
+    const library = await screen.findByTestId('library-section');
+    expect(within(library).getByText(/library unavailable offline/i)).toBeInTheDocument();
+    expect(within(library).queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('does not remove anything when the player cancels', async () => {

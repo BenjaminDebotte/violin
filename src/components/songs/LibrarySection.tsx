@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { AlertTriangle, CloudDownload, Check, Trash2, LogIn, RefreshCw } from 'lucide-react';
-import { libraryKey, type LibraryEntry } from '../../modules/library/libraryClient';
+import { useState, useRef } from 'react';
+import { AlertTriangle, CloudDownload, Check, CloudOff, LogIn, RefreshCw } from 'lucide-react';
+import { libraryKey, LibraryError, type LibraryEntry } from '../../modules/library/libraryClient';
 import type { UseLibrary } from '../../hooks/useLibrary';
 
 export interface LibrarySectionProps {
@@ -29,16 +29,30 @@ export function LibrarySection({ library, localFileNames, onAdd }: LibrarySectio
   const { state } = library;
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
-  if (state === 'loading' || state === 'offline' || state.status === 'unavailable') return null;
+  if (state === 'loading' || (typeof state === 'object' && state.status === 'unavailable')) {
+    return null;
+  }
 
   const run = async (name: string, action: () => Promise<void>) => {
     setMessage(null);
     setBusy(name);
     try {
       await action();
+      headingRef.current?.focus();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Something went wrong with the library.');
+      if (err instanceof LibraryError) {
+        if (err.kind === 'rejected') {
+          setMessage('Writing to the library is for administrators.');
+        } else if (err.kind === 'exists') {
+          setMessage('This piece is already in the library.');
+        } else {
+          setMessage(err.message);
+        }
+      } else {
+        setMessage(err instanceof Error ? err.message : 'Something went wrong with the library.');
+      }
     } finally {
       setBusy(null);
     }
@@ -47,12 +61,23 @@ export function LibrarySection({ library, localFileNames, onAdd }: LibrarySectio
   const localKeys = new Set(localFileNames.map(libraryKey));
 
   return (
-    <section aria-label="Shared library" data-testid="library-section">
-      <h2 className="mt-6 mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
+    <section aria-label="Shared library" aria-live="polite" data-testid="library-section">
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="mt-6 mb-2 text-[15px] font-bold outline-none"
+        style={{ color: 'var(--ink-2)' }}
+      >
         Shared library
       </h2>
 
-      {state.status === 'signin' && (
+      {state === 'offline' && (
+        <p className="text-[14px] leading-snug py-1" style={{ color: 'var(--ink-2)' }}>
+          Library unavailable offline
+        </p>
+      )}
+
+      {typeof state === 'object' && state.status === 'signin' && (
         <div className="p-4 rounded-[20px] space-y-3" style={CARD}>
           <p className="text-[15px] leading-snug">
             Sign in to see the scores you share between your devices.
@@ -69,7 +94,7 @@ export function LibrarySection({ library, localFileNames, onAdd }: LibrarySectio
         </div>
       )}
 
-      {state.status === 'error' && (
+      {typeof state === 'object' && state.status === 'error' && (
         <div role="status" className="p-4 rounded-[20px] space-y-3" style={CARD}>
           <p className="text-[15px] leading-snug flex gap-2" style={{ color: 'var(--ink-2)' }}>
             <AlertTriangle className="w-5 h-5 shrink-0" aria-hidden />
@@ -87,7 +112,7 @@ export function LibrarySection({ library, localFileNames, onAdd }: LibrarySectio
         </div>
       )}
 
-      {state.status === 'available' && (
+      {typeof state === 'object' && state.status === 'available' && (
         <>
           {message && (
             <div
@@ -147,10 +172,10 @@ export function LibrarySection({ library, localFileNames, onAdd }: LibrarySectio
                         }
                       }}
                       aria-label={`Remove ${titleOf(entry.name)} from the library`}
-                      className="w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                      className="min-h-11 min-w-11 w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer disabled:opacity-50"
                       style={{ color: 'var(--sharp)' }}
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <CloudOff className="w-5 h-5" aria-hidden />
                     </button>
                   </li>
                 );

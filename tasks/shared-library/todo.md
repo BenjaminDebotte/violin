@@ -81,16 +81,16 @@ Every task leaves the suite green and is committed on its own (small, convention
 
 ## Phase 3: UI
 
-- [ ] **T6: `LibrarySection` states and accessibility** (M)
+- [x] **T6: `LibrarySection` states and accessibility** (M)
   - Description: states of spec section 7 (hidden, loading, offline muted line, signin, error, available), live region, focus to the
     section heading after Add/Remove, distinct "remove from library" icon and label, messages for `exists` ("already in the library")
     and `403` ("writing is for admins").
   - Acceptance:
-    - [ ] each state renders what the spec table says; offline is not an error card
-    - [ ] after Add and after Remove, focus is on the section heading
-    - [ ] the remove control's accessible name says "from the library" and uses a different icon from the device delete
-    - [ ] a 403 on remove shows the admins-only message; a 409 shows "already in the library"
-    - [ ] touch targets are at least 44 px
+    - [x] each state renders what the spec table says; offline is not an error card
+    - [x] after Add and after Remove, focus is on the section heading
+    - [x] the remove control's accessible name says "from the library" and uses a different icon from the device delete
+    - [x] a 403 on remove shows the admins-only message; a 409 shows "already in the library"
+    - [x] touch targets are at least 44 px
   - Verification: `npx vitest run tests/unit/library-ui.test.tsx`; typecheck; screenshot at 390 px in the local container.
   - Dependencies: T4
   - Files: `src/components/songs/LibrarySection.tsx`, `tests/unit/library-ui.test.tsx`
