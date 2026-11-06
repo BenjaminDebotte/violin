@@ -90,6 +90,70 @@ export function validateScoreFile(file: {
 }
 
 /**
+ * Streams and inflates a single JSZip entry into a UTF-8 string while enforcing
+ * a hard byte ceiling during inflation (protecting against spoofed Central Directory
+ * uncompressedSize headers).
+ */
+function inflateBoundedString(
+  entry: JSZip.JSZipObject,
+  maxBytes: number = MAX_UNCOMPRESSED_SCORE_BYTES,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const stream = (
+      entry as JSZip.JSZipObject & {
+        internalStream(type: 'uint8array'): JSZip.JSZipStreamHelper<Uint8Array>;
+      }
+    ).internalStream('uint8array');
+
+    let chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    let settled = false;
+
+    stream
+      .on('data', (chunk: Uint8Array) => {
+        if (settled) return;
+        totalBytes += chunk.byteLength;
+        if (totalBytes > maxBytes) {
+          settled = true;
+          stream.pause();
+          chunks = [];
+          reject(
+            new Error(
+              `Archive entry "${entry.name}" is too large (exceeds 20 MB limit)`,
+            ),
+          );
+          return;
+        }
+        chunks.push(chunk);
+      })
+      .on('error', (err: Error) => {
+        if (settled) return;
+        settled = true;
+        chunks = [];
+        reject(err);
+      })
+      .on('end', () => {
+        if (settled) return;
+        settled = true;
+        try {
+          const combined = new Uint8Array(totalBytes);
+          let offset = 0;
+          for (const chunk of chunks) {
+            combined.set(chunk, offset);
+            offset += chunk.byteLength;
+          }
+          chunks = [];
+          resolve(new TextDecoder('utf-8').decode(combined));
+        } catch (err) {
+          chunks = [];
+          reject(err);
+        }
+      })
+      .resume();
+  });
+}
+
+/**
  * Unpacks MusicXML from either raw XML text/buffer or a compressed .mxl (JSZip) container.
  * Refuses uncompressed entries or XML above 20 MB (zip bomb and resource exhaustion protection).
  * Returns the decoded UTF-8 MusicXML string.
@@ -141,13 +205,20 @@ export async function unpackScoreFile(
       throw new Error(`Failed to unpack .mxl archive: ${(err as Error).message}`);
     }
 
-    // Refuse any uncompressed entry above 20 MB before inflating (zip bomb protection)
+    // Refuse any uncompressed entry above 20 MB or negative (signed 32-bit overflow) before inflating
     for (const [relativePath, fileObj] of Object.entries(zip.files)) {
       if (fileObj.dir) continue;
       const uncompressed = (fileObj as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
-      if (typeof uncompressed === 'number' && uncompressed > MAX_UNCOMPRESSED_SCORE_BYTES) {
+      if (
+        typeof uncompressed === 'number' &&
+        (uncompressed < 0 || uncompressed > MAX_UNCOMPRESSED_SCORE_BYTES)
+      ) {
+        const sizeLabel =
+          uncompressed < 0
+            ? 'corrupt/negative size'
+            : `${Math.round(uncompressed / (1024 * 1024))} MB`;
         throw new Error(
-          `Archive entry "${relativePath}" is too large (${Math.round(uncompressed / (1024 * 1024))} MB exceeds 20 MB limit)`,
+          `Archive entry "${relativePath}" is too large (${sizeLabel} exceeds 20 MB limit)`,
         );
       }
     }
@@ -155,7 +226,7 @@ export async function unpackScoreFile(
     let rootPath: string | null = null;
     const containerFile = zip.file('META-INF/container.xml');
     if (containerFile) {
-      const containerXml = await containerFile.async('string');
+      const containerXml = await inflateBoundedString(containerFile);
       const parser = new DOMParser();
       const doc = parser.parseFromString(containerXml, 'application/xml');
       const rootfile = doc.querySelector('rootfile');
@@ -182,7 +253,7 @@ export async function unpackScoreFile(
       throw new Error('Could not find MusicXML root file in .mxl archive');
     }
 
-    const scoreXml = await scoreFile.async('string');
+    const scoreXml = await inflateBoundedString(scoreFile);
     if (scoreXml.length > MAX_UNCOMPRESSED_SCORE_BYTES) {
       throw new Error('Score file in .mxl archive exceeds 20 MB limit');
     }
