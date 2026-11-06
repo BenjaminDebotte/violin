@@ -53,14 +53,14 @@ Every task leaves the suite green and is committed on its own (small, convention
   - Files: `src/modules/library/libraryClient.ts`, `tests/unit/library-client.test.ts`
   - Scope: S
 
-- [ ] **T4: `useLibrary`: fresh list, ordered refresh, offline** (M)
+- [x] **T4: `useLibrary`: fresh list, ordered refresh, offline** (M)
   - Description: `upload()` reads a fresh list first and returns `'uploaded' | 'exists'`; refresh results applied in order
     (request counter); `offline` state when `navigator.onLine` is false, reloaded on the `online` event; no write while `loading`.
   - Acceptance:
-    - [ ] with a stale state that lacks a file the server has, `upload()` does not overwrite (returns `exists`, or the `409` is mapped to it)
-    - [ ] an older list response arriving last does not replace a newer one
-    - [ ] offline shows state `offline` (no network call); coming online refreshes
-    - [ ] `upload()` while `loading` waits for the list instead of assuming "absent"
+    - [x] with a stale state that lacks a file the server has, `upload()` does not overwrite (returns `exists`, or the `409` is mapped to it)
+    - [x] an older list response arriving last does not replace a newer one
+    - [x] offline shows state `offline` (no network call); coming online refreshes
+    - [x] `upload()` while `loading` waits for the list instead of assuming "absent"
   - Verification: new `tests/unit/use-library.test.tsx` (fake fetch, fake timers, `online` event); typecheck.
   - Dependencies: T3
   - Files: `src/hooks/useLibrary.ts`, `tests/unit/use-library.test.tsx`

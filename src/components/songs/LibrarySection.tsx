@@ -30,7 +30,7 @@ export function LibrarySection({ library, localFileNames, onAdd }: LibrarySectio
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  if (state === 'loading' || state.status === 'unavailable') return null;
+  if (state === 'loading' || state === 'offline' || state.status === 'unavailable') return null;
 
   const run = async (name: string, action: () => Promise<void>) => {
     setMessage(null);

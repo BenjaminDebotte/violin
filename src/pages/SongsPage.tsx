@@ -149,7 +149,7 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
           </span>
           <ChevronRight className="w-5 h-5 shrink-0" style={{ color: 'var(--muted)' }} />
         </button>
-        {!score.isBuiltIn && library.state !== 'loading' && library.state.status === 'available' && !library.has(score.fileName) && (
+        {!score.isBuiltIn && typeof library.state === 'object' && library.state.status === 'available' && !library.has(score.fileName) && (
           <button
             type="button"
             onClick={() => handleSendToLibrary(score)}
