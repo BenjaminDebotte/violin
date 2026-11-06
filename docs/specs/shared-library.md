@@ -186,19 +186,19 @@ the app, which re-reads the list.
 
 ## 10. Acceptance criteria (each is tested or checked by hand, see 11)
 
-A1. Default chart values render no library volume, port or Ingress; `library.enabled=true` without a claim or Ingresses fails.
-A2. On 8080, `/library/files/` and `/library/files/x.xml` (any method) return the SPA shell or 404 and never write.
-A3. On 8081: PUT a valid name returns 201; the same name again returns 409 and the file is unchanged; DELETE returns 204; GET returns the bytes with the CSP and nosniff headers.
-A4. `a.xml%0a`, `..%2f`, dotfiles, sub-paths, other extensions, names over 100, a missing or empty header, POST/MKCOL/MOVE/COPY/PROPFIND are refused; nothing outside the folder is touched.
-A5. A body over 5 MB returns 413; ten parallel 5 MB uploads leave no 500 and no half-files.
-A6. An uploaded XHTML file with a script does not run script when opened in Chrome (sandbox CSP).
-A7. A zip bomb `.mxl` (65 KB inflating to 64 MB) is refused by the client without freezing the tab.
-A8. Auto-upload of a new piece creates it once; a second device importing the same name gets "already in the library" and no overwrite.
-A9. A device-only piece shows "Only on this device" and can be saved; after saving the badge goes away.
-A10. A non-admin's PUT/DELETE is denied by Authelia and the UI shows the admins-only message.
-A11. Offline shows the muted line, not an error card; going online reloads the list.
-A12. With the service worker active, tapping **Sign in** reaches the Authelia login page and returns to the app (checked on the phone).
-A13. With the library Ingress or the middleware removed, the library is unreachable (404/SPA), not open.
+- [x] **A1.** Default chart values render no library volume, port or Ingress; `library.enabled=true` without a claim or Ingresses fails. (`scripts/test-chart.sh`)
+- [x] **A2.** On 8080, `/library/files/` and `/library/files/x.xml` (any method) return the SPA shell or 404 and never write. (`scripts/smoke-library.sh`)
+- [x] **A3.** On 8081: PUT a valid name returns 201; the same name again returns 409 and the file is unchanged; DELETE returns 204; GET returns the bytes with the CSP and nosniff headers. (`scripts/smoke-library.sh`, `tests/unit/library-client.test.ts`)
+- [x] **A4.** `a.xml%0a`, `..%2f`, dotfiles, sub-paths, other extensions, names over 100, a missing or empty header, POST/MKCOL/MOVE/COPY/PROPFIND are refused; nothing outside the folder is touched. (`scripts/smoke-library.sh`, `tests/unit/library-client.test.ts`)
+- [x] **A5.** A body over 5 MB returns 413; ten parallel 5 MB uploads leave no 500 and no half-files. (`scripts/smoke-library.sh`)
+- [x] **A6.** An uploaded XHTML file with a script does not run script when opened in Chrome (sandbox CSP). (`scripts/smoke-library.sh`)
+- [x] **A7.** A zip bomb `.mxl` (65 KB inflating to 64 MB) is refused by the client without freezing the tab. (`tests/unit/file-validator-budget.test.ts`)
+- [x] **A8.** Auto-upload of a new piece creates it once; a second device importing the same name gets "already in the library" and no overwrite. (`tests/unit/library-ui.test.tsx`, `tests/unit/use-library.test.tsx`)
+- [x] **A9.** A device-only piece shows "Only on this device" and can be saved; after saving the badge goes away. (`tests/unit/library-ui.test.tsx`)
+- [ ] **A10.** A non-admin's PUT/DELETE is denied by Authelia and the UI shows the admins-only message. *(Cluster check, post-review)*
+- [x] **A11.** Offline shows the muted line, not an error card; going online reloads the list. (`tests/unit/use-library.test.tsx`, `tests/unit/library-ui.test.tsx`, phone check post-review)
+- [ ] **A12.** With the service worker active, tapping **Sign in** reaches the Authelia login page and returns to the app (checked on the phone). *(Cluster / phone check, post-review; sw denylist verified by `scripts/check-sw.sh`)*
+- [ ] **A13.** With the library Ingress or the middleware removed, the library is unreachable (404/SPA), not open. *(Cluster check, post-review)*
 
 ## 11. Test plan
 

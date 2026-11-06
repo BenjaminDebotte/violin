@@ -131,20 +131,20 @@ Every task leaves the suite green and is committed on its own (small, convention
   - Files: `vite.config.ts`, `scripts/check-sw.sh`, `.github/workflows/ci.yml`
   - Scope: XS
 
-- [ ] **T10: Docs and version 0.2.1 (no tag, no push)** (S)
+- [x] **T10: Docs and version 0.2.1 (no tag, no push)** (S)
   - Description: update `docs/DEPLOY.md` (8081, fail-closed chart, 5 MB, admins-only writes, cluster contract points to the spec);
     tick the spec acceptance list with test references; bump `package.json` and `chart/Chart.yaml` to 0.2.1.
   - Acceptance:
-    - [ ] docs match the code (ports, limits, switch, no-overwrite rule)
-    - [ ] versions agree (CI's tag check would pass for `v0.2.1`)
+    - [x] docs match the code (ports, limits, switch, no-overwrite rule)
+    - [x] versions agree (CI's tag check would pass for `v0.2.1`)
   - Verification: read-through; `helm lint chart`.
   - Dependencies: T1-T9
   - Files: `docs/DEPLOY.md`, `docs/specs/shared-library.md`, `package.json`, `chart/Chart.yaml`
   - Scope: S
 
 ### Checkpoint: complete (release candidate)
-- [ ] `npx vitest run`, `npm run typecheck`, `npm run build`, `helm lint chart` green
-- [ ] `scripts/smoke-library.sh` (against a container with production flags), `scripts/test-chart.sh`, `scripts/check-sw.sh` green
-- [ ] A1-A9 covered by a test or script (A10-A13 are cluster checks, left for the post-review phase)
-- [ ] No tag created, nothing pushed, `home-infrastructure` untouched
-- [ ] Ready for the independent review
+- [x] `npx vitest run`, `npm run typecheck`, `npm run build`, `helm lint chart` green
+- [x] `scripts/smoke-library.sh` (against a container with production flags), `scripts/test-chart.sh`, `scripts/check-sw.sh` green
+- [x] A1-A9 covered by a test or script (A10-A13 are cluster checks, left for the post-review phase)
+- [x] No tag created, nothing pushed, `home-infrastructure` untouched
+- [x] Ready for the independent review
