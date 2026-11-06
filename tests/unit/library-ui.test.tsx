@@ -46,8 +46,15 @@ function installServer(initial: Record<string, string> = {}): Server {
 
 const renderPage = (onPlayScore = vi.fn()) => ({ onPlayScore, ...render(<SongsPage currentScoreId="twinkle" onPlayScore={onPlayScore} />) });
 
-beforeEach(() => resetInMemoryScoreStore());
-afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => {
+  resetInMemoryScoreStore();
+  localStorage.clear();
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 describe('Shared library on the Songs page', () => {
   it('lists the library and adds a piece to this device, focusing the heading', async () => {
@@ -79,7 +86,7 @@ describe('Shared library on the Songs page', () => {
   });
 
   it('shows an admin-only message when DELETE returns 403', async () => {
-    const server = installServer({ 'protected.musicxml': TWINKLE_MUSICXML });
+    installServer({ 'protected.musicxml': TWINKLE_MUSICXML });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     // Mock DELETE returning 403
     vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
@@ -153,24 +160,104 @@ describe('Shared library on the Songs page', () => {
     expect(server.puts).toHaveLength(0);
   });
 
-  it('offers to send a device-only score to the library, and then stops offering it', async () => {
+  it('offers to send a device-only score to the library with "Only on this device" badge, and then stops offering it (A9)', async () => {
     localStorage.setItem('violin-coach:library-autoupload', 'off');
     const server = installServer();
     const { onPlayScore } = renderPage();
     await screen.findByTestId('library-section');
 
-    const file = new File([TWINKLE_MUSICXML], 'Only here.mxl.musicxml');
+    const file = new File([TWINKLE_MUSICXML], 'Only here.musicxml');
     fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
     await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
     expect(server.puts).toHaveLength(0);
 
+    // Verify "Only on this device" badge is rendered
+    expect(screen.getByText('Only on this device')).toBeInTheDocument();
+
     const send = await screen.findByRole('button', { name: /to the shared library/i });
     fireEvent.click(send);
     await waitFor(() => expect(server.puts).toHaveLength(1));
-    expect(server.puts[0].url).toBe('/library/files/Only-here.mxl.musicxml');
+    expect(server.puts[0].url).toBe('/library/files/Only-here.musicxml');
     expect(server.puts[0].body).toBe(TWINKLE_MUSICXML);
+
+    // After save succeeds, badge and button disappear
     await waitFor(() => expect(screen.queryByRole('button', { name: /to the shared library/i })).not.toBeInTheDocument());
+    expect(screen.queryByText('Only on this device')).not.toBeInTheDocument();
     localStorage.removeItem('violin-coach:library-autoupload');
+  });
+
+  it('prevents double sending on double click and displays error next to the row', async () => {
+    localStorage.setItem('violin-coach:library-autoupload', 'off');
+    const server = installServer();
+    // Simulate slow / failing upload
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const method = init.method ?? 'GET';
+      if (input === LIST_URL) return listing([]);
+      if (method === 'PUT') {
+        server.puts.push({ url: input, headers: init.headers as Record<string, string>, body: init.body });
+        return new Response('', { status: 403 });
+      }
+      return new Response('', { status: 404 });
+    }));
+
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Double tap.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+
+    const send = await screen.findByRole('button', { name: /to the shared library/i });
+    // Double click rapidly
+    fireEvent.click(send);
+    fireEvent.click(send);
+
+    // Only one PUT was sent
+    await waitFor(() => expect(server.puts).toHaveLength(1));
+
+    // Error message shows next to the row and at top of page
+    const errs = await screen.findAllByText(/writing to the library is for administrators/i);
+    expect(errs.length).toBeGreaterThanOrEqual(2);
+    localStorage.removeItem('violin-coach:library-autoupload');
+  });
+
+  it('second import of the same name does not overwrite and displays "already in the library" (A8)', async () => {
+    const server = installServer({ 'Twinkle.musicxml': TWINKLE_MUSICXML });
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Twinkle.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+
+    expect(server.puts).toHaveLength(0);
+    expect(await screen.findByText(/already in the library/i)).toBeInTheDocument();
+  });
+
+  it('uploads .mxl binary byte-for-byte and round trips back to device', async () => {
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?><container><rootfiles><rootfile full-path="music.xml"/></rootfiles></container>`,
+    );
+    zip.file('music.xml', TWINKLE_MUSICXML);
+    const mxlBytes = await zip.generateAsync({ type: 'uint8array' });
+
+    const server = installServer();
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    const file = new File([mxlBytes], 'binary-score.mxl', { type: 'application/vnd.recordare.musicxml' });
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+
+    await waitFor(() => expect(server.puts).toHaveLength(1));
+    expect(server.puts[0].url).toBe('/library/files/binary-score.mxl');
+
+    // Verify bytes preserved
+    const uploadedBytes = new Uint8Array(server.puts[0].body as ArrayBuffer);
+    expect(uploadedBytes).toEqual(mxlBytes);
   });
 
   it('shows a Sign in button when the login middleware wants a session', async () => {

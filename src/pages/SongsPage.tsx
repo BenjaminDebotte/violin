@@ -12,7 +12,7 @@ import { importScoreBytes } from '../modules/score-engine/importScore';
 import { extractScoreTimeline } from '../modules/score-engine/timelineExtractor';
 import { useLibrary } from '../hooks/useLibrary';
 import { LibrarySection } from '../components/songs/LibrarySection';
-import { downloadLibraryFile, type LibraryEntry } from '../modules/library/libraryClient';
+import { downloadLibraryFile, LibraryError, type LibraryEntry } from '../modules/library/libraryClient';
 
 export interface SongsPageProps {
   readonly currentScoreId: string;
@@ -41,6 +41,8 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
   const [scores, setScores] = useState<readonly StoredScore[]>(BUILT_IN_SCORES);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const library = useLibrary();
@@ -82,7 +84,23 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
       await refreshScores();
       // Keep a copy in the shared library for the other devices. Playing must not wait for it.
       if (library.autoUpload) {
-        library.upload(file.name, buffer).catch((err) => console.warn('Could not save to the library:', err));
+        void library
+          .upload(file.name, buffer)
+          .then((outcome) => {
+            if (outcome === 'exists') {
+              setUploadError('Already in the library.');
+            }
+          })
+          .catch((err) => {
+            const msg =
+              err instanceof LibraryError && err.kind === 'rejected'
+                ? 'Writing to the library is for administrators.'
+                : err instanceof Error
+                  ? err.message
+                  : 'Could not save to the library.';
+            console.warn('Could not save to the library:', err);
+            setUploadError(msg);
+          });
       }
       onPlayScore(newScore);
     } catch (err) {
@@ -111,11 +129,29 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
 
   /** Sends a score that is only on this device to the library, as plain MusicXML. */
   const handleSendToLibrary = async (score: StoredScore) => {
+    if (savingId) return;
+    setSavingId(score.id);
     setUploadError(null);
+    setRowErrors((prev) => ({ ...prev, [score.id]: '' }));
     try {
-      await library.upload(`${score.fileName.replace(/\.[^.]+$/, '')}.musicxml`, score.xmlContent);
+      const outcome = await library.upload(
+        `${score.fileName.replace(/\.[^.]+$/, '')}.musicxml`,
+        score.xmlContent,
+      );
+      if (outcome === 'exists') {
+        setRowErrors((prev) => ({ ...prev, [score.id]: 'Already in the library.' }));
+      }
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Could not save to the library.');
+      const msg =
+        err instanceof LibraryError && err.kind === 'rejected'
+          ? 'Writing to the library is for administrators.'
+          : err instanceof Error
+            ? err.message
+            : 'Could not save to the library.';
+      setRowErrors((prev) => ({ ...prev, [score.id]: msg }));
+      setUploadError(msg);
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -132,44 +168,71 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
   const renderRow = (score: StoredScore) => {
     const meta = metas.get(score.id);
     const isCurrent = score.id === currentScoreId;
+    const onlyOnDevice =
+      !score.isBuiltIn &&
+      typeof library.state === 'object' &&
+      library.state.status === 'available' &&
+      !library.has(score.fileName);
+    const isSaving = savingId === score.id;
+    const rowError = rowErrors[score.id];
+
     return (
-      <li key={score.id} className="flex items-stretch gap-1">
-        <button
-          type="button"
-          onClick={() => onPlayScore(score)}
-          aria-label={`Play ${score.title}`}
-          className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3.5 rounded-[20px] text-left cursor-pointer"
-          style={{ backgroundColor: 'var(--plate)', border: `1px solid ${isCurrent ? 'var(--ebony)' : 'var(--rule)'}` }}
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block text-[17px] font-extrabold leading-tight">{score.title}</span>
-            <span className="block text-[14px] mt-0.5" style={{ color: 'var(--ink-2)' }}>
-              {meta ? `${meta.measures} bars at ${meta.bpm} bpm` : score.fileName}
+      <li key={score.id} className="flex flex-col gap-1">
+        <div className="flex items-stretch gap-1">
+          <button
+            type="button"
+            onClick={() => onPlayScore(score)}
+            aria-label={`Play ${score.title}`}
+            className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3.5 rounded-[20px] text-left cursor-pointer"
+            style={{
+              backgroundColor: 'var(--plate)',
+              border: `1px solid ${isCurrent ? 'var(--ebony)' : 'var(--rule)'}`,
+            }}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[17px] font-extrabold leading-tight break-words">{score.title}</span>
+              <span className="block text-[14px] mt-0.5" style={{ color: 'var(--ink-2)' }}>
+                {meta ? `${meta.measures} bars at ${meta.bpm} bpm` : score.fileName}
+              </span>
+              {onlyOnDevice && (
+                <span
+                  className="inline-block mt-1 text-[12px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--rule)', color: 'var(--ink-2)' }}
+                >
+                  Only on this device
+                </span>
+              )}
             </span>
-          </span>
-          <ChevronRight className="w-5 h-5 shrink-0" style={{ color: 'var(--muted)' }} />
-        </button>
-        {!score.isBuiltIn && typeof library.state === 'object' && library.state.status === 'available' && !library.has(score.fileName) && (
-          <button
-            type="button"
-            onClick={() => handleSendToLibrary(score)}
-            aria-label={`Save ${score.title} to the shared library`}
-            className="w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer"
-            style={{ color: 'var(--ink-2)' }}
-          >
-            <CloudUpload className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5 shrink-0" style={{ color: 'var(--muted)' }} />
           </button>
-        )}
-        {!score.isBuiltIn && (
-          <button
-            type="button"
-            onClick={() => handleDelete(score.id)}
-            aria-label={`Delete ${score.title}`}
-            className="w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer"
-            style={{ color: 'var(--sharp)' }}
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
+          {onlyOnDevice && (
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={() => void handleSendToLibrary(score)}
+              aria-label={`Save ${score.title} to the shared library`}
+              className="min-h-11 min-w-11 w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+              style={{ color: 'var(--ink-2)' }}
+            >
+              <CloudUpload className="w-5 h-5" />
+            </button>
+          )}
+          {!score.isBuiltIn && (
+            <button
+              type="button"
+              onClick={() => handleDelete(score.id)}
+              aria-label={`Delete ${score.title}`}
+              className="min-h-11 min-w-11 w-12 shrink-0 rounded-[20px] flex items-center justify-center cursor-pointer"
+              style={{ color: 'var(--sharp)' }}
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        {rowError && (
+          <p className="px-4 text-[13px] font-medium" style={{ color: 'var(--sharp)' }}>
+            {rowError}
+          </p>
         )}
       </li>
     );
@@ -199,52 +262,59 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
           style={{ backgroundColor: '#fde8ee', color: '#7a1832' }}
         >
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <p className="whitespace-pre-line">{uploadError}</p>
+          <p className="break-words">{uploadError}</p>
         </div>
       )}
 
-      <h2 className="mt-6 mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
-        Built into the app
-      </h2>
-      <ul className="space-y-2">{builtIn.map(renderRow)}</ul>
-
-      <h2 className="mt-6 mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
-        Your scores
-      </h2>
-      {mine.length > 0 ? (
-        <ul className="space-y-2">{mine.map(renderRow)}</ul>
-      ) : (
-        <p className="text-[15px]" style={{ color: 'var(--ink-2)' }}>
-          Export a piece from MuseScore as MusicXML (.mxl or .musicxml) and add it here.
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isUploading}
-        className="mt-4 w-full min-h-14 rounded-[20px] inline-flex items-center justify-center gap-2 text-[17px] font-extrabold cursor-pointer"
-        style={{
-          border: `2px dashed ${isDragging ? 'var(--ebony)' : 'var(--rule-strong)'}`,
-          backgroundColor: isDragging ? 'var(--rosin-soft)' : 'transparent',
-          color: 'var(--ink)',
-        }}
-      >
-        <Plus className="w-5 h-5" />
-        {isUploading ? 'Reading the score…' : 'Add a score'}
-      </button>
-      <LibrarySection library={library} localFileNames={mine.map((s) => s.fileName)} onAdd={handleAddFromLibrary} />
-
+      {/* Add piece */}
       <input
         ref={fileInputRef}
         type="file"
-        accept=".musicxml,.mxl,.xml"
+        accept=".musicxml,.mxl,.xml,.mscz,.mscx,.pdf"
         className="hidden"
         data-testid="score-file-input"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleProcessFile(file);
         }}
+      />
+      <button
+        type="button"
+        disabled={isUploading}
+        onClick={() => fileInputRef.current?.click()}
+        className="mt-5 w-full min-h-12 py-3 px-4 rounded-[20px] flex items-center justify-center gap-2 text-[17px] font-bold cursor-pointer disabled:opacity-50"
+        style={{
+          backgroundColor: isDragging ? 'var(--rule)' : 'var(--plate)',
+          border: '2px dashed var(--rule)',
+        }}
+      >
+        <Plus className="w-5 h-5" />
+        {isUploading ? 'Importing…' : 'Add a piece (MusicXML or .mxl)'}
+      </button>
+
+      {/* Your pieces */}
+      {mine.length > 0 && (
+        <section aria-label="Your scores" className="mt-6">
+          <h2 className="mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
+            Your scores
+          </h2>
+          <ul className="space-y-2">{mine.map(renderRow)}</ul>
+        </section>
+      )}
+
+      {/* Built-in songs */}
+      <section aria-label="Built-in songs" className="mt-6">
+        <h2 className="mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
+          Built-in songs
+        </h2>
+        <ul className="space-y-2">{builtIn.map(renderRow)}</ul>
+      </section>
+
+      {/* Shared library */}
+      <LibrarySection
+        library={library}
+        localFileNames={scores.map((s) => s.fileName)}
+        onAdd={handleAddFromLibrary}
       />
     </div>
   );

@@ -96,14 +96,14 @@ Every task leaves the suite green and is committed on its own (small, convention
   - Files: `src/components/songs/LibrarySection.tsx`, `tests/unit/library-ui.test.tsx`
   - Scope: M
 
-- [ ] **T7: Songs page: "Only on this device", Save, auto-upload outcome** (M)
+- [x] **T7: Songs page: "Only on this device", Save, auto-upload outcome** (M)
   - Description: device rows whose piece is not in the library show "Only on this device" and a Save button with a busy state;
     auto-upload uses `upload()`'s outcome and never blocks playing; `.mxl` originals are sent as bytes.
   - Acceptance:
-    - [ ] badge and button appear only when the library is available and the key is absent; they disappear after a successful save (A9)
-    - [ ] a double tap sends one request; errors show next to the row, not only at the top of the page
-    - [ ] a second import of the same name does not overwrite and says "already in the library" (A8)
-    - [ ] a `.mxl` binary imported on the device is uploaded byte-for-byte and can be added back (round trip)
+    - [x] badge and button appear only when the library is available and the key is absent; they disappear after a successful save (A9)
+    - [x] a double tap sends one request; errors show next to the row, not only at the top of the page
+    - [x] a second import of the same name does not overwrite and says "already in the library" (A8)
+    - [x] a `.mxl` binary imported on the device is uploaded byte-for-byte and can be added back (round trip)
   - Verification: `npx vitest run tests/unit/library-ui.test.tsx`; typecheck.
   - Dependencies: T4, T6
   - Files: `src/pages/SongsPage.tsx`, `tests/unit/library-ui.test.tsx`
