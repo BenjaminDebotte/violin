@@ -8,6 +8,9 @@
   {{- if not .Values.library.ingress.enabled }}
     {{- fail "library.enabled=true requires library.ingress.enabled=true" }}
   {{- end }}
+  {{- if not .Values.library.ingress.annotations }}
+    {{- fail "library.enabled=true requires library.ingress.annotations to be set" }}
+  {{- end }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment

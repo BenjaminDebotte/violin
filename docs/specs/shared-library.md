@@ -145,8 +145,8 @@ Client safety on files it fetches or imports: `.mxl` entries are refused above *
 - `library.enabled` (default **false**). When false: no library volume, no 8081 Service port, no
   library Ingress. Writes are impossible (read-only root).
 - When true, the chart **fails to render** unless `library.persistence.existingClaim` is set (no silent
-  emptyDir: that loses the library on restart), `ingress.enabled` is true and `library.ingress.enabled`
-  is true. So it cannot be enabled open.
+  emptyDir: that loses the library on restart), `ingress.enabled` is true, `library.ingress.enabled`
+  is true, and `library.ingress.annotations` is non-empty. So it cannot be enabled open.
 - `strategy: Recreate` when a claim is used (a ReadWriteMany SMB claim also works with rolling, but
   Recreate avoids two nginx writing at once).
 - `/tmp` is a 64 Mi disk emptyDir. The library Ingress points to Service port 8081.
@@ -164,10 +164,12 @@ Client safety on files it fetches or imports: `.mxl` entries are refused above *
 ### 8.3 Authelia rule (cluster)
 
 Rules are evaluated in order; the first match wins. Before the wildcard rule add, for
-`violin.bdbt.dev`, `resources: ["^/library/files/"]`, `methods: [PUT, DELETE]`:
+`violin.bdbt.dev`, `resources: ["^/library"]` (or whole domain), `methods: [PUT, DELETE]`:
 1. `subject: group:admins`, policy `one_factor`;
 2. the same domain, resources and methods, policy `deny` (everyone else).
-GET stays covered by the existing `*.bdbt.dev` rule.
+GET stays covered by the existing `*.bdbt.dev` rule. Applying `methods: [PUT, DELETE]` across
+`^/library` (or the whole domain) ensures non-canonical path forms cannot bypass the method rule before
+nginx rejects them via `$request_uri`.
 
 ### 8.4 Synology (manual)
 
@@ -191,7 +193,7 @@ the app, which re-reads the list.
 - [x] **A3.** On 8081: PUT a valid name returns 201; the same name again returns 409 and the file is unchanged; DELETE returns 204; GET returns the bytes with the CSP and nosniff headers. (`scripts/smoke-library.sh`, `tests/unit/library-client.test.ts`)
 - [x] **A4.** `a.xml%0a`, `..%2f`, dotfiles, sub-paths, other extensions, names over 100, a missing or empty header, POST/MKCOL/MOVE/COPY/PROPFIND are refused; nothing outside the folder is touched. (`scripts/smoke-library.sh`, `tests/unit/library-client.test.ts`)
 - [x] **A5.** A body over 5 MB returns 413; ten parallel 5 MB uploads leave no 500 and no half-files. (`scripts/smoke-library.sh`)
-- [x] **A6.** An uploaded XHTML file with a script does not run script when opened in Chrome (sandbox CSP). (`scripts/smoke-library.sh`)
+- [x] **A6.** An uploaded XHTML file with a script does not run script when opened in Chrome (sandbox CSP). (`scripts/smoke-library.sh`; also verify on cluster that Traefik `security-headers` middleware does not overwrite the sandbox CSP on `/library/files/*`)
 - [x] **A7.** A zip bomb `.mxl` (65 KB inflating to 64 MB) is refused by the client without freezing the tab. (`tests/unit/file-validator-budget.test.ts`)
 - [x] **A8.** Auto-upload of a new piece creates it once; a second device importing the same name gets "already in the library" and no overwrite. (`tests/unit/library-ui.test.tsx`, `tests/unit/use-library.test.tsx`)
 - [x] **A9.** A device-only piece shows "Only on this device" and can be saved; after saving the badge goes away. (`tests/unit/library-ui.test.tsx`)
@@ -220,7 +222,8 @@ the app, which re-reads the list.
 ## 13. Not verified yet (to confirm on the real cluster)
 
 - How Traefik treats an Ingress that references a missing middleware, and path forms such as
-  `//library`, `/library%2ffiles/`, `/library/./files/` (the design holds either way, section 3).
+  `//library`, `/library%2ffiles/`, `/library/./files/` (the design holds either way, section 3; nginx also enforces canonical `/library/files/<name>` against `$request_uri`).
+- That the cluster's Traefik `security-headers` middleware does not overwrite nginx's `Content-Security-Policy: default-src 'none'; sandbox` header on `/library/files/*`.
 - The HTTP status Authelia returns to `fetch()` for GET, PUT and DELETE when not signed in
   (302, 303 or 401); the client handles all three.
 - That csi-driver-smb with those mount options lets nginx (uid 101) create files, set their times and

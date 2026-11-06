@@ -79,6 +79,12 @@ assert_fails "library.enabled=true with claim and library ingress (no app ingres
     --set library.persistence.existingClaim=scores-pvc \
     --set library.ingress.enabled=true
 
+assert_fails "library.enabled=true with claim and both ingresses (no library ingress annotations)" \
+    --set library.enabled=true \
+    --set library.persistence.existingClaim=scores-pvc \
+    --set ingress.enabled=true \
+    --set library.ingress.enabled=true
+
 
 # --- 3. Enabled renders claim, subPath, port 8081, library Ingress to 8081, Recreate (A1) ---
 echo "--- 3. Testing Enabled Configuration ---"
@@ -89,6 +95,7 @@ helm template violin "$CHART_DIR" \
     --set library.persistence.subPath=violin-scores \
     --set ingress.enabled=true \
     --set library.ingress.enabled=true \
+    --set 'library.ingress.annotations.traefik\.ingress\.kubernetes\.io/router\.middlewares=authelia@kubernetescrd' \
     > "$TMP_DIR/enabled.yaml"
 
 # Strategy: Recreate

@@ -146,6 +146,13 @@ code=$(curl --path-as-is -s -o /dev/null -w "%{http_code}" -X PUT -H "X-Violin-L
 [ "$code" = "403" ] || [ "$code" = "404" ] || [ "$code" = "400" ] || fail "Path traversal returned $code instead of 403/404/400"
 pass "Path traversal rejected ($code)"
 
+# Non-canonical path forms and 0-byte PUTs rejected with 403
+check_status "Non-canonical /library//files/a.xml rejected" 403 --path-as-is -X PUT -H "X-Violin-Library: 1" --data "x" "$LIB_URL/library//files/a.xml"
+check_status "Non-canonical /library/./files/b.xml rejected" 403 --path-as-is -X PUT -H "X-Violin-Library: 1" --data "x" "$LIB_URL/library/./files/b.xml"
+check_status "Non-canonical /library/%66iles/c.xml rejected" 403 --path-as-is -X PUT -H "X-Violin-Library: 1" --data "x" "$LIB_URL/library/%66iles/c.xml"
+check_status "Non-canonical /library/foo/../files/d.xml rejected" 403 --path-as-is -X PUT -H "X-Violin-Library: 1" --data "x" "$LIB_URL/library/foo/../files/d.xml"
+check_status "Zero-byte PUT rejected" 403 -X PUT -H "X-Violin-Library: 1" --data "" "$LIB_URL/library/files/empty.xml"
+
 # Over-long names (101 characters rejected; 100 characters accepted)
 name101=$(printf 'a%.0s' {1..97}).xml
 name100=$(printf 'a%.0s' {1..96}).xml
