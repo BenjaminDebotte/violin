@@ -109,12 +109,12 @@ Every task leaves the suite green and is committed on its own (small, convention
   - Files: `src/pages/SongsPage.tsx`, `tests/unit/library-ui.test.tsx`
   - Scope: M
 
-- [ ] **T8: Test hygiene and coverage gaps** (S)
+- [x] **T8: Test hygiene and coverage gaps** (S)
   - Description: reset state between tests; replace the vacuous "no library" test; add the missing cases.
   - Acceptance:
-    - [ ] `afterEach` clears `localStorage`, restores mocks and unstubs globals in the library test files
-    - [ ] the "no library" test waits for a settled state (for example a `data-state` attribute or the Songs content) before asserting nothing renders
-    - [ ] added cases: 401 on PUT turns the section into signin; delete failure message; same key with different extensions (twins); key collision between two different files; upload failure message in the UI
+    - [x] `afterEach` clears `localStorage`, restores mocks and unstubs globals in the library test files
+    - [x] the "no library" test waits for a settled state (for example a `data-state` attribute or the Songs content) before asserting nothing renders
+    - [x] added cases: 401 on PUT turns the section into signin; delete failure message; same key with different extensions (twins); key collision between two different files; upload failure message in the UI
   - Verification: `npx vitest run` (run the library files twice in a different order to prove no leakage).
   - Dependencies: T6, T7
   - Files: `tests/unit/library-ui.test.tsx`, `tests/unit/library-client.test.ts`

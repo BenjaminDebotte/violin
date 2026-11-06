@@ -16,6 +16,16 @@ const json = (body: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' }, ...init });
 const opaqueRedirect = () => ({ type: 'opaqueredirect', status: 0, ok: false, headers: new Headers() }) as unknown as Response;
 
+beforeEach(() => {
+  localStorage.clear();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
+
 describe('sanitizeLibraryName', () => {
   // Parse the server pattern directly out of nginx/default.conf ($library_write_denied)
   const conf = readFileSync('nginx/default.conf', 'utf8');

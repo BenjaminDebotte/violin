@@ -268,13 +268,148 @@ describe('Shared library on the Songs page', () => {
     expect(within(library).getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
-  it('shows nothing when the server has no library', async () => {
-    const server = installServer();
-    server.mode = 'none';
+  it('shows nothing when the server has no library (settled state)', async () => {
+    let fetchFinished = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        fetchFinished = true;
+        return new Response('', { status: 404 });
+      }),
+    );
     renderPage();
-    await waitFor(() => expect(fetch).toHaveBeenCalled());
-    await Promise.resolve();
+    await screen.findByText(/built into the app/i);
+    await waitFor(() => expect(fetchFinished).toBe(true));
     expect(screen.queryByTestId('library-section')).not.toBeInTheDocument();
+  });
+
+  it('turns the library section into signin when a PUT gets 401', async () => {
+    localStorage.setItem('violin-coach:library-autoupload', 'off');
+    let authenticated = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const method = init.method ?? 'GET';
+        if (input === LIST_URL) {
+          return authenticated ? listing([]) : new Response('', { status: 401 });
+        }
+        if (method === 'PUT') {
+          authenticated = false;
+          return new Response('', { status: 401 });
+        }
+        return new Response('', { status: 404 });
+      }),
+    );
+
+    const { onPlayScore } = renderPage();
+    const library = await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Score.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+
+    const send = await screen.findByRole('button', { name: /to the shared library/i });
+    fireEvent.click(send);
+
+    expect(await within(library).findByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    localStorage.removeItem('violin-coach:library-autoupload');
+  });
+
+  it('displays an error message in the library section when delete fails', async () => {
+    installServer({ 'piece.musicxml': TWINKLE_MUSICXML });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const method = init.method ?? 'GET';
+        if (input === LIST_URL) return listing(['piece.musicxml']);
+        if (method === 'DELETE') return new Response('', { status: 500 });
+        return new Response(TWINKLE_MUSICXML);
+      }),
+    );
+
+    renderPage();
+    const library = await screen.findByTestId('library-section');
+    fireEvent.click(within(library).getByRole('button', { name: /remove piece from the library/i }));
+
+    expect(await within(library).findByRole('alert')).toBeInTheDocument();
+    expect(within(library).getByText(/could not remove that file/i)).toBeInTheDocument();
+  });
+
+  it('displays twins (same key with different extensions) and marks both as on-device when key matches', async () => {
+    installServer({
+      'Minuet.mxl': TWINKLE_MUSICXML,
+      'minuet.musicxml': TWINKLE_MUSICXML,
+    });
+
+    const { onPlayScore } = renderPage();
+    const library = await screen.findByTestId('library-section');
+
+    // Both twins are visible in the list
+    const items = within(library).getAllByText(/minuet/i);
+    expect(items.length).toBe(2);
+
+    // Now import Minuet locally on the device (as MusicXML)
+    const file = new File([TWINKLE_MUSICXML], 'Minuet.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+
+    // Both twins show "On this device" because key matches
+    await waitFor(() => {
+      const onDeviceBadges = within(library).getAllByText('On this device');
+      expect(onDeviceBadges.length).toBe(2);
+    });
+  });
+
+  it('handles key collision between two different files that sanitise to the same key', async () => {
+    const server = installServer();
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    // First file: "Etude.xml"
+    const file1 = new File([TWINKLE_MUSICXML], 'Etude.xml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file1] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+    await waitFor(() => expect(server.puts).toHaveLength(1));
+    expect(server.puts[0].url).toBe('/library/files/Etude.xml');
+
+    // Second file: "Étude.musicxml" (different original name and extension, same sanitised key)
+    const file2 = new File([TWINKLE_MUSICXML], 'Étude.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file2] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalledTimes(2));
+
+    // Second file is recognised as already existing in the library, no second PUT sent
+    expect(server.puts).toHaveLength(1);
+    expect(await screen.findByText(/already in the library/i)).toBeInTheDocument();
+  });
+
+  it('shows an upload failure message in the UI when save to library fails with 500', async () => {
+    localStorage.setItem('violin-coach:library-autoupload', 'off');
+    installServer();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const method = init.method ?? 'GET';
+        if (input === LIST_URL) return listing([]);
+        if (method === 'PUT') return new Response('', { status: 500 });
+        return new Response('', { status: 404 });
+      }),
+    );
+
+    const { onPlayScore } = renderPage();
+    await screen.findByTestId('library-section');
+
+    const file = new File([TWINKLE_MUSICXML], 'Failed.musicxml');
+    fireEvent.change(screen.getByTestId('score-file-input'), { target: { files: [file] } });
+    await waitFor(() => expect(onPlayScore).toHaveBeenCalled());
+
+    const send = await screen.findByRole('button', { name: /to the shared library/i });
+    fireEvent.click(send);
+
+    // Shows failure message in the row and at top of page
+    const errs = await screen.findAllByText(/could not save that file \(error 500\)/i);
+    expect(errs.length).toBeGreaterThanOrEqual(2);
+    localStorage.removeItem('violin-coach:library-autoupload');
   });
 
   it('says so, and lets the player try again, when the library cannot be reached', async () => {

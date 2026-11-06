@@ -262,59 +262,57 @@ export function SongsPage({ currentScoreId, onPlayScore }: SongsPageProps) {
           style={{ backgroundColor: '#fde8ee', color: '#7a1832' }}
         >
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <p className="break-words">{uploadError}</p>
+          <p className="whitespace-pre-line">{uploadError}</p>
         </div>
       )}
 
-      {/* Add piece */}
+      <h2 className="mt-6 mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
+        Built into the app
+      </h2>
+      <ul className="space-y-2">{builtIn.map(renderRow)}</ul>
+
+      <h2 className="mt-6 mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
+        Your scores
+      </h2>
+      {mine.length > 0 ? (
+        <ul className="space-y-2">{mine.map(renderRow)}</ul>
+      ) : (
+        <p className="text-[15px]" style={{ color: 'var(--ink-2)' }}>
+          Export a piece from MuseScore as MusicXML (.mxl or .musicxml) and add it here.
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isUploading}
+        className="mt-4 w-full min-h-14 rounded-[20px] inline-flex items-center justify-center gap-2 text-[17px] font-extrabold cursor-pointer"
+        style={{
+          border: `2px dashed ${isDragging ? 'var(--ebony)' : 'var(--rule-strong)'}`,
+          backgroundColor: isDragging ? 'var(--rosin-soft)' : 'transparent',
+          color: 'var(--ink)',
+        }}
+      >
+        <Plus className="w-5 h-5" />
+        {isUploading ? 'Reading the score…' : 'Add a score'}
+      </button>
+
+      <LibrarySection
+        library={library}
+        localFileNames={scores.map((s) => s.fileName)}
+        onAdd={handleAddFromLibrary}
+      />
+
       <input
         ref={fileInputRef}
         type="file"
-        accept=".musicxml,.mxl,.xml,.mscz,.mscx,.pdf"
+        accept=".musicxml,.mxl,.xml"
         className="hidden"
         data-testid="score-file-input"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) handleProcessFile(file);
         }}
-      />
-      <button
-        type="button"
-        disabled={isUploading}
-        onClick={() => fileInputRef.current?.click()}
-        className="mt-5 w-full min-h-12 py-3 px-4 rounded-[20px] flex items-center justify-center gap-2 text-[17px] font-bold cursor-pointer disabled:opacity-50"
-        style={{
-          backgroundColor: isDragging ? 'var(--rule)' : 'var(--plate)',
-          border: '2px dashed var(--rule)',
-        }}
-      >
-        <Plus className="w-5 h-5" />
-        {isUploading ? 'Importing…' : 'Add a piece (MusicXML or .mxl)'}
-      </button>
-
-      {/* Your pieces */}
-      {mine.length > 0 && (
-        <section aria-label="Your scores" className="mt-6">
-          <h2 className="mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
-            Your scores
-          </h2>
-          <ul className="space-y-2">{mine.map(renderRow)}</ul>
-        </section>
-      )}
-
-      {/* Built-in songs */}
-      <section aria-label="Built-in songs" className="mt-6">
-        <h2 className="mb-2 text-[15px] font-bold" style={{ color: 'var(--ink-2)' }}>
-          Built-in songs
-        </h2>
-        <ul className="space-y-2">{builtIn.map(renderRow)}</ul>
-      </section>
-
-      {/* Shared library */}
-      <LibrarySection
-        library={library}
-        localFileNames={scores.map((s) => s.fileName)}
-        onAdd={handleAddFromLibrary}
       />
     </div>
   );
