@@ -64,11 +64,28 @@ export function extractScoreTimeline(
 
   const tempoScale = options?.tempoScale && options.tempoScale > 0 ? options.tempoScale : 1.0;
 
-  // 2. Locate part elements
+  // 2. Locate part elements and detect the solo Violin part in multi-part scores
   const partElements = Array.from(doc.querySelectorAll('score-partwise > part, part'));
   if (partElements.length === 0) {
     throw new Error('No <part> elements found in MusicXML score.');
   }
+
+  const scoreParts = Array.from(doc.querySelectorAll('part-list > score-part, score-part'));
+  const VIOLIN_PART_REGEX = /violin|violon|vln|fiddle/i;
+  const detectedViolinPartIndex = partElements.findIndex((partElem, idx) => {
+    const partId = partElem.getAttribute('id');
+    const scorePart =
+      (partId ? scoreParts.find((sp) => sp.getAttribute('id') === partId) : undefined) ??
+      scoreParts[idx];
+    if (!scorePart) return false;
+    const metadataNodes = Array.from(
+      scorePart.querySelectorAll(
+        'part-name, part-abbreviation, instrument-name, instrument-sound',
+      ),
+    );
+    return metadataNodes.some((node) => VIOLIN_PART_REGEX.test(node.textContent ?? ''));
+  });
+  const soloPartIndex = detectedViolinPartIndex >= 0 ? detectedViolinPartIndex : 0;
 
   // 3. Extract measures & tempo timeline using Part 1 (or all measures)
   // We inspect Part 1 to determine the sequence of measures, time signatures, and tempos.
@@ -141,12 +158,13 @@ export function extractScoreTimeline(
 
   // 4. Parse notes per part
   const rawPartNotes: MutablePlayableNote[][] = [];
+  const allOnsetBeats = new Set<number>();
 
   for (let pIdx = 0; pIdx < partElements.length; pIdx++) {
     const partElem = partElements[pIdx];
-    const isSolo = pIdx === 0;
+    const isSoloPart = pIdx === soloPartIndex;
     const notesInPart: MutablePlayableNote[] = [];
-    const activeTies = new Map<number, MutablePlayableNote>();
+    const activeTies = new Map<string, MutablePlayableNote>();
 
     let currentDivisions = 1;
     const measuresInPart = Array.from(partElem.querySelectorAll('measure'));
@@ -170,6 +188,7 @@ export function extractScoreTimeline(
       let measureDivisionOffset = 0;
       let previousNonChordOnsetDivision = 0;
       let noteIndexInMeasure = 0;
+      let seenBackupInMeasure = false;
 
       for (const child of Array.from(mElem.children)) {
         const tagName = child.tagName.toLowerCase();
@@ -184,6 +203,7 @@ export function extractScoreTimeline(
         }
 
         if (tagName === 'backup') {
+          seenBackupInMeasure = true;
           const dur = parseFloat(child.querySelector('duration')?.textContent?.trim() || '0');
           if (!isNaN(dur)) {
             measureDivisionOffset = Math.max(0, measureDivisionOffset - dur);
@@ -252,8 +272,18 @@ export function extractScoreTimeline(
           const startTimeMs = round(measureStartMs + (onsetDivision / currentDivisions) * beatMs, 2);
           const durationMs = round(durationBeats * beatMs, 2);
 
+          allOnsetBeats.add(startBeat);
+
           const noteId = `p${pIdx}-m${measureNumber}-n${noteIndexInMeasure}`;
           noteIndexInMeasure++;
+
+          const staffNum =
+            parseInt(child.querySelector('staff')?.textContent?.trim() || '1', 10) || 1;
+          const voiceNum =
+            parseInt(child.querySelector('voice')?.textContent?.trim() || '1', 10) || 1;
+          const isSecondaryStaffOrVoice =
+            staffNum > 1 || (seenBackupInMeasure && voiceNum > 1);
+          const isSolo = isSoloPart && !isSecondaryStaffOrVoice;
 
           const tieStart =
             child.querySelector('tie[type="start"]') !== null ||
@@ -276,25 +306,30 @@ export function extractScoreTimeline(
             tiedNoteIds: [],
           };
 
-          // Coalesce tied notes in the same part & MIDI pitch
-          if (pitch !== null && tieStop && activeTies.has(pitch.midiNumber)) {
-            const parentNote = activeTies.get(pitch.midiNumber)!;
+          const tieKey =
+            pitch !== null
+              ? `${isSolo ? 'solo' : 'acc'}-${staffNum}-${voiceNum}-${pitch.midiNumber}`
+              : '';
+
+          // Coalesce tied notes in the same part, staff/voice & MIDI pitch
+          if (pitch !== null && tieStop && activeTies.has(tieKey)) {
+            const parentNote = activeTies.get(tieKey)!;
             parentNote.durationBeats = round(parentNote.durationBeats + durationBeats);
             parentNote.durationMs = round(parentNote.durationMs + durationMs, 2);
             parentNote.tiedNoteIds.push(noteId);
 
             if (tieStart) {
               // Tie continues (middle of chain)
-              activeTies.set(pitch.midiNumber, parentNote);
+              activeTies.set(tieKey, parentNote);
             } else {
               // Tie chain ended
-              activeTies.delete(pitch.midiNumber);
+              activeTies.delete(tieKey);
             }
           } else {
             // New note onset
             if (pitch !== null && tieStart) {
               playableNote.tiedNoteIds = [noteId];
-              activeTies.set(pitch.midiNumber, playableNote);
+              activeTies.set(tieKey, playableNote);
             }
             notesInPart.push(playableNote);
           }
@@ -305,18 +340,19 @@ export function extractScoreTimeline(
     rawPartNotes.push(notesInPart);
   }
 
-  const soloNotesMutable = rawPartNotes[0] ?? [];
-  const accompanimentNotesMutable = rawPartNotes.slice(1).flat();
+  const allExtractedNotes = rawPartNotes.flat();
+  const soloNotesMutable = allExtractedNotes.filter((n) => n.isSolo);
+  const accompanimentNotesMutable = allExtractedNotes.filter((n) => !n.isSolo);
 
   // Sort notes chronologically by startBeat
   soloNotesMutable.sort((a, b) => a.startBeat - b.startBeat);
   accompanimentNotesMutable.sort((a, b) => a.startBeat - b.startBeat);
 
   // 5. Assign cursorStepIndex (0, 1, 2, ...) based on unique startBeat onsets across the score
-  const allNotes = [...soloNotesMutable, ...accompanimentNotesMutable];
-  const uniqueStartBeats = Array.from(new Set(allNotes.map((n) => n.startBeat))).sort(
-    (a, b) => a - b,
-  );
+  for (const n of allExtractedNotes) {
+    allOnsetBeats.add(n.startBeat);
+  }
+  const uniqueStartBeats = Array.from(allOnsetBeats).sort((a, b) => a - b);
 
   const beatToCursorStepMap = new Map<number, number>();
   uniqueStartBeats.forEach((beat, index) => {

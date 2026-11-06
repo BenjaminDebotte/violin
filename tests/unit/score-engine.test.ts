@@ -319,6 +319,172 @@ describe('Score Engine Module', () => {
         expect(tiedG4!.tiedNoteIds).toEqual(['p0-m6-n2', 'p0-m7-n0']);
         expect(timeline.soloNotes.find((n) => n.id === 'p0-m7-n0')).toBeUndefined();
       });
+
+      it('includes tied continuation onsets in uniqueStartBeats so cursorStepIndex matches OSMD cursor steps', () => {
+        const timeline = extractScoreTimeline(minuetXml);
+
+        // Measure 5 starts at beat 12:
+        // beat 12: p0-m5-n0 (tieStop+tieStart) + P2 D3 (half note) -> step 15
+        // beat 13: p0-m5-n1 (tieStop only; P2 is sustaining D3) -> step 16
+        // beat 14: p0-m5-n2 (B4 quarter note) -> must be step 17, not 16
+        const m5Beat3Note = timeline.soloNotes.find((n) => n.id === 'p0-m5-n2');
+        expect(m5Beat3Note).toBeDefined();
+        expect(m5Beat3Note!.startBeat).toBe(14);
+        expect(m5Beat3Note!.cursorStepIndex).toBe(17);
+
+        // Also verify in a single-part solo score with a tied note across beats
+        const soloTiedXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <part-list>
+    <score-part id="P1"><part-name>Violin</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <time><beats>3</beats><beat-type>4</beat-type></time>
+      </attributes>
+      <note>
+        <pitch><step>A</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <tie type="start"/>
+      </note>
+      <note>
+        <pitch><step>A</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <tie type="stop"/>
+      </note>
+      <note>
+        <pitch><step>B</step><octave>4</octave></pitch>
+        <duration>1</duration>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`;
+        const soloTimeline = extractScoreTimeline(soloTiedXml);
+        expect(soloTimeline.soloNotes).toHaveLength(2);
+        expect(soloTimeline.soloNotes[0].cursorStepIndex).toBe(0);
+        // Second playable note (B4 on beat 2) is at OSMD cursor step 2 because beat 1 has the tied A4 notehead
+        expect(soloTimeline.soloNotes[1].cursorStepIndex).toBe(2);
+      });
+    });
+
+    describe('multi-part ensemble & multi-staff scores', () => {
+      it('selects the Violin part as solo when Part 1 is Piano or another instrument', () => {
+        const ensembleXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <work><work-title>Alicia Ensemble</work-title></work>
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+    <score-part id="P2"><part-name>Mezzo-soprano</part-name></score-part>
+    <score-part id="P3"><part-name>Classical Guitar</part-name></score-part>
+    <score-part id="P4">
+      <part-name>Violin 1</part-name>
+      <score-instrument id="P4-I1"><instrument-name>Violin</instrument-name></score-instrument>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <staves>2</staves>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>4</duration>
+        <voice>1</voice>
+        <staff>1</staff>
+      </note>
+      <backup><duration>4</duration></backup>
+      <note>
+        <pitch><step>C</step><octave>2</octave></pitch>
+        <duration>4</duration>
+        <voice>5</voice>
+        <staff>2</staff>
+      </note>
+    </measure>
+  </part>
+  <part id="P2">
+    <measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><rest/><duration>4</duration></note>
+    </measure>
+  </part>
+  <part id="P3">
+    <measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note>
+        <pitch><step>G</step><octave>3</octave></pitch>
+        <duration>4</duration>
+      </note>
+    </measure>
+  </part>
+  <part id="P4">
+    <measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note>
+        <pitch><step>E</step><octave>5</octave></pitch>
+        <duration>4</duration>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`;
+
+        const timeline = extractScoreTimeline(ensembleXml);
+        expect(timeline.soloNotes).toHaveLength(1);
+        expect(timeline.soloNotes[0].partIndex).toBe(3);
+        expect(timeline.soloNotes[0].isSolo).toBe(true);
+        expect(timeline.soloNotes[0].pitch?.label).toBe('E5');
+
+        // Piano, Voice, and Guitar notes belong to accompanimentNotes
+        expect(timeline.accompanimentNotes.every((n) => !n.isSolo)).toBe(true);
+        expect(timeline.accompanimentNotes.some((n) => n.pitch?.label === 'C4')).toBe(true);
+        expect(timeline.accompanimentNotes.some((n) => n.pitch?.label === 'C2')).toBe(true);
+        expect(timeline.accompanimentNotes.some((n) => n.pitch?.label === 'G3')).toBe(true);
+      });
+
+      it('treats secondary staves (<staff>2</staff>) and backup secondary voices in the solo part as accompaniment', () => {
+        const twoStaffSoloXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="3.1">
+  <part-list>
+    <score-part id="P1"><part-name>Piano Reduction</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <staves>2</staves>
+      </attributes>
+      <note>
+        <pitch><step>A</step><octave>4</octave></pitch>
+        <duration>4</duration>
+        <voice>1</voice>
+        <staff>1</staff>
+      </note>
+      <backup><duration>4</duration></backup>
+      <note>
+        <pitch><step>F</step><octave>4</octave></pitch>
+        <duration>4</duration>
+        <voice>2</voice>
+        <staff>1</staff>
+      </note>
+      <backup><duration>4</duration></backup>
+      <note>
+        <pitch><step>D</step><octave>3</octave></pitch>
+        <duration>4</duration>
+        <voice>5</voice>
+        <staff>2</staff>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`;
+
+        const timeline = extractScoreTimeline(twoStaffSoloXml);
+        expect(timeline.soloNotes.map((n) => n.pitch?.label)).toEqual(['A4']);
+        expect(timeline.accompanimentNotes.map((n) => n.pitch?.label)).toEqual(['F4', 'D3']);
+      });
     });
 
     describe('tempoScale verification', () => {

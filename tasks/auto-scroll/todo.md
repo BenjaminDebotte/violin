@@ -2,10 +2,10 @@
 
 Plan: `tasks/auto-scroll/plan.md`
 
-- [ ] **T1: Timeline extractor — preserve tied-note onsets in `cursorStepIndex` and select Violin part in ensemble scores** (S)
+- [x] **T1: Timeline extractor — preserve tied-note onsets in `cursorStepIndex` and select Violin part in ensemble scores** (S)
   - Acceptance:
-    - [ ] `uniqueStartBeats` includes onset beats of tied continuation notes (`tieStop`) so `cursorStepIndex` never lags behind OSMD's cursor after tied notes (verified on `MINUET_TIED_MUSICXML` Measure 5–8 and solo-violin tied scores).
-    - [ ] When a multi-part MusicXML score has a Violin part (`<part-name>`, `<instrument-name>`, or `<instrument-sound>` matching violin/violon/vln/fiddle) that is not `P1` (e.g. `Alicia` where `P1` is Piano and `P4` is `Violin 1`), `extractScoreTimeline` selects that Violin part as the solo part (`isSolo: true`), and ignores `<staff>2</staff>` / backup secondary voices in the solo part.
+    - [x] `uniqueStartBeats` includes onset beats of tied continuation notes (`tieStop`) so `cursorStepIndex` never lags behind OSMD's cursor after tied notes (verified on `MINUET_TIED_MUSICXML` Measure 5–8 and solo-violin tied scores).
+    - [x] When a multi-part MusicXML score has a Violin part (`<part-name>`, `<instrument-name>`, or `<instrument-sound>` matching violin/violon/vln/fiddle) that is not `P1` (e.g. `Alicia` where `P1` is Piano and `P4` is `Violin 1`), `extractScoreTimeline` selects that Violin part as the solo part (`isSolo: true`), and ignores `<staff>2</staff>` / backup secondary voices in the solo part.
   - Verification: `npx vitest run tests/unit/score-engine.test.ts` + new unit tests.
   - Files: `src/modules/score-engine/timelineExtractor.ts`, `tests/unit/score-engine.test.ts`
 
