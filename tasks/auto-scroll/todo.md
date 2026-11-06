@@ -27,9 +27,9 @@ Plan: `tasks/auto-scroll/plan.md`
   - Verification: `npx vitest run tests/unit/score-viewport-render.test.tsx tests/unit/score-highlight.test.tsx` + new auto-scroll unit tests.
   - Files: `src/components/ScoreViewport.tsx`, `src/pages/PlayPage.tsx`, `tests/unit/score-viewport-render.test.tsx`, `tests/unit/score-highlight.test.tsx`
 
-- [ ] **T4: End-to-end verification in headless Chrome + release 0.2.2** (S)
+- [x] **T4: End-to-end verification in headless Chrome + release 0.2.2** (S)
   - Acceptance:
-    - [ ] Headless Chrome check on `Twinkle`, `Minuet`, and `Alicia` in both `ribbon` and `page` modes confirms smooth horizontal progression without vertical staff bounce in `ribbon` mode, system-level vertical scrolling without mid-bar jitter in `page` mode, and `Play-Along` advancing cleanly.
-    - [ ] Bump version in `package.json` and `chart/Chart.yaml` to `0.2.2`.
-    - [ ] All unit/integration tests, typecheck, build, and chart lint pass.
+    - [x] Headless Chrome check on `Twinkle`, `Minuet`, and `Alicia` in both `ribbon` and `page` modes confirms smooth horizontal progression without vertical staff bounce in `ribbon` mode, system-level vertical scrolling without mid-bar jitter in `page` mode, and `Play-Along` advancing cleanly.
+    - [x] Bump version in `package.json` and `chart/Chart.yaml` to `0.2.2`.
+    - [x] All unit/integration tests, typecheck, build, and chart lint pass.
   - Verification: `npx vitest run`, `npm run typecheck`, `npm run build`, `helm lint chart`.
