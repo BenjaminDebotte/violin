@@ -219,8 +219,19 @@ export function tagOsmdSvgNotes(osmd: OpenSheetMusicDisplay): void {
                 const parentEntry = gve.parentVoiceEntry as unknown as {
                   ParentVoice?: { Parent?: { Id?: number } };
                 };
+                const instruments = osmd.Sheet?.Instruments ?? [];
+                const measureInst = (
+                  measure as unknown as { ParentStaff?: { ParentInstrument?: unknown } }
+                ).ParentStaff?.ParentInstrument;
+                const parentInst = parentEntry?.ParentVoice?.Parent ?? measureInst;
+                const instIdx = parentInst ? instruments.indexOf(parentInst as never) : -1;
                 const rawPartId = parentEntry?.ParentVoice?.Parent?.Id;
-                const partIdx = typeof rawPartId === 'number' ? Math.max(0, rawPartId - 1) : 0;
+                const partIdx =
+                  instIdx >= 0
+                    ? instIdx
+                    : typeof rawPartId === 'number'
+                      ? Math.max(0, rawPartId - 1)
+                      : 0;
 
                 for (const gNote of gve.notes ?? []) {
                   const key = `${partIdx}-${measureNumber}`;
@@ -247,22 +258,43 @@ export function tagOsmdSvgNotes(osmd: OpenSheetMusicDisplay): void {
 /** Marks the violin notes under the OSMD cursor so CSS can colour and glow them. */
 export const CURRENT_NOTE_CLASS = 'score-note-current';
 
+function resolveSoloInstrumentIndex(
+  osmd: OpenSheetMusicDisplay,
+  activeNoteId?: string | null,
+): number {
+  const instruments = osmd.Sheet?.Instruments;
+  if (!instruments || instruments.length === 0) return 0;
+  const violinIdx = instruments.findIndex((inst) => {
+    const rec = inst as unknown as {
+      Name?: string;
+      NameLabel?: { text?: string };
+      idString?: string;
+      SubInstruments?: Array<{ name?: string; idString?: string }>;
+    };
+    const subNames = (rec.SubInstruments ?? []).map((s) => `${s.name ?? ''} ${s.idString ?? ''}`).join(' ');
+    const label = `${rec.Name ?? ''} ${rec.NameLabel?.text ?? ''} ${rec.idString ?? ''} ${subNames}`;
+    return /violin|violon|\bvln\b|fiddle/i.test(label);
+  });
+  if (violinIdx >= 0) return violinIdx;
+  if (activeNoteId) {
+    const match = /^p(\d+)-/.exec(activeNoteId);
+    if (match) {
+      const idx = parseInt(match[1], 10);
+      if (!isNaN(idx) && idx >= 0 && idx < instruments.length) {
+        return idx;
+      }
+    }
+  }
+  return 0;
+}
+
 function resolveInstrumentForNoteId(
   osmd: OpenSheetMusicDisplay,
   activeNoteId?: string | null,
 ): unknown {
   const instruments = osmd.Sheet?.Instruments;
   if (!instruments || instruments.length === 0) return undefined;
-  if (activeNoteId) {
-    const match = /^p(\d+)-/.exec(activeNoteId);
-    if (match) {
-      const idx = parseInt(match[1], 10);
-      if (!isNaN(idx) && instruments[idx]) {
-        return instruments[idx];
-      }
-    }
-  }
-  return instruments[0];
+  return instruments[resolveSoloInstrumentIndex(osmd, activeNoteId)];
 }
 
 export function highlightCurrentNotes(
@@ -523,6 +555,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
   const currentStepRef = useRef<number>(0);
+  const cursorStepIndexRef = useRef<number>(cursorStepIndex);
   const activeNoteIdRef = useRef<string | null>(activeNoteId);
   const viewModeRef = useRef<'page' | 'ribbon'>(viewMode);
   const highlightedRef = useRef<Element[]>([]);
@@ -531,6 +564,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  cursorStepIndexRef.current = cursorStepIndex;
   activeNoteIdRef.current = activeNoteId;
   viewModeRef.current = viewMode;
 
@@ -643,10 +677,28 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         if (!isMounted) return;
         osmd.EngravingRules.RenderSingleHorizontalStaffline = viewMode === 'ribbon';
         osmd.zoom = zoom;
+        // Show only the solo violin instrument (and its primary staff) so accompaniment/ensemble staves do not crowd the stand
+        const instruments = osmd.Sheet?.Instruments ?? [];
+        if (instruments.length > 0) {
+          const soloIdx = resolveSoloInstrumentIndex(osmd, activeNoteIdRef.current);
+          instruments.forEach((inst, idx) => {
+            const isSolo = idx === soloIdx;
+            const instRec = inst as unknown as {
+              Visible?: boolean;
+              Staves?: Array<{ Visible?: boolean }>;
+            };
+            instRec.Visible = isSolo;
+            if (Array.isArray(instRec.Staves)) {
+              instRec.Staves.forEach((staff, sIdx) => {
+                staff.Visible = isSolo && sIdx === 0;
+              });
+            }
+          });
+        }
         // A different score starts clean; a zoom or layout change of the same score keeps its colours
         if (loadedXmlRef.current !== xmlContent) {
           if (containerRef.current) clearRecordedNotes(containerRef.current);
-          currentStepRef.current = 0;
+          currentStepRef.current = Math.max(0, cursorStepIndexRef.current);
           loadedXmlRef.current = xmlContent;
         }
         osmd.render();
