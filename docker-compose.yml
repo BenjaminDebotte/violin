@@ -1,0 +1,76 @@
+# Local end-to-end stack for Violin Coach + Shared Library.
+#
+# In Kubernetes, Traefik routes `/` to port 8080 (app) and `/library` to port 8081
+# (WebDAV library) on a single origin. This Compose stack reproduces that setup
+# locally at http://localhost:8080 with the same read-only container flags.
+#
+# Usage:
+#   docker compose up --build        # http://localhost:8080
+#   docker compose down -v           # stop and wipe the local library volume
+
+services:
+  violin:
+    build: .
+    user: "101:101"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64m,uid=101,gid=101,mode=1777
+    volumes:
+      - library-data:/srv/library
+
+  gateway:
+    image: nginxinc/nginx-unprivileged:1.28-alpine
+    depends_on:
+      violin:
+        condition: service_healthy
+    ports:
+      - "${PORT:-8080}:8080"
+    user: "101:101"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,uid=101,gid=101,mode=1777
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        cat <<'EOF' > /tmp/nginx.conf
+        worker_processes auto;
+        pid /tmp/nginx.pid;
+        error_log /dev/stderr notice;
+        events { worker_connections 1024; }
+        http {
+          client_body_temp_path /tmp/client_temp;
+          proxy_temp_path       /tmp/proxy_temp;
+          fastcgi_temp_path     /tmp/fastcgi_temp;
+          uwsgi_temp_path       /tmp/uwsgi_temp;
+          scgi_temp_path        /tmp/scgi_temp;
+          server {
+            listen 8080;
+            server_name _;
+            absolute_redirect off;
+            client_max_body_size 10m;
+            location /library {
+              proxy_http_version 1.1;
+              proxy_set_header Host $$host;
+              proxy_pass http://violin:8081;
+            }
+            location / {
+              proxy_http_version 1.1;
+              proxy_set_header Host $$host;
+              proxy_pass http://violin:8080;
+            }
+          }
+        }
+        EOF
+        exec nginx -c /tmp/nginx.conf -g 'daemon off;'
+
+volumes:
+  library-data:

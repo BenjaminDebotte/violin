@@ -14,6 +14,14 @@ runs it with Flux.
 ## Run it locally
 
 ```sh
+# Starts the read-only violin container (:8080 app, :8081 library) behind a local
+# gateway that routes / -> :8080 and /library -> :8081 on http://localhost:8080
+docker compose up --build
+```
+
+To run the container directly without the local gateway:
+
+```sh
 docker build -t violin .
 # Port 8080 serves the app; port 8081 serves the library
 docker run --rm -p 8080:8080 -p 8081:8081 --read-only --tmpfs /tmp:size=64m --tmpfs /srv/library:uid=101,gid=101,mode=0775 violin
