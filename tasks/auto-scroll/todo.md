@@ -16,14 +16,14 @@ Plan: `tasks/auto-scroll/plan.md`
   - Verification: `npx vitest run tests/unit/practice-coach.test.ts tests/unit/audio-playback.test.ts`.
   - Files: `src/modules/practice-coach/practiceController.ts`, `src/modules/audio-playback/audioEngine.ts`, `tests/unit/practice-coach.test.ts`
 
-- [ ] **T3: ScoreViewport & PlayPage — deterministic horizontal/vertical auto-scroll and `activeNoteId` sync** (M)
+- [x] **T3: ScoreViewport & PlayPage — deterministic horizontal/vertical auto-scroll and `activeNoteId` sync** (M)
   - Acceptance:
-    - [ ] OSMD `cursorsOptions` sets `follow: false` (`osmd.FollowCursor = false`) so OSMD never triggers competing `scrollIntoView` calls.
-    - [ ] `PlayPage.tsx` removes the duplicate outer `overflow-auto` wrapper and excessive `pt-12` padding so `ScoreViewport`'s outer element (`data-testid="score-scroll-viewport"`) is the single scroll container.
-    - [ ] `ScoreViewport` accepts `activeNoteId?: string | null` (passed from `PlayPage` via `controllerState.activeNote?.id`), highlights `[data-note-id="${activeNoteId}"]` (falling back to `osmd.cursor.GNotesUnderCursor`), and syncs `osmd.cursor` to the step containing `activeNoteId`.
-    - [ ] In `ribbon` mode: horizontal scroll (`scrollTo`) places the active note at ~35% of viewport width (lookahead), while vertical scroll centers the staff once and never bounces up/down per note pitch.
-    - [ ] In `page` mode: vertical scroll (`scrollTo`) centers the active system/staff band and only scrolls vertically when the active system is outside the central comfort zone (zero mid-bar vertical jitter).
-    - [ ] Returning to `cursorStepIndex === 0` (on load or Stop) scrolls back to the start.
+    - [x] OSMD `cursorsOptions` sets `follow: false` (`osmd.FollowCursor = false`) so OSMD never triggers competing `scrollIntoView` calls.
+    - [x] `PlayPage.tsx` removes the duplicate outer `overflow-auto` wrapper and excessive `pt-12` padding so `ScoreViewport`'s outer element (`data-testid="score-scroll-viewport"`) is the single scroll container.
+    - [x] `ScoreViewport` accepts `activeNoteId?: string | null` (passed from `PlayPage` via `controllerState.activeNote?.id`), highlights `[data-note-id="${activeNoteId}"]` (falling back to `osmd.cursor.GNotesUnderCursor`), and syncs `osmd.cursor` to the step containing `activeNoteId`.
+    - [x] In `ribbon` mode: horizontal scroll (`scrollTo`) places the active note at ~35% of viewport width (lookahead), while vertical scroll centers the staff once and never bounces up/down per note pitch.
+    - [x] In `page` mode: vertical scroll (`scrollTo`) centers the active system/staff band and only scrolls vertically when the active system is outside the central comfort zone (zero mid-bar vertical jitter).
+    - [x] Returning to `cursorStepIndex === 0` (on load or Stop) scrolls back to the start.
   - Verification: `npx vitest run tests/unit/score-viewport-render.test.tsx tests/unit/score-highlight.test.tsx` + new auto-scroll unit tests.
   - Files: `src/components/ScoreViewport.tsx`, `src/pages/PlayPage.tsx`, `tests/unit/score-viewport-render.test.tsx`, `tests/unit/score-highlight.test.tsx`
 

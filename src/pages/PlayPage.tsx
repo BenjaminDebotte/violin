@@ -194,11 +194,12 @@ export function PlayPage(props: PlayPageProps) {
               </button>
             ))}
           </div>
-          <div className={`flex-1 min-h-0 overflow-auto px-2 ${viewMode === 'ribbon' ? 'pt-2' : 'pt-12'}`}>
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-2 pt-11">
             <ScoreViewport
               xmlContent={currentScore.xmlContent}
               viewMode={viewMode}
               cursorStepIndex={controllerState.cursorStepIndex}
+              activeNoteId={controllerState.activeNote?.id ?? null}
               zoom={viewMode === 'ribbon' ? 1.1 : 1}
             />
           </div>

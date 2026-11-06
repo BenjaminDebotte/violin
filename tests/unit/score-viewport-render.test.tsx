@@ -9,12 +9,14 @@ vi.mock('opensheetmusicdisplay', () => {
   const instances: FakeOsmd[] = [];
   class FakeOsmd {
     container: HTMLElement;
+    options: Record<string, unknown>;
     EngravingRules = { RenderSingleHorizontalStaffline: false };
     zoom = 1;
     AutoResizeEnabled = true;
+    FollowCursor = true;
     renders = 0;
     private groups: SVGGElement[] = [];
-    private step = 0;
+    step = 0;
     Sheet = { Instruments: [{}] };
     cursor = {
       show: () => {},
@@ -29,8 +31,9 @@ vi.mock('opensheetmusicdisplay', () => {
       cursorElement: null,
       GNotesUnderCursor: () => [this.gNote(this.step)],
     };
-    constructor(container: HTMLElement) {
+    constructor(container: HTMLElement, options: Record<string, unknown> = {}) {
       this.container = container;
+      this.options = options;
       instances.push(this);
     }
     private gNote(i: number) {
@@ -84,7 +87,19 @@ vi.mock('opensheetmusicdisplay', () => {
 
 import { ScoreViewport, applyNoteGradeToSvg, CURRENT_NOTE_CLASS } from '../../src/components/ScoreViewport';
 
-const osmds = () => (globalThis as unknown as { __fakeOsmds: Array<{ renders: number; AutoResizeEnabled: boolean; render(): void }> }).__fakeOsmds;
+const osmds = () =>
+  (
+    globalThis as unknown as {
+      __fakeOsmds: Array<{
+        renders: number;
+        AutoResizeEnabled: boolean;
+        FollowCursor: boolean;
+        options: { cursorsOptions?: Array<{ follow?: boolean }> };
+        step: number;
+        render(): void;
+      }>;
+    }
+  ).__fakeOsmds;
 const latest = () => osmds()[osmds().length - 1];
 const note = (id: string) => document.querySelector(`[data-note-id="${id}"]`);
 
@@ -136,5 +151,28 @@ describe('ScoreViewport after OSMD renders', () => {
     const instance = latest();
     unmount();
     expect(instance.AutoResizeEnabled).toBe(false);
+  });
+
+  it('disables OSMD built-in cursor follow so ScoreViewport is the single scroll controller', async () => {
+    render(<ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} />);
+    await waitFor(() => expect(note('p0-m1-n0')).not.toBeNull());
+    const instance = latest();
+    expect(instance.options.cursorsOptions?.[0]?.follow).toBe(false);
+    expect(instance.FollowCursor).toBe(false);
+  });
+
+  it('highlights activeNoteId and syncs OSMD cursor to the matching note step', async () => {
+    const { rerender } = render(
+      <ScoreViewport xmlContent="<a/>" viewMode="ribbon" cursorStepIndex={0} activeNoteId="p0-m1-n0" zoom={1} />,
+    );
+    await waitFor(() => expect(note('p0-m1-n0')).not.toBeNull());
+
+    // Even if cursorStepIndex lags at 1 while activeNoteId is p0-m1-n2 (step 2), both highlight and cursor sync to step 2
+    rerender(
+      <ScoreViewport xmlContent="<a/>" viewMode="ribbon" cursorStepIndex={1} activeNoteId="p0-m1-n2" zoom={1} />,
+    );
+    await waitFor(() => expect(note('p0-m1-n2')?.classList.contains(CURRENT_NOTE_CLASS)).toBe(true));
+    expect(note('p0-m1-n0')?.classList.contains(CURRENT_NOTE_CLASS)).toBe(false);
+    expect(latest().step).toBe(2);
   });
 });

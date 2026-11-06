@@ -247,11 +247,50 @@ export function tagOsmdSvgNotes(osmd: OpenSheetMusicDisplay): void {
 /** Marks the violin notes under the OSMD cursor so CSS can colour and glow them. */
 export const CURRENT_NOTE_CLASS = 'score-note-current';
 
-export function highlightCurrentNotes(osmd: OpenSheetMusicDisplay, previous: readonly Element[]): Element[] {
+function resolveInstrumentForNoteId(
+  osmd: OpenSheetMusicDisplay,
+  activeNoteId?: string | null,
+): unknown {
+  const instruments = osmd.Sheet?.Instruments;
+  if (!instruments || instruments.length === 0) return undefined;
+  if (activeNoteId) {
+    const match = /^p(\d+)-/.exec(activeNoteId);
+    if (match) {
+      const idx = parseInt(match[1], 10);
+      if (!isNaN(idx) && instruments[idx]) {
+        return instruments[idx];
+      }
+    }
+  }
+  return instruments[0];
+}
+
+export function highlightCurrentNotes(
+  osmd: OpenSheetMusicDisplay,
+  previous: readonly Element[],
+  container?: Element | null,
+  activeNoteId?: string | null,
+): Element[] {
   for (const el of previous) el.classList.remove(CURRENT_NOTE_CLASS);
   const next: Element[] = [];
   try {
-    const instrument = osmd.Sheet?.Instruments?.[0];
+    if (container && activeNoteId) {
+      const directMatches = Array.from(
+        container.querySelectorAll(`[data-note-id="${activeNoteId}"]`),
+      );
+      if (directMatches.length > 0) {
+        for (const el of directMatches) {
+          el.classList.add(CURRENT_NOTE_CLASS);
+          next.push(el);
+        }
+        return next;
+      }
+    }
+
+    const instrument = resolveInstrumentForNoteId(
+      osmd,
+      activeNoteId,
+    ) as Parameters<NonNullable<OpenSheetMusicDisplay['cursor']>['GNotesUnderCursor']>[0];
     const gNotes = osmd.cursor?.GNotesUnderCursor(instrument) ?? [];
     for (const gNote of gNotes) {
       const el = (gNote as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.();
@@ -266,22 +305,206 @@ export function highlightCurrentNotes(osmd: OpenSheetMusicDisplay, previous: rea
   return next;
 }
 
+function cursorContainsNoteId(
+  osmd: OpenSheetMusicDisplay,
+  noteId: string,
+  instrument: unknown,
+): boolean {
+  const gNotes =
+    osmd.cursor?.GNotesUnderCursor?.(
+      instrument as Parameters<NonNullable<OpenSheetMusicDisplay['cursor']>['GNotesUnderCursor']>[0],
+    ) ?? [];
+  return gNotes.some((gNote) => {
+    const el = (gNote as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.();
+    return el?.getAttribute('data-note-id') === noteId;
+  });
+}
+
+function syncOsmdCursor(
+  osmd: OpenSheetMusicDisplay,
+  targetStep: number,
+  currentStep: number,
+  container?: Element | null,
+  activeNoteId?: string | null,
+): number {
+  if (!osmd.cursor) return targetStep;
+
+  if (targetStep > currentStep) {
+    for (let s = currentStep; s < targetStep; s++) {
+      osmd.cursor.next();
+      if (osmd.cursor.iterator?.EndReached) break;
+    }
+  } else if (targetStep < currentStep) {
+    osmd.cursor.reset();
+    for (let s = 0; s < targetStep; s++) {
+      osmd.cursor.next();
+      if (osmd.cursor.iterator?.EndReached) break;
+    }
+  }
+
+  let resolvedStep = targetStep;
+
+  if (activeNoteId && container?.querySelector(`[data-note-id="${activeNoteId}"]`)) {
+    const instrument = resolveInstrumentForNoteId(osmd, activeNoteId);
+    if (!cursorContainsNoteId(osmd, activeNoteId, instrument)) {
+      osmd.cursor.reset();
+      let foundStep = -1;
+      for (let s = 0; s < 2000; s++) {
+        if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
+          foundStep = s;
+          break;
+        }
+        if (osmd.cursor.iterator?.EndReached) break;
+        const gNotes = osmd.cursor.GNotesUnderCursor?.() ?? [];
+        if (
+          s > 0 &&
+          gNotes.length > 0 &&
+          gNotes.every(
+            (n) => !(n as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.(),
+          )
+        ) {
+          break;
+        }
+        osmd.cursor.next();
+      }
+
+      if (foundStep >= 0) {
+        resolvedStep = foundStep;
+      } else {
+        osmd.cursor.reset();
+        for (let s = 0; s < targetStep; s++) {
+          osmd.cursor.next();
+          if (osmd.cursor.iterator?.EndReached) break;
+        }
+      }
+    }
+  }
+
+  osmd.cursor.update?.();
+  return resolvedStep;
+}
+
 /** Puts the OSMD cursor on a step after a fresh render (which resets it). */
-function restoreCursor(osmd: OpenSheetMusicDisplay, step: number): void {
-  if (!osmd.cursor) return;
+function restoreCursor(
+  osmd: OpenSheetMusicDisplay,
+  step: number,
+  container?: Element | null,
+  activeNoteId?: string | null,
+): number {
+  if (!osmd.cursor) return step;
   osmd.cursor.show();
   osmd.cursor.reset();
-  for (let s = 0; s < step; s++) {
-    osmd.cursor.next();
-    if (osmd.cursor.iterator.EndReached) break;
+  return syncOsmdCursor(osmd, step, 0, container, activeNoteId);
+}
+
+/**
+ * Deterministic, jitter-free score auto-scroll controller.
+ * - In `'ribbon'` (Single-line) mode: places the active note at ~35% of viewport width (65% lookahead)
+ *   and never vertically centers on individual note pitches (eliminating vertical staff bounce).
+ * - In `'page'` (Full-page) mode: computes the vertical bounds of the active staff system and scrolls
+ *   only when the active system lies outside the comfortable middle band of the viewport.
+ */
+export function scrollScoreViewport(
+  viewport: HTMLElement,
+  container: HTMLElement,
+  targetNoteEl: Element | null,
+  cursorEl: HTMLElement | null,
+  viewMode: 'ribbon' | 'page',
+  behavior: ScrollBehavior = 'smooth',
+  cursorStepIndex = 0,
+): void {
+  if (!viewport || !container) return;
+
+  const viewportRect = viewport.getBoundingClientRect();
+  const anchorEl = targetNoteEl ?? cursorEl;
+
+  let targetLeft = viewport.scrollLeft;
+  let targetTop = viewport.scrollTop;
+
+  if (viewMode === 'ribbon') {
+    if (anchorEl && viewport.clientWidth > 0) {
+      const noteRect = anchorEl.getBoundingClientRect();
+      const noteOffsetLeft = noteRect.left - viewportRect.left + viewport.scrollLeft;
+      if (cursorStepIndex === 0 && noteOffsetLeft < viewport.clientWidth * 0.5) {
+        targetLeft = 0;
+      } else {
+        targetLeft = Math.max(0, Math.round(noteOffsetLeft - viewport.clientWidth * 0.35));
+      }
+    } else if (cursorStepIndex === 0) {
+      targetLeft = 0;
+    }
+
+    const svgEl = container.querySelector('svg') ?? container;
+    const svgRect = svgEl.getBoundingClientRect();
+    if (viewport.clientHeight > 0 && svgRect.height > viewport.clientHeight) {
+      const svgCenterY = svgRect.top - viewportRect.top + viewport.scrollTop + svgRect.height / 2;
+      targetTop = Math.max(0, Math.round(svgCenterY - viewport.clientHeight / 2));
+    } else if (cursorStepIndex === 0) {
+      targetTop = 0;
+    }
+  } else {
+    targetLeft = 0;
+    if (cursorStepIndex === 0) {
+      targetTop = 0;
+    } else if (anchorEl && viewport.clientHeight > 0) {
+      const noteRect = anchorEl.getBoundingClientRect();
+      const cursorRect = cursorEl?.getBoundingClientRect();
+      const useCursorBand =
+        cursorRect != null &&
+        cursorRect.height > 8 &&
+        Math.abs(cursorRect.top - noteRect.top) < 120;
+
+      const STAFF_MARGIN_PX = 48;
+      const bandTop = useCursorBand
+        ? Math.min(cursorRect.top, noteRect.top - 16)
+        : noteRect.top - STAFF_MARGIN_PX;
+      const bandBottom = useCursorBand
+        ? Math.max(cursorRect.bottom, noteRect.bottom + 16)
+        : noteRect.bottom + STAFF_MARGIN_PX;
+
+      const comfortTop = viewportRect.top + viewport.clientHeight * 0.15;
+      const comfortBottom = viewportRect.bottom - viewport.clientHeight * 0.22;
+
+      if (bandTop < comfortTop || bandBottom > comfortBottom) {
+        const systemCenterClientY = (bandTop + bandBottom) / 2;
+        const systemCenterScrollY =
+          systemCenterClientY - viewportRect.top + viewport.scrollTop;
+        targetTop = Math.max(
+          0,
+          Math.round(systemCenterScrollY - viewport.clientHeight * 0.38),
+        );
+      }
+    }
   }
-  osmd.cursor.update();
+
+  const shouldScroll =
+    Math.abs(targetLeft - viewport.scrollLeft) > 0.5 ||
+    Math.abs(targetTop - viewport.scrollTop) > 0.5;
+
+  if (shouldScroll) {
+    if (typeof viewport.scrollTo === 'function') {
+      try {
+        viewport.scrollTo({ left: targetLeft, top: targetTop, behavior });
+      } catch {
+        // Ignore if scrollTo options are unsupported in test environment
+      }
+    }
+    if (
+      typeof viewport.scrollTo !== 'function' ||
+      behavior === 'auto' ||
+      (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent))
+    ) {
+      viewport.scrollLeft = targetLeft;
+      viewport.scrollTop = targetTop;
+    }
+  }
 }
 
 export interface ScoreViewportProps {
   readonly xmlContent?: string;
   readonly viewMode?: 'page' | 'ribbon';
   readonly cursorStepIndex?: number;
+  readonly activeNoteId?: string | null;
   readonly zoom?: number;
   readonly onCursorStepChange?: (stepIndex: number) => void;
   readonly className?: string;
@@ -291,18 +514,25 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   xmlContent,
   viewMode = 'page',
   cursorStepIndex = 0,
+  activeNoteId = null,
   zoom = 1.0,
   onCursorStepChange,
   className = '',
 }) => {
+  const viewportRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
   const currentStepRef = useRef<number>(0);
+  const activeNoteIdRef = useRef<string | null>(activeNoteId);
+  const viewModeRef = useRef<'page' | 'ribbon'>(viewMode);
   const highlightedRef = useRef<Element[]>([]);
   const renderedSvgRef = useRef<Element | null>(null);
   const loadedXmlRef = useRef<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  activeNoteIdRef.current = activeNoteId;
+  viewModeRef.current = viewMode;
 
   // Initialize OSMD instance
   useEffect(() => {
@@ -321,9 +551,10 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         drawCredits: false,
         drawPartNames: false,
         renderSingleHorizontalStaffline: viewMode === 'ribbon',
-        // Rosin-amber playhead: reads as "you are here" without competing with note colours
-        cursorsOptions: [{ type: CursorType.Standard, color: '#f0a630', alpha: 0.45, follow: true }],
+        // Rosin-amber playhead: follow is disabled so ScoreViewport is the single scroll controller
+        cursorsOptions: [{ type: CursorType.Standard, color: '#f0a630', alpha: 0.45, follow: false }],
       });
+      osmd.FollowCursor = false;
       osmdRef.current = osmd;
     } catch (err) {
       console.error('Failed to initialize OSMD:', err);
@@ -351,10 +582,31 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     const container = containerRef.current;
     if (!container) return;
     tagOsmdSvgNotes(osmd);
-    restoreCursor(osmd, currentStepRef.current);
+    currentStepRef.current = restoreCursor(
+      osmd,
+      currentStepRef.current,
+      container,
+      activeNoteIdRef.current,
+    );
     repaintRecordedNotes(container);
-    highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
+    highlightedRef.current = highlightCurrentNotes(
+      osmd,
+      highlightedRef.current,
+      container,
+      activeNoteIdRef.current,
+    );
     renderedSvgRef.current = container.querySelector('svg');
+    if (viewportRef.current) {
+      scrollScoreViewport(
+        viewportRef.current,
+        container,
+        highlightedRef.current[0] ?? null,
+        osmd.cursor?.cursorElement ?? null,
+        viewModeRef.current,
+        'auto',
+        currentStepRef.current,
+      );
+    }
   }, []);
 
   // Update EngravingRules when viewMode changes
@@ -432,57 +684,62 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     return () => observer.disconnect();
   }, [restoreAfterRender]);
 
-  // Cursor synchronization
+  // Cursor synchronization & deterministic auto-scroll
   useEffect(() => {
     const osmd = osmdRef.current;
-    if (!osmd || !osmd.cursor || isLoading) return;
+    const container = containerRef.current;
+    if (!osmd || !osmd.cursor || !container || isLoading) return;
 
     const targetStep = Math.max(0, cursorStepIndex);
     const currentStep = currentStepRef.current;
+    const stepChanged = targetStep !== currentStep;
 
-    if (targetStep === currentStep) {
-      highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
-      return;
+    const resolvedStep = syncOsmdCursor(
+      osmd,
+      targetStep,
+      currentStep,
+      container,
+      activeNoteId,
+    );
+    currentStepRef.current = resolvedStep;
+
+    highlightedRef.current = highlightCurrentNotes(
+      osmd,
+      highlightedRef.current,
+      container,
+      activeNoteId,
+    );
+
+    if (stepChanged || resolvedStep !== currentStep) {
+      onCursorStepChange?.(resolvedStep);
     }
 
-    if (targetStep > currentStep) {
-      for (let s = currentStep; s < targetStep; s++) {
-        osmd.cursor.next();
-        if (osmd.cursor.iterator.EndReached) break;
-      }
-    } else {
-      osmd.cursor.reset();
-      for (let s = 0; s < targetStep; s++) {
-        osmd.cursor.next();
-        if (osmd.cursor.iterator.EndReached) break;
-      }
-    }
-
-    currentStepRef.current = targetStep;
-    highlightedRef.current = highlightCurrentNotes(osmd, highlightedRef.current);
-    onCursorStepChange?.(targetStep);
-
-    // Keep the note to play in view. The OSMD cursor image is 1 px tall and sits behind the
-    // score, so the highlighted note itself is the better scroll target.
-    const follow = highlightedRef.current[0] ?? osmd.cursor.cursorElement;
-    if (containerRef.current && follow && typeof follow.scrollIntoView === 'function') {
+    if (viewportRef.current) {
       const reduceMotion =
-        typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const behavior = reduceMotion ? 'auto' : 'smooth';
-      follow.scrollIntoView(
-        viewMode === 'ribbon'
-          ? { behavior, block: 'center', inline: 'center' }
-          : { behavior, block: 'nearest', inline: 'nearest' },
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const behavior: ScrollBehavior =
+        reduceMotion || targetStep === 0 ? 'auto' : 'smooth';
+      scrollScoreViewport(
+        viewportRef.current,
+        container,
+        highlightedRef.current[0] ?? null,
+        osmd.cursor.cursorElement ?? null,
+        viewMode,
+        behavior,
+        targetStep,
       );
     }
-  }, [cursorStepIndex, viewMode, isLoading, onCursorStepChange]);
+  }, [cursorStepIndex, activeNoteId, viewMode, isLoading, onCursorStepChange]);
 
   return (
     <div
-      className={`relative w-full h-full select-none ${
+      ref={viewportRef}
+      data-testid="score-scroll-viewport"
+      className={`relative flex-1 min-h-0 w-full h-full select-none ${
         viewMode === 'ribbon'
           ? 'overflow-x-auto overflow-y-hidden whitespace-nowrap'
-          : 'overflow-auto flex flex-col items-center'
+          : 'overflow-y-auto overflow-x-hidden flex flex-col items-center'
       } ${className}`}
     >
       {isLoading && (
