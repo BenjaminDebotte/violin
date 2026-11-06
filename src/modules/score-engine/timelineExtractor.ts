@@ -71,7 +71,7 @@ export function extractScoreTimeline(
   }
 
   const scoreParts = Array.from(doc.querySelectorAll('part-list > score-part, score-part'));
-  const VIOLIN_PART_REGEX = /violin|violon|vln|fiddle/i;
+  const VIOLIN_PART_REGEX = /violin|violon(?!cello)|\bvln\b|fiddle/i;
   const detectedViolinPartIndex = partElements.findIndex((partElem, idx) => {
     const partId = partElem.getAttribute('id');
     const scorePart =

@@ -412,11 +412,7 @@ export class PracticeController {
 
     this._waitForMeEvaluator.reset();
     this._playAlongEvaluator.reset();
-    this._activeNote = this._waitForMeEvaluator.currentNote;
-    this._cursorStepIndex = this._activeNote?.cursorStepIndex ?? 0;
-    this._currentMeasureNumber =
-      this._activeNote?.measureNumber ?? (this._loopRange?.startMeasure ?? 1);
-    this._holdProgress = 0;
+    this._resetCursorToStart();
 
     this._stopDrone();
 
@@ -426,6 +422,14 @@ export class PracticeController {
     }
 
     this._emitState();
+  }
+
+  private _resetCursorToStart(): void {
+    this._activeNote = this._waitForMeEvaluator.currentNote;
+    this._cursorStepIndex = this._activeNote?.cursorStepIndex ?? 0;
+    this._currentMeasureNumber =
+      this._activeNote?.measureNumber ?? (this._loopRange?.startMeasure ?? 1);
+    this._holdProgress = 0;
   }
 
   /** Silences the reference drone if it is playing. */
@@ -568,19 +572,9 @@ export class PracticeController {
     this.stop();
     this._mode = mode;
 
-    if (mode === 'wait-for-me') {
-      this._waitForMeEvaluator.reset();
-      this._activeNote = this._waitForMeEvaluator.currentNote;
-      this._cursorStepIndex = this._activeNote?.cursorStepIndex ?? 0;
-      this._currentMeasureNumber = this._activeNote?.measureNumber ?? 1;
-      this._holdProgress = 0;
-    } else {
-      this._playAlongEvaluator.reset();
-      this._activeNote = this._timeline.soloNotes[0] ?? null;
-      this._cursorStepIndex = 0;
-      this._currentMeasureNumber = 1;
-      this._holdProgress = 0;
-    }
+    this._waitForMeEvaluator.reset();
+    this._playAlongEvaluator.reset();
+    this._resetCursorToStart();
 
     if (wasRunning) {
       this.start().catch((err) => {
@@ -602,10 +596,8 @@ export class PracticeController {
     this._waitForMeEvaluator.setLoopRange(loopRange);
     this._beatScheduler.setLoopRange(loopRange);
 
-    if (this._mode === 'wait-for-me') {
-      this._activeNote = this._waitForMeEvaluator.currentNote;
-      this._cursorStepIndex = this._activeNote?.cursorStepIndex ?? 0;
-      this._currentMeasureNumber = this._activeNote?.measureNumber ?? 1;
+    if (this._mode === 'wait-for-me' || !this._isRunning) {
+      this._resetCursorToStart();
     }
     this._emitState();
   }

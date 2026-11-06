@@ -273,7 +273,7 @@ function resolveSoloInstrumentIndex(
     };
     const subNames = (rec.SubInstruments ?? []).map((s) => `${s.name ?? ''} ${s.idString ?? ''}`).join(' ');
     const label = `${rec.Name ?? ''} ${rec.NameLabel?.text ?? ''} ${rec.idString ?? ''} ${subNames}`;
-    return /violin|violon|\bvln\b|fiddle/i.test(label);
+    return /violin|violon(?!cello)|\bvln\b|fiddle/i.test(label);
   });
   if (violinIdx >= 0) return violinIdx;
   if (activeNoteId) {
@@ -361,6 +361,63 @@ function syncOsmdCursor(
 ): number {
   if (!osmd.cursor) return targetStep;
 
+  // When activeNoteId is known and present in the DOM, step forward from currentStep first (O(1) on normal playback)
+  if (activeNoteId && container?.querySelector(`[data-note-id="${activeNoteId}"]`)) {
+    const instrument = resolveInstrumentForNoteId(osmd, activeNoteId);
+    if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
+      osmd.cursor.update?.();
+      return currentStep;
+    }
+    if (targetStep >= currentStep) {
+      let step = currentStep;
+      for (let i = 0; i < 64; i++) {
+        if (osmd.cursor.iterator?.EndReached) break;
+        const gNotes = osmd.cursor.GNotesUnderCursor?.() ?? [];
+        if (
+          i > 0 &&
+          gNotes.length > 0 &&
+          gNotes.every(
+            (n) => !(n as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.(),
+          )
+        ) {
+          break;
+        }
+        osmd.cursor.next();
+        step++;
+        if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
+          osmd.cursor.update?.();
+          return step;
+        }
+      }
+    }
+    osmd.cursor.reset();
+    for (let s = 0; s < 2000; s++) {
+      if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
+        osmd.cursor.update?.();
+        return s;
+      }
+      if (osmd.cursor.iterator?.EndReached) break;
+      const gNotes = osmd.cursor.GNotesUnderCursor?.() ?? [];
+      if (
+        s > 0 &&
+        gNotes.length > 0 &&
+        gNotes.every(
+          (n) => !(n as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.(),
+        )
+      ) {
+        break;
+      }
+      osmd.cursor.next();
+    }
+    osmd.cursor.reset();
+    for (let s = 0; s < targetStep; s++) {
+      osmd.cursor.next();
+      if (osmd.cursor.iterator?.EndReached) break;
+    }
+    osmd.cursor.update?.();
+    return targetStep;
+  }
+
   if (targetStep > currentStep) {
     for (let s = currentStep; s < targetStep; s++) {
       osmd.cursor.next();
@@ -374,46 +431,8 @@ function syncOsmdCursor(
     }
   }
 
-  let resolvedStep = targetStep;
-
-  if (activeNoteId && container?.querySelector(`[data-note-id="${activeNoteId}"]`)) {
-    const instrument = resolveInstrumentForNoteId(osmd, activeNoteId);
-    if (!cursorContainsNoteId(osmd, activeNoteId, instrument)) {
-      osmd.cursor.reset();
-      let foundStep = -1;
-      for (let s = 0; s < 2000; s++) {
-        if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
-          foundStep = s;
-          break;
-        }
-        if (osmd.cursor.iterator?.EndReached) break;
-        const gNotes = osmd.cursor.GNotesUnderCursor?.() ?? [];
-        if (
-          s > 0 &&
-          gNotes.length > 0 &&
-          gNotes.every(
-            (n) => !(n as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.(),
-          )
-        ) {
-          break;
-        }
-        osmd.cursor.next();
-      }
-
-      if (foundStep >= 0) {
-        resolvedStep = foundStep;
-      } else {
-        osmd.cursor.reset();
-        for (let s = 0; s < targetStep; s++) {
-          osmd.cursor.next();
-          if (osmd.cursor.iterator?.EndReached) break;
-        }
-      }
-    }
-  }
-
   osmd.cursor.update?.();
-  return resolvedStep;
+  return targetStep;
 }
 
 /** Puts the OSMD cursor on a step after a fresh render (which resets it). */
@@ -471,7 +490,7 @@ export function scrollScoreViewport(
     if (viewport.clientHeight > 0 && svgRect.height > viewport.clientHeight) {
       const svgCenterY = svgRect.top - viewportRect.top + viewport.scrollTop + svgRect.height / 2;
       targetTop = Math.max(0, Math.round(svgCenterY - viewport.clientHeight / 2));
-    } else if (cursorStepIndex === 0) {
+    } else {
       targetTop = 0;
     }
   } else {
