@@ -122,10 +122,10 @@ Every task leaves the suite green and is committed on its own (small, convention
 
 ## Phase 4: Sign-in and release candidate
 
-- [ ] **T9: Keep `/library` out of the service worker navigation fallback** (XS)
+- [x] **T9: Keep `/library` out of the service worker navigation fallback** (XS)
   - Acceptance:
-    - [ ] `workbox.navigateFallbackDenylist` contains `/^\/library/`
-    - [ ] after `npm run build`, `dist/sw.js` contains the denylist; checked by `scripts/check-sw.sh`, run in CI after the build
+    - [x] `workbox.navigateFallbackDenylist` contains `/^\/library/`
+    - [x] after `npm run build`, `dist/sw.js` contains the denylist; checked by `scripts/check-sw.sh`, run in CI after the build
   - Verification: `npm run build && scripts/check-sw.sh`.
   - Dependencies: none
   - Files: `vite.config.ts`, `scripts/check-sw.sh`, `.github/workflows/ci.yml`

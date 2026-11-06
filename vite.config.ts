@@ -17,8 +17,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Self-hosted font files must be precached too, or the offline app falls back to system fonts
-      workbox: { globPatterns: ['**/*.{js,css,html,woff2}'], maximumFileSizeToCacheInBytes: 4 * 1024 * 1024 },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,woff2}'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/library/],
+      },
       manifest: {
         name: 'Violin Coach PWA',
         short_name: 'ViolinCoach',
