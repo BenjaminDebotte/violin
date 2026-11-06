@@ -9,6 +9,7 @@ import {
   libraryKey,
   sanitizeLibraryName,
   uploadLibraryFile,
+  uploadTimeoutMs,
 } from '../../src/modules/library/libraryClient';
 
 const json = (body: unknown, init: ResponseInit = {}) =>
@@ -16,13 +17,15 @@ const json = (body: unknown, init: ResponseInit = {}) =>
 const opaqueRedirect = () => ({ type: 'opaqueredirect', status: 0, ok: false, headers: new Headers() }) as unknown as Response;
 
 describe('sanitizeLibraryName', () => {
-  // The server only writes names matching this pattern (nginx/default.conf, $library_write_denied)
-  const SERVER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._()-]{0,100}\.(musicxml|mxl|xml)$/;
+  // Parse the server pattern directly out of nginx/default.conf ($library_write_denied)
+  const conf = readFileSync('nginx/default.conf', 'utf8');
+  const match = conf.match(/\(\?!.*?\/library\/files\/(.*?)\)" 1;/);
+  if (!match) throw new Error('Could not parse server pattern from nginx/default.conf');
+  // Convert PCRE \z to JS $ for regex matching
+  const SERVER_PATTERN = new RegExp('^' + match[1].replace(/\\z/g, '$'));
 
   it('keeps the same pattern as the server', () => {
-    const conf = readFileSync('nginx/default.conf', 'utf8');
-    expect(conf).toContain('[A-Za-z0-9][A-Za-z0-9._()-]{0,100}');
-    expect(conf).toContain('(musicxml|mxl|xml)');
+    expect(conf).toContain('(?=[A-Za-z0-9._()-]{1,100}\\z)[A-Za-z0-9][A-Za-z0-9._()-]{0,100}\\.(musicxml|mxl|xml)\\z');
   });
 
   it.each([
@@ -32,16 +35,36 @@ describe('sanitizeLibraryName', () => {
     ['../../etc/passwd.xml', 'etc-passwd.xml'],
     ['.hidden.xml', 'hidden.xml'],
     ['scan.pdf', 'scan.pdf.musicxml'],
-    ['日本語.musicxml', 'score.musicxml'],
     ['no-extension', 'no-extension.musicxml'],
-    ['', 'score.musicxml'],
   ])('turns %j into %j', (input, expected) => {
     expect(sanitizeLibraryName(input)).toBe(expected);
   });
 
+  it('gives a non-Latin-only name a deterministic score-<8 hex> base, differing for different names', () => {
+    const resJp = sanitizeLibraryName('日本語.musicxml');
+    const resCn = sanitizeLibraryName('中国語.musicxml');
+    expect(resJp).toMatch(/^score-[0-9a-f]{8}\.musicxml$/);
+    expect(resCn).toMatch(/^score-[0-9a-f]{8}\.musicxml$/);
+    expect(resJp).not.toBe(resCn);
+    // Deterministic across calls
+    expect(sanitizeLibraryName('日本語.musicxml')).toBe(resJp);
+    expect(sanitizeLibraryName('')).toMatch(/^score-[0-9a-f]{8}\.musicxml$/);
+  });
+
   it('always yields a name the server accepts, even for hostile or very long names', () => {
-    for (const input of ['a'.repeat(300) + '.mxl', '  ..  ', '<script>.xml', 'a/b\\c.xml', '%2e%2e.xml', 'x.mxl.mxl']) {
-      expect(sanitizeLibraryName(input)).toMatch(SERVER_PATTERN);
+    for (const input of [
+      'a'.repeat(300) + '.mxl',
+      '  ..  ',
+      '<script>.xml',
+      'a/b\\c.xml',
+      '%2e%2e.xml',
+      'x.mxl.mxl',
+      '日本語.musicxml',
+      '',
+    ]) {
+      const sanitized = sanitizeLibraryName(input);
+      expect(sanitized).toMatch(SERVER_PATTERN);
+      expect(sanitized.length).toBeLessThanOrEqual(100);
     }
   });
 
@@ -53,13 +76,17 @@ describe('sanitizeLibraryName', () => {
 });
 
 describe('fetchLibrary', () => {
-  it('lists only MusicXML files, sorted, with their size and date', async () => {
+  it('lists only MusicXML files matching the server pattern, sorted, with their size and date', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       json([
         { name: 'b.mxl', type: 'file', mtime: 'Wed, 04 Nov 2026 13:06:00 GMT', size: 2048 },
         { name: 'a.musicxml', type: 'file', mtime: 'Wed, 04 Nov 2026 13:00:00 GMT', size: 10 },
         { name: 'notes.txt', type: 'file', mtime: 'x', size: 1 },
         { name: 'sub', type: 'directory', mtime: 'x' },
+        { name: 'invalid.pdf', type: 'file', mtime: 'x', size: 10 },
+        { name: 'UPPER.XML', type: 'file', mtime: 'x', size: 10 },
+        { name: '.hidden.xml', type: 'file', mtime: 'x', size: 10 },
+        { name: 'a'.repeat(97) + '.xml', type: 'file', mtime: 'x', size: 10 }, // 101 chars
       ]),
     );
     const state = await fetchLibrary(fetchImpl);
@@ -97,6 +124,10 @@ describe('fetchLibrary', () => {
 });
 
 describe('uploadLibraryFile / downloadLibraryFile / deleteLibraryFile', () => {
+  it('enforces 5 MB limit constant', () => {
+    expect(MAX_LIBRARY_FILE_BYTES).toBe(5 * 1024 * 1024);
+  });
+
   it('sends the file with the write header, to an encoded URL', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(null, { status: 201 }));
     await uploadLibraryFile('Etude-n-3-(copie).mxl', 'data', fetchImpl);
@@ -105,7 +136,7 @@ describe('uploadLibraryFile / downloadLibraryFile / deleteLibraryFile', () => {
     expect(init).toMatchObject({ method: 'PUT', headers: { 'X-Violin-Library': '1' }, body: 'data' });
   });
 
-  it('refuses a too-big file before sending anything', async () => {
+  it('refuses a too-big file (>5 MB) before sending anything', async () => {
     const fetchImpl = vi.fn();
     await expect(uploadLibraryFile('big.mxl', new ArrayBuffer(MAX_LIBRARY_FILE_BYTES + 1), fetchImpl)).rejects.toMatchObject({
       kind: 'too-large',
@@ -114,6 +145,7 @@ describe('uploadLibraryFile / downloadLibraryFile / deleteLibraryFile', () => {
   });
 
   it.each([
+    [409, 'exists'],
     [413, 'too-large'],
     [403, 'rejected'],
     [401, 'signin'],
@@ -123,6 +155,44 @@ describe('uploadLibraryFile / downloadLibraryFile / deleteLibraryFile', () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response('', { status }));
     await expect(uploadLibraryFile('a.mxl', 'x', fetchImpl)).rejects.toMatchObject({ kind });
     await expect(downloadLibraryFile('a.mxl', fetchImpl)).rejects.toBeInstanceOf(LibraryError);
+  });
+
+  it('scales upload timeout by file size (10s + 1s per 100 KB)', async () => {
+    expect(uploadTimeoutMs(0)).toBe(10_000);
+    expect(uploadTimeoutMs(100 * 1024)).toBe(11_000);
+    expect(uploadTimeoutMs(200 * 1024)).toBe(12_000);
+
+    vi.useFakeTimers();
+    try {
+      let capturedSignal: AbortSignal | undefined;
+      const fetchImpl = vi.fn().mockImplementation((_url, init: RequestInit) => {
+        capturedSignal = init.signal as AbortSignal;
+        return new Promise((_, reject) => {
+          capturedSignal?.addEventListener('abort', () => {
+            reject(new DOMException('The operation was aborted', 'AbortError'));
+          });
+        });
+      });
+
+      const uploadPromise = uploadLibraryFile('a.mxl', new ArrayBuffer(200 * 1024), fetchImpl);
+      const assertion = expect(uploadPromise).rejects.toMatchObject({
+        kind: 'network',
+        message: expect.stringMatching(/took too long/i),
+      });
+
+      expect(fetchImpl).toHaveBeenCalled();
+      expect(capturedSignal?.aborted).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(11_999);
+      expect(capturedSignal?.aborted).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(2);
+      expect(capturedSignal?.aborted).toBe(true);
+
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('turns a redirect to the login page into "signin"', async () => {

@@ -40,14 +40,14 @@ Every task leaves the suite green and is committed on its own (small, convention
 
 ## Phase 2: Client core
 
-- [ ] **T3: Library client: names, statuses, timeouts** (S)
+- [x] **T3: Library client: names, statuses, timeouts** (S)
   - Description: sanitiser hash fallback (`score-<8 hex>`), whole name <= 100, list filtered with the server rule,
     `409` becomes a `LibraryError('exists')`, upload timeout scaled by size, 5 MB constant.
   - Acceptance:
-    - [ ] a non-Latin-only name gets a deterministic `score-xxxxxxxx` base; two different such names differ
-    - [ ] the server pattern is parsed out of `nginx/default.conf` in the test and every sanitiser output matches it (incl. hostile and 300-char inputs)
-    - [ ] `409` maps to kind `exists`, `413`/`403`/`401`/`404`/network as before; the list ignores names the server would refuse
-    - [ ] upload timeout = 10 s + 1 s per 100 KB (unit-tested through an injectable clock or a captured signal)
+    - [x] a non-Latin-only name gets a deterministic `score-xxxxxxxx` base; two different such names differ
+    - [x] the server pattern is parsed out of `nginx/default.conf` in the test and every sanitiser output matches it (incl. hostile and 300-char inputs)
+    - [x] `409` maps to kind `exists`, `413`/`403`/`401`/`404`/network as before; the list ignores names the server would refuse
+    - [x] upload timeout = 10 s + 1 s per 100 KB (unit-tested through an injectable clock or a captured signal)
   - Verification: `npx vitest run tests/unit/library-client.test.ts`; typecheck.
   - Dependencies: T1 (the rule it mirrors)
   - Files: `src/modules/library/libraryClient.ts`, `tests/unit/library-client.test.ts`
