@@ -25,8 +25,8 @@ USER root
 RUN mkdir -p /srv/library && chown 101:101 /srv/library
 USER 101
 
-# Runs as uid 101 (nginx) and listens on 8080, so no privileges are needed.
-EXPOSE 8080
+# Runs as uid 101 (nginx) and listens on 8080 (app) and 8081 (library), so no privileges are needed.
+EXPOSE 8080 8081
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -q --spider http://127.0.0.1:8080/healthz || exit 1

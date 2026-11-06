@@ -6,15 +6,15 @@ Every task leaves the suite green and is committed on its own (small, convention
 
 ## Phase 1: Server side (fail closed)
 
-- [ ] **T1: nginx split, no-clobber, hardened names, scripted smoke test** (M)
+- [x] **T1: nginx split, no-clobber, hardened names, scripted smoke test** (M)
   - Description: move the library out of the app server into a `server { listen 8081; }`; keep `:8080` identical to 0.1.0
     plus the app headers; apply the spec section 5 rules.
   - Acceptance:
-    - [ ] `:8080` has no `/library` location; `/library/files/` and any method on it return the SPA shell or 404 (A2)
-    - [ ] `:8081`: PUT valid name 201, same name again 409 with the file unchanged, DELETE 204, GET returns bytes with `Content-Security-Policy: default-src 'none'; sandbox`, `nosniff`, `no-store` (A3, A6)
-    - [ ] name rule uses `\z`, total length 1-100, lower-case extensions only; `a.xml%0a`, `..%2f`, dotfiles, sub-paths, bad extensions, over-long names, missing or empty header, POST/MKCOL/MOVE/COPY/PROPFIND are refused (A4)
-    - [ ] `client_max_body_size 5m` returns 413 above it; ten parallel 5 MB PUTs give no 500 (A5); `/library` and `/library/` answer a relative `302 /` (`absolute_redirect off`)
-    - [ ] `EXPOSE 8081` in the Dockerfile; `scripts/smoke-library.sh` checks all of the above against a running container and exits non-zero on any failure; CI runs it with the production flags (`--read-only`, `/tmp` tmpfs 64m, library tmpfs)
+    - [x] `:8080` has no `/library` location; `/library/files/` and any method on it return the SPA shell or 404 (A2)
+    - [x] `:8081`: PUT valid name 201, same name again 409 with the file unchanged, DELETE 204, GET returns bytes with `Content-Security-Policy: default-src 'none'; sandbox`, `nosniff`, `no-store` (A3, A6)
+    - [x] name rule uses `\z`, total length 1-100, lower-case extensions only; `a.xml%0a`, `..%2f`, dotfiles, sub-paths, bad extensions, over-long names, missing or empty header, POST/MKCOL/MOVE/COPY/PROPFIND are refused (A4)
+    - [x] `client_max_body_size 5m` returns 413 above it; ten parallel 5 MB PUTs give no 500 (A5); `/library` and `/library/` answer a relative `302 /` (`absolute_redirect off`)
+    - [x] `EXPOSE 8081` in the Dockerfile; `scripts/smoke-library.sh` checks all of the above against a running container and exits non-zero on any failure; CI runs it with the production flags (`--read-only`, `/tmp` tmpfs 64m, library tmpfs)
   - Verification: `docker build` + `scripts/smoke-library.sh`; `npx vitest run`; app smoke from `ci.yml` still passes.
   - Dependencies: none
   - Files: `nginx/default.conf` (and optionally `nginx/library.conf`), `Dockerfile`, `scripts/smoke-library.sh`, `.github/workflows/ci.yml`

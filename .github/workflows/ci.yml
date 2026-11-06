@@ -80,12 +80,13 @@ jobs:
 
       - name: Smoke test, run as the cluster runs it (non-root, read-only filesystem)
         run: |
-          docker run -d --name violin --read-only --tmpfs /tmp --cap-drop ALL \
-            --security-opt no-new-privileges -p 8080:8080 violin:ci
+          docker run -d --name violin --read-only --tmpfs /tmp:size=64m --tmpfs /srv/library:uid=101,gid=101,mode=0775 \
+            --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 -p 8081:8081 violin:ci
           for i in $(seq 1 20); do curl -fsS http://localhost:8080/healthz && break; sleep 1; done
           curl -fsS http://localhost:8080/ | grep -q '<div id="root">'
           curl -fsSI http://localhost:8080/manifest.webmanifest | grep -i '^content-type: application/manifest+json'
           curl -fsSI http://localhost:8080/ | grep -i '^permissions-policy: microphone=(self)'
+          ./scripts/smoke-library.sh http://localhost:8080 http://localhost:8081
           docker rm -f violin
 
       - name: Log in to GitHub Container Registry
