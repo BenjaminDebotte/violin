@@ -901,6 +901,92 @@ describe('PracticeController Coordination', () => {
 
     controller.dispose();
   });
+
+  it('resets cursorStepIndex, currentMeasureNumber, activeNote, and holdProgress back to the start on stop()', async () => {
+    const controller = new PracticeController({
+      timeline,
+      audioEngine,
+      settings: { mode: 'wait-for-me' },
+    });
+
+    await controller.start();
+    // Advance past Note 1 (A4) into Note 2 (B4) and partially hold Note 2
+    controller.handlePitchSample(createMockPitchSample(440.0, 1.0));
+    controller.handlePitchSample(createMockPitchSample(440.0, 1.16));
+    controller.handlePitchSample(createMockPitchSample(493.88, 1.2));
+    controller.handlePitchSample(createMockPitchSample(493.88, 1.25));
+
+    // Seek to Measure 3 so measureNumber and cursorStepIndex are past the start
+    controller.seekToMeasure(3);
+    expect(controller.activeNote?.id).toBe('solo-m3-n1');
+    expect(controller.currentMeasureNumber).toBe(3);
+    expect(controller.cursorStepIndex).toBeGreaterThan(0);
+
+    // Stop should reset back to the first note of the piece (or loopRange)
+    controller.stop();
+    expect(controller.activeNote?.id).toBe('solo-m1-n1');
+    expect(controller.cursorStepIndex).toBe(timeline.soloNotes[1].cursorStepIndex);
+    expect(controller.currentMeasureNumber).toBe(1);
+    expect(controller.holdProgress).toBe(0);
+
+    // With a loopRange starting at measure 2, stop() resets to measure 2's first note
+    controller.setLoopRange({ startMeasure: 2, endMeasure: 3 });
+    controller.seekToMeasure(3);
+    expect(controller.currentMeasureNumber).toBe(3);
+    controller.stop();
+    expect(controller.activeNote?.id).toBe('solo-m2-n1');
+    expect(controller.currentMeasureNumber).toBe(2);
+    expect(controller.cursorStepIndex).toBe(timeline.soloNotes[3].cursorStepIndex);
+
+    controller.dispose();
+  });
+
+  it('resumes a suspended AudioContext on PracticeController.start() and AudioPlaybackEngine.startDrone()', async () => {
+    const mockCtx = createMockAudioContext(0) as AudioContext & {
+      state: AudioContextState;
+      resume: ReturnType<typeof vi.fn>;
+    };
+    Object.defineProperty(mockCtx, 'state', {
+      value: 'suspended',
+      writable: true,
+      configurable: true,
+    });
+    mockCtx.resume = vi.fn(async () => {
+      Object.defineProperty(mockCtx, 'state', {
+        value: 'running',
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    const suspendedEngine = new AudioPlaybackEngine({
+      audioContext: mockCtx,
+      soundfontEnabled: false,
+    });
+
+    const controller = new PracticeController({
+      timeline,
+      audioEngine: suspendedEngine,
+      settings: { mode: 'play-along', countInBars: 0 },
+    });
+
+    await controller.start();
+    expect(mockCtx.resume).toHaveBeenCalledTimes(1);
+    expect(mockCtx.state).toBe('running');
+
+    controller.stop();
+
+    // Suspend again and verify startDrone triggers resume
+    Object.defineProperty(mockCtx, 'state', {
+      value: 'suspended',
+      writable: true,
+      configurable: true,
+    });
+    suspendedEngine.startDrone(69, 440);
+    expect(mockCtx.resume).toHaveBeenCalledTimes(2);
+
+    controller.dispose();
+  });
 });
 
 describe('PracticeController fingering hints (Wait-for-Me)', () => {

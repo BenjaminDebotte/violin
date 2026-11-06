@@ -9,10 +9,10 @@ Plan: `tasks/auto-scroll/plan.md`
   - Verification: `npx vitest run tests/unit/score-engine.test.ts` + new unit tests.
   - Files: `src/modules/score-engine/timelineExtractor.ts`, `tests/unit/score-engine.test.ts`
 
-- [ ] **T2: PracticeController & AudioPlaybackEngine — reset cursor on `stop()` and resume suspended `AudioContext`** (S)
+- [x] **T2: PracticeController & AudioPlaybackEngine — reset cursor on `stop()` and resume suspended `AudioContext`** (S)
   - Acceptance:
-    - [ ] `PracticeController.stop()` resets `_activeNote`, `_cursorStepIndex`, `_currentMeasureNumber`, and `_holdProgress` back to the start of the piece (or `loopRange.startMeasure`).
-    - [ ] `AudioPlaybackEngine` resumes `this._audioContext` when `state === 'suspended'` on `resume()` / `startDrone()` / `PracticeController.start()`, so `Play-Along` never stalls at `currentTime === 0`.
+    - [x] `PracticeController.stop()` resets `_activeNote`, `_cursorStepIndex`, `_currentMeasureNumber`, and `_holdProgress` back to the start of the piece (or `loopRange.startMeasure`).
+    - [x] `AudioPlaybackEngine` resumes `this._audioContext` when `state === 'suspended'` on `resume()` / `startDrone()` / `PracticeController.start()`, so `Play-Along` never stalls at `currentTime === 0`.
   - Verification: `npx vitest run tests/unit/practice-coach.test.ts tests/unit/audio-playback.test.ts`.
   - Files: `src/modules/practice-coach/practiceController.ts`, `src/modules/audio-playback/audioEngine.ts`, `tests/unit/practice-coach.test.ts`
 

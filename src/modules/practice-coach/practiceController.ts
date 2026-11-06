@@ -310,13 +310,20 @@ export class PracticeController {
       this._holdProgress = 0;
     } else {
       this._playAlongEvaluator.reset();
-      this._startPlayAlongPollTimer();
-      this._beatScheduler.start();
     }
 
     // Show the running state at once: the permission prompt can stay open for a long time
     this._emitState();
-    await this._connectMic();
+    const micPromise = this._connectMic();
+    await this._audioEngine.resume();
+
+    if (this._isRunning && this._mode === 'play-along') {
+      this._startPlayAlongPollTimer();
+      this._beatScheduler.start();
+      this._emitState();
+    }
+
+    await micPromise;
     this._emitState();
   }
 
@@ -402,6 +409,14 @@ export class PracticeController {
       this._beatScheduler.stop();
       this._stopPlayAlongPollTimer();
     }
+
+    this._waitForMeEvaluator.reset();
+    this._playAlongEvaluator.reset();
+    this._activeNote = this._waitForMeEvaluator.currentNote;
+    this._cursorStepIndex = this._activeNote?.cursorStepIndex ?? 0;
+    this._currentMeasureNumber =
+      this._activeNote?.measureNumber ?? (this._loopRange?.startMeasure ?? 1);
+    this._holdProgress = 0;
 
     this._stopDrone();
 

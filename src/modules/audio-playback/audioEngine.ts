@@ -143,6 +143,18 @@ export class AudioPlaybackEngine {
     return this._soundfontLoaded;
   }
 
+  /**
+   * Resumes the underlying AudioContext if it is currently suspended.
+   */
+  public async resume(): Promise<void> {
+    if (
+      this._audioContext.state === 'suspended' &&
+      typeof this._audioContext.resume === 'function'
+    ) {
+      await this._audioContext.resume();
+    }
+  }
+
   // --- Mixer Settings ---
 
   /**
@@ -199,6 +211,10 @@ export class AudioPlaybackEngine {
     // Ignore rests
     if (!note.pitch || note.pitch.midiNumber == null) {
       return;
+    }
+
+    if (this._audioContext.state === 'suspended') {
+      void this._audioContext.resume?.();
     }
 
     // Optional smplr Soundfont playback when loaded and reference pitch is standard 440Hz
@@ -313,6 +329,10 @@ export class AudioPlaybackEngine {
    * Downbeat: 1200 Hz accent. Upbeat: 800 Hz.
    */
   public scheduleMetronomeClick(startAudioTimeSec: number, isDownbeat: boolean): void {
+    if (this._audioContext.state === 'suspended') {
+      void this._audioContext.resume?.();
+    }
+
     const osc = this._audioContext.createOscillator();
     const clickGain = this._audioContext.createGain();
 
@@ -346,6 +366,10 @@ export class AudioPlaybackEngine {
    * routed through droneGain.
    */
   public startDrone(midiNote: number, referenceA4Hz = 440): void {
+    if (this._audioContext.state === 'suspended') {
+      void this._audioContext.resume?.();
+    }
+
     const freq = midiNoteToFrequency(midiNote, referenceA4Hz);
     const now = this._audioContext.currentTime;
 
