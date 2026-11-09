@@ -7,7 +7,7 @@ Plan: `tasks/note-names-fingers/plan.md`. Commands: `npx vitest run`, `npm run t
   - App state + Settings switch (next to Notation); App builds `noteLabels: Record<noteId, string>` from `timeline.soloNotes` (rests skipped) with the current notation system; passes `noteLabels` (undefined when off) through `PlayPage` to `ScoreViewport`.
   - Acceptance: unit tests for `scoreNoteName` (letters/solfège, sharps/flats, no octave, odd input); setting persists and toggles in Settings; labels prop is absent when off.
   - Files: `src/modules/notation/noteNames.ts`, `src/App.tsx`, `src/pages/SettingsPage.tsx`, `src/pages/PlayPage.tsx`, tests.
-- [ ] **T2: Draw the names under the notes in `ScoreViewport`** (M)
+- [x] **T2: Draw the names under the notes in `ScoreViewport`** (M)
   - New prop `noteLabels?: Readonly<Record<string, string>>`. After tagging (inside `restoreAfterRender`, and when `noteLabels` changes) remove old `.score-note-name` elements and add a `<text class="score-note-name">` to each tagged note `<g>` that has a label, centred under the notehead, just below the note's `getBBox()`, white halo, ~10 px. Bold amber for `.score-note-current` (CSS in `index.css`).
   - Must not change grading colours, highlight, tagging, scrolling. Labels must survive resize/zoom/layout re-render and be absent when `noteLabels` is undefined.
   - Acceptance: tests with the fake OSMD (inject `getBBox`): labels created for labelled ids only, text matches, removed when prop cleared, re-created after `render()`, no duplicates after repeated syncs; existing tests green. Headless Chrome 390x780 on *Minuet* (ribbon + page) and *Alicia*: names visible under every violin note, readable, none under rests, current note's name amber; screenshot paths reported.

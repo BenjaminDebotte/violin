@@ -72,9 +72,11 @@ vi.mock('opensheetmusicdisplay', () => {
       this.renders++;
       this.container.innerHTML = '';
       const svg = document.createElementNS(SVG_NS, 'svg');
-      this.groups = [0, 1, 2].map(() => {
+      this.groups = [0, 1, 2].map((i) => {
         const g = document.createElementNS(SVG_NS, 'g');
         g.appendChild(document.createElementNS(SVG_NS, 'path'));
+        (g as unknown as { getBBox: () => { x: number; y: number; width: number; height: number } }).getBBox =
+          () => ({ x: 10 + i * 40, y: 20, width: 12, height: 24 });
         svg.appendChild(g);
         return g;
       });
@@ -174,5 +176,69 @@ describe('ScoreViewport after OSMD renders', () => {
     await waitFor(() => expect(note('p0-m1-n2')?.classList.contains(CURRENT_NOTE_CLASS)).toBe(true));
     expect(note('p0-m1-n0')?.classList.contains(CURRENT_NOTE_CLASS)).toBe(false);
     expect(latest().step).toBe(2);
+  });
+
+  it('draws note-name labels only for labelled notes, centred below getBBox with a white halo', async () => {
+    const labels = { 'p0-m1-n0': 'Ré', 'p0-m1-n2': 'Fa#' };
+    render(<ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} noteLabels={labels} />);
+    await waitFor(() => expect(note('p0-m1-n0')).not.toBeNull());
+
+    const label0 = note('p0-m1-n0')?.querySelector('text.score-note-name');
+    const label1 = note('p0-m1-n1')?.querySelector('text.score-note-name');
+    const label2 = note('p0-m1-n2')?.querySelector('text.score-note-name');
+
+    expect(label0).not.toBeNull();
+    expect(label0?.textContent).toBe('Ré');
+    // Note 0 bbox: x=10, width=12 -> cx=16; y=20, height=24 -> y > 44
+    expect(Number(label0?.getAttribute('x'))).toBe(16);
+    expect(Number(label0?.getAttribute('y'))).toBeGreaterThan(44);
+    expect(label0?.getAttribute('text-anchor')).toBe('middle');
+    expect(label0?.getAttribute('paint-order')).toBe('stroke');
+    expect(label0?.getAttribute('stroke')).toBe('#ffffff');
+
+    // p0-m1-n1 is unlabelled (e.g. a rest)
+    expect(label1).toBeNull();
+
+    expect(label2).not.toBeNull();
+    expect(label2?.textContent).toBe('Fa#');
+    expect(Number(label2?.getAttribute('x'))).toBe(96);
+  });
+
+  it('updates and removes note-name labels when noteLabels changes or is cleared, without duplicates', async () => {
+    const { rerender } = render(
+      <ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} noteLabels={{ 'p0-m1-n0': 'D', 'p0-m1-n1': 'E' }} />,
+    );
+    await waitFor(() => expect(note('p0-m1-n0')?.querySelectorAll('text.score-note-name').length).toBe(1));
+
+    // Switch to solfège labels
+    rerender(
+      <ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} noteLabels={{ 'p0-m1-n0': 'Ré', 'p0-m1-n1': 'Mi' }} />,
+    );
+    expect(note('p0-m1-n0')?.querySelectorAll('text.score-note-name').length).toBe(1);
+    expect(note('p0-m1-n0')?.querySelector('text.score-note-name')?.textContent).toBe('Ré');
+
+    // Clear noteLabels (setting switched off)
+    rerender(<ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} noteLabels={undefined} />);
+    expect(document.querySelectorAll('text.score-note-name').length).toBe(0);
+  });
+
+  it('re-creates note-name labels after OSMD re-renders and keeps them separate from grade colouring', async () => {
+    render(
+      <ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} noteLabels={{ 'p0-m1-n0': 'D', 'p0-m1-n1': 'E' }} />,
+    );
+    await waitFor(() => expect(note('p0-m1-n0')?.querySelector('text.score-note-name')).not.toBeNull());
+
+    const container = document.getElementById('osmd-score-container')!;
+    applyNoteGradeToSvg(container, ['p0-m1-n0'], 'green');
+    // Notehead path gets the grade colour, while the label text keeps its own fill and white stroke
+    expect(note('p0-m1-n0')?.querySelector('path')?.getAttribute('fill')).toBe('#22c55e');
+    expect(note('p0-m1-n0')?.querySelector('text.score-note-name')?.getAttribute('fill')).toBe('#221d19');
+    expect(note('p0-m1-n0')?.querySelector('text.score-note-name')?.getAttribute('stroke')).toBe('#ffffff');
+
+    // Simulate OSMD resize re-render
+    act(() => latest().render());
+    await waitFor(() => expect(note('p0-m1-n0')?.querySelectorAll('text.score-note-name').length).toBe(1));
+    expect(note('p0-m1-n0')?.querySelector('text.score-note-name')?.textContent).toBe('D');
+    expect(note('p0-m1-n1')?.querySelector('text.score-note-name')?.textContent).toBe('E');
   });
 });

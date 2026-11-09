@@ -258,6 +258,79 @@ export function tagOsmdSvgNotes(osmd: OpenSheetMusicDisplay): void {
 /** Marks the violin notes under the OSMD cursor so CSS can colour and glow them. */
 export const CURRENT_NOTE_CLASS = 'score-note-current';
 
+/** SVG <text> class for note names drawn under each tagged violin note. */
+export const NOTE_NAME_CLASS = 'score-note-name';
+
+type BBoxLike = { x: number; y: number; width: number; height: number };
+
+function safeGetBBox(el: Element | null): BBoxLike | null {
+  if (!el) return null;
+  const fn = (el as unknown as { getBBox?: () => BBoxLike }).getBBox;
+  if (typeof fn !== 'function') return null;
+  try {
+    const box = fn.call(el);
+    if (
+      box &&
+      Number.isFinite(box.x) &&
+      Number.isFinite(box.y) &&
+      Number.isFinite(box.width) &&
+      Number.isFinite(box.height)
+    ) {
+      return box;
+    }
+  } catch {
+    /* jsdom or detached SVG element */
+  }
+  return null;
+}
+
+/**
+ * Draws or refreshes `<text class="score-note-name">` children under each tagged note `<g>`
+ * that has an entry in `noteLabels`. Removes any previous `.score-note-name` elements first
+ * so re-renders, notation switches, or setting toggles never duplicate or leave stale labels.
+ */
+export function syncNoteLabels(
+  container: Element,
+  noteLabels?: Readonly<Record<string, string>>,
+): void {
+  container.querySelectorAll(`.${NOTE_NAME_CLASS}`).forEach((el) => el.remove());
+  if (!noteLabels) return;
+
+  const tagged = container.querySelectorAll('[data-note-id]');
+  tagged.forEach((el) => {
+    const id = el.getAttribute('data-note-id');
+    if (!id) return;
+    const label = noteLabels[id];
+    if (!label) return;
+
+    const bbox = safeGetBBox(el);
+    const headBox = safeGetBBox(el.querySelector('.vf-notehead'));
+    const cx =
+      headBox && headBox.width > 0
+        ? headBox.x + headBox.width / 2
+        : bbox
+          ? bbox.x + bbox.width / 2
+          : 0;
+    const y = bbox ? bbox.y + bbox.height + 9 : 9;
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('class', NOTE_NAME_CLASS);
+    text.setAttribute('x', `${Math.round(cx * 10) / 10}`);
+    text.setAttribute('y', `${Math.round(y * 10) / 10}`);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', '#221d19');
+    text.setAttribute('stroke', '#ffffff');
+    text.setAttribute('stroke-width', '3');
+    text.setAttribute('stroke-linejoin', 'round');
+    text.setAttribute('paint-order', 'stroke');
+    text.setAttribute('pointer-events', 'none');
+    text.textContent = label;
+    el.appendChild(text);
+  });
+}
+
 function resolveSoloInstrumentIndex(
   osmd: OpenSheetMusicDisplay,
   activeNoteId?: string | null,
@@ -579,6 +652,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   const cursorStepIndexRef = useRef<number>(cursorStepIndex);
   const activeNoteIdRef = useRef<string | null>(activeNoteId);
   const viewModeRef = useRef<'page' | 'ribbon'>(viewMode);
+  const noteLabelsRef = useRef<Readonly<Record<string, string>> | undefined>(noteLabels);
   const highlightedRef = useRef<Element[]>([]);
   const renderedSvgRef = useRef<Element | null>(null);
   const loadedXmlRef = useRef<string | undefined>(undefined);
@@ -588,6 +662,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   cursorStepIndexRef.current = cursorStepIndex;
   activeNoteIdRef.current = activeNoteId;
   viewModeRef.current = viewMode;
+  noteLabelsRef.current = noteLabels;
 
   // Initialize OSMD instance
   useEffect(() => {
@@ -637,6 +712,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     const container = containerRef.current;
     if (!container) return;
     tagOsmdSvgNotes(osmd);
+    syncNoteLabels(container, noteLabelsRef.current);
     currentStepRef.current = restoreCursor(
       osmd,
       currentStepRef.current,
@@ -756,6 +832,13 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     observer.observe(container, { childList: true });
     return () => observer.disconnect();
   }, [restoreAfterRender]);
+
+  // Update note-name labels when noteLabels prop changes (toggle or notation switch)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || isLoading) return;
+    syncNoteLabels(container, noteLabels);
+  }, [noteLabels, isLoading]);
 
   // Cursor synchronization & deterministic auto-scroll
   useEffect(() => {
