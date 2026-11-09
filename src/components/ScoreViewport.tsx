@@ -1030,7 +1030,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       <div
         ref={containerRef}
         id="osmd-score-container"
-        className={`relative isolate w-full min-h-[200px] ${
+        className={`relative isolate w-full min-h-[200px] pb-8 ${
           viewMode === 'ribbon' ? 'inline-block min-w-max' : 'max-w-4xl mx-auto'
         }`}
       />

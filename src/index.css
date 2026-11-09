@@ -147,9 +147,12 @@ input[type='range'] {
 }
 
 /* --- Play screen layout ------------------------------------------------------ */
-/* While a fingering hint is showing, shrink the target ring so the dock stays on screen */
-.play-panel[data-hint] .panel-ring { width: 96px; height: 96px; }
-.play-panel[data-hint] .panel-ring > span { font-size: 40px !important; }
+/* While a fingering hint is showing, compact the panel so the score plate keeps room for staff + note names */
+.play-panel[data-hint] { padding: 12px; gap: 8px; }
+.play-panel[data-hint] .panel-ring { width: 80px; height: 80px; }
+.play-panel[data-hint] .panel-ring > span { font-size: 34px !important; }
+.play-panel[data-hint] .panel-fingering { padding-top: 6px; padding-bottom: 8px; }
+.play-panel[data-hint] .fing-diagram { max-height: 56px !important; }
 
 .play-layout {
   display: grid;
