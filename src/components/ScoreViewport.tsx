@@ -427,6 +427,44 @@ function cursorContainsNoteId(
   });
 }
 
+function hasNoSvgElements(cursor: NonNullable<OpenSheetMusicDisplay['cursor']>): boolean {
+  const gNotes = cursor.GNotesUnderCursor?.() ?? [];
+  return (
+    gNotes.length > 0 &&
+    gNotes.every(
+      (n) => !(n as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.(),
+    )
+  );
+}
+
+function scanCursorForNote(
+  osmd: OpenSheetMusicDisplay,
+  activeNoteId: string,
+  instrument: unknown,
+  startStep: number,
+  maxSteps: number,
+): number | null {
+  const cursor = osmd.cursor;
+  if (!cursor) return null;
+
+  if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
+    cursor.update?.();
+    return startStep;
+  }
+
+  for (let i = 0; i < maxSteps; i++) {
+    if (cursor.iterator?.EndReached) break;
+    if (i > 0 && hasNoSvgElements(cursor)) break;
+    cursor.next();
+    const current = startStep + i + 1;
+    if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
+      cursor.update?.();
+      return current;
+    }
+  }
+  return null;
+}
+
 function syncOsmdCursor(
   osmd: OpenSheetMusicDisplay,
   targetStep: number,
@@ -439,51 +477,14 @@ function syncOsmdCursor(
   // When activeNoteId is known and present in the DOM, step forward from currentStep first (O(1) on normal playback)
   if (activeNoteId && container?.querySelector(`[data-note-id="${activeNoteId}"]`)) {
     const instrument = resolveInstrumentForNoteId(osmd, activeNoteId);
-    if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
-      osmd.cursor.update?.();
-      return currentStep;
-    }
     if (targetStep >= currentStep) {
-      let step = currentStep;
-      for (let i = 0; i < 64; i++) {
-        if (osmd.cursor.iterator?.EndReached) break;
-        const gNotes = osmd.cursor.GNotesUnderCursor?.() ?? [];
-        if (
-          i > 0 &&
-          gNotes.length > 0 &&
-          gNotes.every(
-            (n) => !(n as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.(),
-          )
-        ) {
-          break;
-        }
-        osmd.cursor.next();
-        step++;
-        if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
-          osmd.cursor.update?.();
-          return step;
-        }
-      }
+      const found = scanCursorForNote(osmd, activeNoteId, instrument, currentStep, 64);
+      if (found !== null) return found;
     }
     osmd.cursor.reset();
-    for (let s = 0; s < 2000; s++) {
-      if (cursorContainsNoteId(osmd, activeNoteId, instrument)) {
-        osmd.cursor.update?.();
-        return s;
-      }
-      if (osmd.cursor.iterator?.EndReached) break;
-      const gNotes = osmd.cursor.GNotesUnderCursor?.() ?? [];
-      if (
-        s > 0 &&
-        gNotes.length > 0 &&
-        gNotes.every(
-          (n) => !(n as unknown as { getSVGGElement?: () => SVGElement | null }).getSVGGElement?.(),
-        )
-      ) {
-        break;
-      }
-      osmd.cursor.next();
-    }
+    const found = scanCursorForNote(osmd, activeNoteId, instrument, 0, 2000);
+    if (found !== null) return found;
+
     osmd.cursor.reset();
     for (let s = 0; s < targetStep; s++) {
       osmd.cursor.next();
