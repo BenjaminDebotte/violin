@@ -190,6 +190,135 @@ describe('scrollScoreViewport', () => {
     scrollScoreViewport(viewport, container, sys1NoteA, null, 'page', 'auto', 0);
     expect(viewport.scrollTop).toBe(0);
   });
+
+  describe('staff band (staff lines plus room for the note names)', () => {
+    // Rects are given in content coordinates and follow the viewport's scroll, like a real browser.
+    function mockContentRect(el: Element, viewport: HTMLElement, r: { left: number; top: number; width: number; height: number }) {
+      el.getBoundingClientRect = () => {
+        const left = r.left - viewport.scrollLeft;
+        const top = r.top - viewport.scrollTop;
+        return { x: left, y: top, left, top, right: left + r.width, bottom: top + r.height, width: r.width, height: r.height, toJSON: () => ({}) } as DOMRect;
+      };
+    }
+
+    function fixture(width: number, height: number) {
+      const viewport = document.createElement('div');
+      const container = document.createElement('div');
+      const svg = document.createElementNS(SVG_NS, 'svg');
+      container.appendChild(svg);
+      viewport.appendChild(container);
+      Object.defineProperty(viewport, 'clientWidth', { value: width, configurable: true });
+      Object.defineProperty(viewport, 'clientHeight', { value: height, configurable: true });
+      viewport.scrollLeft = 0;
+      viewport.scrollTop = 0;
+      mockRect(viewport, { left: 0, top: 0, width, height });
+      mockContentRect(svg, viewport, { left: 0, top: 0, width: 2400, height: 940 });
+      return { viewport, container, svg };
+    }
+
+    /** One OSMD system: `<g class="staffline"><g class="vf-measure">` with five horizontal staff-line paths. */
+    function system(svg: SVGSVGElement, viewport: HTMLElement, firstLineTop: number) {
+      const staffline = document.createElementNS(SVG_NS, 'g');
+      staffline.setAttribute('class', 'staffline');
+      const measure = document.createElementNS(SVG_NS, 'g');
+      measure.setAttribute('class', 'vf-measure');
+      for (let i = 0; i < 5; i++) {
+        const line = document.createElementNS(SVG_NS, 'path');
+        mockContentRect(line, viewport, { left: 50, top: firstLineTop + i * 10, width: 300, height: 0 });
+        measure.appendChild(line);
+      }
+      staffline.appendChild(measure);
+      svg.appendChild(staffline);
+      const addNote = (id: string, r: { left: number; top: number; width: number; height: number }) => {
+        const g = noteGroup(id);
+        mockContentRect(g, viewport, r);
+        measure.appendChild(g);
+        return g;
+      };
+      // Staff 40 px tall; band = 18 px above, 34 px below for the names
+      return { addNote, bandTop: firstLineTop - 18, bandBottom: firstLineTop + 40 + 34 };
+    }
+
+    const inView = (viewport: HTMLElement, top: number, bottom: number) => {
+      expect(top).toBeGreaterThanOrEqual(viewport.scrollTop);
+      expect(bottom).toBeLessThanOrEqual(viewport.scrollTop + viewport.clientHeight);
+    };
+
+    it('ribbon: keeps the staff and the names under it in view, at the same height for a low and a high note', () => {
+      const { viewport, container, svg } = fixture(800, 260);
+      const sys = system(svg, viewport, 120);
+      // Low note with its name under it (to 190), high note with a downward stem and name (to 150)
+      const low = sys.addNote('p0-m2-n0', { left: 680, top: 150, width: 16, height: 40 });
+      const high = sys.addNote('p0-m2-n1', { left: 750, top: 90, width: 16, height: 60 });
+
+      scrollScoreViewport(viewport, container, low, null, 'ribbon', 'auto', 4);
+      const first = viewport.scrollTop;
+      expect(first).toBeGreaterThan(0);
+      inView(viewport, sys.bandTop, sys.bandBottom);
+
+      scrollScoreViewport(viewport, container, high, null, 'ribbon', 'auto', 5);
+      expect(viewport.scrollTop).toBe(first);
+      inView(viewport, sys.bandTop, sys.bandBottom);
+    });
+
+    it('ribbon with the hint open (small viewport): the whole band and the active note stay visible', () => {
+      const { viewport, container, svg } = fixture(350, 107);
+      const sys = system(svg, viewport, 120);
+      const low = sys.addNote('p0-m2-n0', { left: 200, top: 150, width: 16, height: 40 });
+      scrollScoreViewport(viewport, container, low, null, 'ribbon', 'auto', 3);
+      inView(viewport, sys.bandTop, sys.bandBottom);
+      inView(viewport, 150, 190);
+    });
+
+    it('ribbon with a viewport smaller than the band: the active note and its name are never hidden', () => {
+      const { viewport, container, svg } = fixture(350, 70);
+      const sys = system(svg, viewport, 120);
+      const veryLow = sys.addNote('p0-m2-n0', { left: 200, top: 165, width: 16, height: 30 });
+      scrollScoreViewport(viewport, container, veryLow, null, 'ribbon', 'auto', 3);
+      inView(viewport, 165, 195);
+      const veryHigh = sys.addNote('p0-m2-n1', { left: 240, top: 95, width: 16, height: 30 });
+      scrollScoreViewport(viewport, container, veryHigh, null, 'ribbon', 'auto', 4);
+      inView(viewport, 95, 125);
+    });
+
+    it('page: the first system and its names are scrolled into a small viewport at step 0', () => {
+      const { viewport, container, svg } = fixture(350, 107);
+      const sys1 = system(svg, viewport, 105);
+      const first = sys1.addNote('p0-m1-n0', { left: 140, top: 120, width: 16, height: 40 });
+      scrollScoreViewport(viewport, container, first, null, 'page', 'auto', 0);
+      inView(viewport, sys1.bandTop, sys1.bandBottom);
+    });
+
+    it('page: the active system with its names sits inside the comfort band, without moving between its notes', () => {
+      const { viewport, container, svg } = fixture(350, 300);
+      system(svg, viewport, 105);
+      const sys2 = system(svg, viewport, 226);
+      const a = sys2.addNote('p0-m2-n0', { left: 140, top: 230, width: 16, height: 30 });
+      const b = sys2.addNote('p0-m2-n1', { left: 210, top: 250, width: 16, height: 45 });
+
+      scrollScoreViewport(viewport, container, a, null, 'page', 'auto', 4);
+      const top = viewport.scrollTop;
+      // Names under the lowest staff line are above the bottom 22% of the viewport
+      expect(sys2.bandBottom - viewport.scrollTop).toBeLessThanOrEqual(viewport.clientHeight * 0.78);
+      expect(sys2.bandTop - viewport.scrollTop).toBeGreaterThanOrEqual(0);
+
+      scrollScoreViewport(viewport, container, b, null, 'page', 'auto', 5);
+      expect(viewport.scrollTop).toBe(top);
+    });
+
+    it('page with a small viewport: same scroll position for every note of the system, band fully visible', () => {
+      const { viewport, container, svg } = fixture(350, 107);
+      system(svg, viewport, 105);
+      const sys2 = system(svg, viewport, 226);
+      const a = sys2.addNote('p0-m2-n0', { left: 140, top: 230, width: 16, height: 30 });
+      const b = sys2.addNote('p0-m2-n1', { left: 210, top: 210, width: 16, height: 50 });
+      scrollScoreViewport(viewport, container, a, null, 'page', 'auto', 4);
+      const top = viewport.scrollTop;
+      inView(viewport, sys2.bandTop, sys2.bandBottom);
+      scrollScoreViewport(viewport, container, b, null, 'page', 'auto', 5);
+      expect(viewport.scrollTop).toBe(top);
+    });
+  });
 });
 
 describe('played colours survive a re-render', () => {

@@ -521,6 +521,61 @@ function restoreCursor(
   return syncOsmdCursor(osmd, step, 0, container, activeNoteId);
 }
 
+/** Room kept above the top staff line (clef, bar numbers) and below the bottom one (stems, note names). */
+export const STAFF_BAND_ABOVE_PX = 18;
+export const STAFF_BAND_BELOW_PX = 34;
+
+/**
+ * Vertical band of the system (OSMD `.staffline`) holding `anchor`, in viewport scroll coordinates:
+ * the five staff lines (thin horizontal paths drawn in `.vf-measure` / `.vf-stave`) plus label room.
+ * Returns null when no staff line is found (e.g. jsdom), so callers keep their fallback.
+ */
+function staffBandOf(
+  container: Element,
+  anchor: Element | null,
+  toScrollY: (clientY: number) => number,
+): { top: number; bottom: number } | null {
+  const staffline = anchor?.closest('.staffline') ?? container.querySelector('.staffline');
+  if (!staffline) return null;
+  let top = Infinity;
+  let bottom = -Infinity;
+  staffline
+    .querySelectorAll('.vf-measure > path, .vf-measure > line, .vf-measure > rect, .vf-stave path, .vf-stave line, .vf-stave rect')
+    .forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.height > 2 || r.width < 10) return;
+      top = Math.min(top, r.top);
+      bottom = Math.max(bottom, r.bottom);
+    });
+  if (!Number.isFinite(top) || !Number.isFinite(bottom)) return null;
+  return { top: toScrollY(top) - STAFF_BAND_ABOVE_PX, bottom: toScrollY(bottom) + STAFF_BAND_BELOW_PX };
+}
+
+/**
+ * Scroll position that shows `band` (centred when it fits, keeping `preferTop` if given and valid),
+ * then nudged only as much as needed so the active note (with its name) is never hidden.
+ */
+function fitBand(
+  band: { top: number; bottom: number },
+  note: { top: number; bottom: number } | null,
+  height: number,
+  preferTop?: number,
+): number {
+  let top: number;
+  if (band.bottom - band.top <= height) {
+    const centred = preferTop ?? (band.top + band.bottom) / 2 - height / 2;
+    top = Math.min(Math.max(centred, band.bottom - height), band.top);
+  } else {
+    // Taller than the viewport: favour the lower staff lines and the names under them
+    top = band.bottom - height;
+  }
+  if (note) {
+    if (note.bottom > top + height) top = note.bottom - height;
+    if (note.top < top) top = note.top;
+  }
+  return Math.max(0, Math.round(top));
+}
+
 /**
  * Deterministic, jitter-free score auto-scroll controller.
  * - In `'ribbon'` (Single-line) mode: places the active note at ~35% of viewport width (65% lookahead)
@@ -544,6 +599,13 @@ export function scrollScoreViewport(
 
   let targetLeft = viewport.scrollLeft;
   let targetTop = viewport.scrollTop;
+  const toScrollY = (clientY: number) => clientY - viewportRect.top + viewport.scrollTop;
+  const anchorBox = anchorEl?.getBoundingClientRect();
+  const noteBand =
+    anchorBox && anchorBox.height > 0
+      ? { top: toScrollY(anchorBox.top), bottom: toScrollY(anchorBox.bottom) }
+      : null;
+  const staffBand = viewport.clientHeight > 0 ? staffBandOf(container, anchorEl, toScrollY) : null;
 
   if (viewMode === 'ribbon') {
     if (anchorEl && viewport.clientWidth > 0) {
@@ -560,7 +622,10 @@ export function scrollScoreViewport(
 
     const svgEl = container.querySelector('svg') ?? container;
     const svgRect = svgEl.getBoundingClientRect();
-    if (viewport.clientHeight > 0 && svgRect.height > viewport.clientHeight) {
+    if (staffBand) {
+      // Constant per system: depends on the staff lines, not on the pitch of the note
+      targetTop = fitBand(staffBand, noteBand, viewport.clientHeight);
+    } else if (viewport.clientHeight > 0 && svgRect.height > viewport.clientHeight) {
       const svgCenterY = svgRect.top - viewportRect.top + viewport.scrollTop + svgRect.height / 2;
       targetTop = Math.max(0, Math.round(svgCenterY - viewport.clientHeight / 2));
     } else {
@@ -568,7 +633,23 @@ export function scrollScoreViewport(
     }
   } else {
     targetLeft = 0;
-    if (cursorStepIndex === 0) {
+    const h = viewport.clientHeight;
+    if (staffBand && h > 0) {
+      const comfortTop = viewport.scrollTop + h * 0.15;
+      const comfortBottom = viewport.scrollTop + h * 0.78;
+      const fitsAtTop = staffBand.bottom <= h && (!noteBand || noteBand.bottom <= h);
+      if (cursorStepIndex === 0 && fitsAtTop) {
+        targetTop = 0;
+      } else if (
+        cursorStepIndex === 0 ||
+        staffBand.top < comfortTop ||
+        staffBand.bottom > comfortBottom ||
+        (noteBand != null && (noteBand.top < viewport.scrollTop || noteBand.bottom > viewport.scrollTop + h))
+      ) {
+        const centre = (staffBand.top + staffBand.bottom) / 2;
+        targetTop = fitBand(staffBand, noteBand, h, centre - h * 0.38);
+      }
+    } else if (cursorStepIndex === 0) {
       targetTop = 0;
     } else if (anchorEl && viewport.clientHeight > 0) {
       const noteRect = anchorEl.getBoundingClientRect();
