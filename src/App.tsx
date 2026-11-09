@@ -16,6 +16,7 @@ import {
   type NoteGradedEvent,
 } from './modules/practice-coach/practiceController';
 import {
+  type PlayableNote,
   type PracticeMode,
   type IntonationStrictness,
   type MeasureLoopRange,
@@ -27,7 +28,27 @@ import {
 import { midiNoteToFrequency } from './modules/pitch-detection/pitchMath';
 import { NotationProvider } from './modules/notation/NotationContext';
 import { loadHintsEnabled, saveHintsEnabled, recordEpisode } from './modules/fingerboard/hintStats';
-import { loadNotation, saveNotation, type NotationSystem } from './modules/notation/noteNames';
+import {
+  loadNotation,
+  saveNotation,
+  loadScoreNoteNames,
+  saveScoreNoteNames,
+  scoreNoteName,
+  type NotationSystem,
+} from './modules/notation/noteNames';
+
+export function buildNoteLabels(
+  soloNotes: readonly PlayableNote[],
+  system: NotationSystem,
+  enabled: boolean,
+): Readonly<Record<string, string>> | undefined {
+  if (!enabled) return undefined;
+  const labels: Record<string, string> = {};
+  for (const n of soloNotes) {
+    if (n.pitch) labels[n.id] = scoreNoteName(n.pitch.label, system);
+  }
+  return labels;
+}
 import {
   buildSessionResult,
   loopRangeFor,
@@ -82,6 +103,11 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
   const handleNotationChange = (system: NotationSystem) => {
     setNotation(system);
     saveNotation(system);
+  };
+  const [scoreNoteNames, setScoreNoteNames] = useState<boolean>(() => loadScoreNoteNames());
+  const handleScoreNoteNamesChange = (enabled: boolean) => {
+    setScoreNoteNames(enabled);
+    saveScoreNoteNames(enabled);
   };
   const [hintsEnabled, setHintsEnabled] = useState<boolean>(() => loadHintsEnabled());
   const handleHintsEnabledChange = (enabled: boolean) => {
@@ -326,6 +352,11 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
       .map((n) => n.pitch!.midiNumber);
   }, [timeline, controllerState.currentMeasureNumber]);
 
+  const noteLabels = useMemo(
+    () => buildNoteLabels(timeline.soloNotes, notation, scoreNoteNames),
+    [timeline.soloNotes, notation, scoreNoteNames],
+  );
+
   const livePitch = useLivePitch(micManager, activePage === 'play' && isActive);
   const showResult = result !== null && !isResultDismissed && !controllerState.isRunning && activePage === 'play';
 
@@ -399,6 +430,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
             referenceA4Hz={referenceA4Hz}
             livePitch={livePitch}
             barMidis={barMidis}
+            noteLabels={noteLabels}
             micManager={micManager}
             onRetryMic={() => void controllerRef.current?.retryMic()}
           />
@@ -425,6 +457,8 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
             onSelectedMicDeviceIdChange={setSelectedMicDeviceId}
             notation={notation}
             onNotationChange={handleNotationChange}
+            scoreNoteNames={scoreNoteNames}
+            onScoreNoteNamesChange={handleScoreNoteNamesChange}
             hintsEnabled={hintsEnabled}
             onHintsEnabledChange={handleHintsEnabledChange}
           />

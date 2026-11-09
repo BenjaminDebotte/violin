@@ -557,6 +557,7 @@ export interface ScoreViewportProps {
   readonly cursorStepIndex?: number;
   readonly activeNoteId?: string | null;
   readonly zoom?: number;
+  readonly noteLabels?: Readonly<Record<string, string>>;
   readonly onCursorStepChange?: (stepIndex: number) => void;
   readonly className?: string;
 }
@@ -567,6 +568,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
   cursorStepIndex = 0,
   activeNoteId = null,
   zoom = 1.0,
+  noteLabels,
   onCursorStepChange,
   className = '',
 }) => {
@@ -807,6 +809,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     <div
       ref={viewportRef}
       data-testid="score-scroll-viewport"
+      data-note-labels={noteLabels ? 'on' : undefined}
       className={`relative flex-1 min-h-0 w-full h-full select-none ${
         viewMode === 'ribbon'
           ? 'overflow-x-auto overflow-y-hidden whitespace-nowrap'

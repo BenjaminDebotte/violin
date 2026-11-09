@@ -50,6 +50,7 @@ export interface PlayPageProps {
   readonly referenceA4Hz: number;
   readonly livePitch: PitchSample | null;
   readonly barMidis?: readonly number[];
+  readonly noteLabels?: Readonly<Record<string, string>>;
   /** Lets the play screen show that the microphone is live and how loud it hears you. */
   readonly micManager?: MicSessionManager;
   readonly onRetryMic?: () => void;
@@ -201,6 +202,7 @@ export function PlayPage(props: PlayPageProps) {
               cursorStepIndex={controllerState.cursorStepIndex}
               activeNoteId={controllerState.activeNote?.id ?? null}
               zoom={viewMode === 'ribbon' ? 1.1 : 1}
+              noteLabels={props.noteLabels}
             />
           </div>
         </section>

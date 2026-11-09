@@ -19,6 +19,8 @@ export interface SettingsPageProps {
   readonly onSelectedMicDeviceIdChange?: (deviceId: string | null) => void;
   readonly notation?: NotationSystem;
   readonly onNotationChange?: (system: NotationSystem) => void;
+  readonly scoreNoteNames?: boolean;
+  readonly onScoreNoteNamesChange?: (enabled: boolean) => void;
   readonly hintsEnabled?: boolean;
   readonly onHintsEnabledChange?: (enabled: boolean) => void;
 }
@@ -73,6 +75,8 @@ export function SettingsPage({
   onSelectedMicDeviceIdChange,
   notation = 'letters',
   onNotationChange,
+  scoreNoteNames = true,
+  onScoreNoteNamesChange,
   hintsEnabled = true,
   onHintsEnabledChange,
 }: SettingsPageProps) {
@@ -135,6 +139,21 @@ export function SettingsPage({
               );
             })}
           </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={scoreNoteNames}
+            onClick={() => onScoreNoteNamesChange?.(!scoreNoteNames)}
+            className="w-full min-h-12 px-4 rounded-full inline-flex items-center justify-between text-[17px] font-bold cursor-pointer"
+            style={{
+              backgroundColor: scoreNoteNames ? 'var(--ebony)' : 'var(--plate-2)',
+              color: scoreNoteNames ? 'var(--bone)' : 'var(--ink)',
+              border: '1px solid var(--rule)',
+            }}
+          >
+            <span>Note names on the score</span>
+            <span aria-hidden="true">{scoreNoteNames ? 'On ●' : 'Off ○'}</span>
+          </button>
         </Group>
 
         <Group

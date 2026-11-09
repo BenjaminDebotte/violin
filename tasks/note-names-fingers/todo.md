@@ -2,7 +2,7 @@
 
 Plan: `tasks/note-names-fingers/plan.md`. Commands: `npx vitest run`, `npm run typecheck`, `npm run build`.
 
-- [ ] **T1: "Note names on the score" setting and label map** (S)
+- [x] **T1: "Note names on the score" setting and label map** (S)
   - Add `scoreNoteName(label, system)` (formatted name without octave) to `noteNames.ts`; `loadScoreNoteNames/saveScoreNoteNames` (key `violin-coach:score-note-names`, default true).
   - App state + Settings switch (next to Notation); App builds `noteLabels: Record<noteId, string>` from `timeline.soloNotes` (rests skipped) with the current notation system; passes `noteLabels` (undefined when off) through `PlayPage` to `ScoreViewport`.
   - Acceptance: unit tests for `scoreNoteName` (letters/solfège, sharps/flats, no octave, odd input); setting persists and toggles in Settings; labels prop is absent when off.
