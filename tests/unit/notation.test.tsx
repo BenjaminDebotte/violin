@@ -62,47 +62,31 @@ describe('scoreNoteName', () => {
   });
 });
 
+function makePlayableNote(
+  id: string,
+  stepIndex: number,
+  pitch: PlayableNote['pitch'],
+): PlayableNote {
+  return {
+    id,
+    measureNumber: 1,
+    partIndex: 0,
+    isSolo: true,
+    pitch,
+    startBeat: stepIndex,
+    durationBeats: 1,
+    startTimeMs: stepIndex * 500,
+    durationMs: 500,
+    cursorStepIndex: stepIndex,
+    tiedNoteIds: [],
+  };
+}
+
 describe('Note names on the score setting and label map', () => {
   const sampleNotes: PlayableNote[] = [
-    {
-      id: 'p0-m1-n0',
-      measureNumber: 1,
-      partIndex: 0,
-      isSolo: true,
-      pitch: { step: 'F', alter: 1, octave: 4, midiNumber: 66, label: 'F#4', frequencyHz440: 369.99 },
-      startBeat: 0,
-      durationBeats: 1,
-      startTimeMs: 0,
-      durationMs: 500,
-      cursorStepIndex: 0,
-      tiedNoteIds: [],
-    },
-    {
-      id: 'p0-m1-n1',
-      measureNumber: 1,
-      partIndex: 0,
-      isSolo: true,
-      pitch: null, // rest
-      startBeat: 1,
-      durationBeats: 1,
-      startTimeMs: 500,
-      durationMs: 500,
-      cursorStepIndex: 1,
-      tiedNoteIds: [],
-    },
-    {
-      id: 'p0-m1-n2',
-      measureNumber: 1,
-      partIndex: 0,
-      isSolo: true,
-      pitch: { step: 'B', alter: -1, octave: 4, midiNumber: 70, label: 'Bb4', frequencyHz440: 466.16 },
-      startBeat: 2,
-      durationBeats: 1,
-      startTimeMs: 1000,
-      durationMs: 500,
-      cursorStepIndex: 2,
-      tiedNoteIds: [],
-    },
+    makePlayableNote('p0-m1-n0', 0, { step: 'F', alter: 1, octave: 4, midiNumber: 66, label: 'F#4', frequencyHz440: 369.99 }),
+    makePlayableNote('p0-m1-n1', 1, null), // rest
+    makePlayableNote('p0-m1-n2', 2, { step: 'B', alter: -1, octave: 4, midiNumber: 70, label: 'Bb4', frequencyHz440: 466.16 }),
   ];
 
   beforeEach(() => {

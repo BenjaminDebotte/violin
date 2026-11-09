@@ -114,7 +114,29 @@ describe('scrollScoreViewport', () => {
       }) as DOMRect;
   }
 
-  function createViewportFixture(width = 800, height = 300) {
+  function mockContentRect(
+    el: Element,
+    viewport: HTMLElement,
+    r: { left: number; top: number; width: number; height: number },
+  ) {
+    el.getBoundingClientRect = () => {
+      const left = r.left - viewport.scrollLeft;
+      const top = r.top - viewport.scrollTop;
+      return {
+        x: left,
+        y: top,
+        left,
+        top,
+        right: left + r.width,
+        bottom: top + r.height,
+        width: r.width,
+        height: r.height,
+        toJSON: () => ({}),
+      } as DOMRect;
+    };
+  }
+
+  function createViewportFixture(width = 800, height = 300, svgHeight = 180) {
     const viewport = document.createElement('div');
     const container = document.createElement('div');
     const svg = document.createElementNS(SVG_NS, 'svg');
@@ -126,7 +148,7 @@ describe('scrollScoreViewport', () => {
     viewport.scrollLeft = 0;
     viewport.scrollTop = 0;
     mockRect(viewport, { left: 0, top: 0, width, height });
-    mockRect(svg, { left: 0, top: 20, width: 2400, height: 180 });
+    mockContentRect(svg, viewport, { left: 0, top: 20, width: 2400, height: svgHeight });
 
     return { viewport, container, svg };
   }
@@ -193,29 +215,7 @@ describe('scrollScoreViewport', () => {
   });
 
   describe('staff band (staff lines plus room for the note names)', () => {
-    // Rects are given in content coordinates and follow the viewport's scroll, like a real browser.
-    function mockContentRect(el: Element, viewport: HTMLElement, r: { left: number; top: number; width: number; height: number }) {
-      el.getBoundingClientRect = () => {
-        const left = r.left - viewport.scrollLeft;
-        const top = r.top - viewport.scrollTop;
-        return { x: left, y: top, left, top, right: left + r.width, bottom: top + r.height, width: r.width, height: r.height, toJSON: () => ({}) } as DOMRect;
-      };
-    }
-
-    function fixture(width: number, height: number) {
-      const viewport = document.createElement('div');
-      const container = document.createElement('div');
-      const svg = document.createElementNS(SVG_NS, 'svg');
-      container.appendChild(svg);
-      viewport.appendChild(container);
-      Object.defineProperty(viewport, 'clientWidth', { value: width, configurable: true });
-      Object.defineProperty(viewport, 'clientHeight', { value: height, configurable: true });
-      viewport.scrollLeft = 0;
-      viewport.scrollTop = 0;
-      mockRect(viewport, { left: 0, top: 0, width, height });
-      mockContentRect(svg, viewport, { left: 0, top: 0, width: 2400, height: 940 });
-      return { viewport, container, svg };
-    }
+    const fixture = createViewportFixture;
 
     /** One OSMD system: `<g class="staffline"><g class="vf-measure">` with five horizontal staff-line paths. */
     function system(svg: SVGSVGElement, viewport: HTMLElement, firstLineTop: number) {
