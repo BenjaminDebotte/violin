@@ -2,9 +2,9 @@ apiVersion: v2
 name: violin
 description: Violin Coach, a phone-first PWA to upload a score and play it (static site served by unprivileged nginx)
 type: application
-version: 0.2.2
+version: 0.2.3
 # Default image tag. Keep in step with package.json; a release tag vX.Y.Z publishes image X.Y.Z.
-appVersion: "0.2.2"
+appVersion: "0.2.3"
 sources:
   - https://github.com/BenjaminDebotte/violin
 keywords:

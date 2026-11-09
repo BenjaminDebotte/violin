@@ -17,7 +17,7 @@ Plan: `tasks/note-names-fingers/plan.md`. Commands: `npx vitest run`, `npm run t
   - Wait-for-Me behaviour unchanged (existing tests stay green).
   - Acceptance: tests (FeedbackPanel/PlayPage level): hand button exists in Play-Along; toggling shows the diagram for the active note; changing `activeNote` keeps it visible with the new note's placements; toggling off hides it; Wait-for-Me one-shot behaviour unchanged. Headless Chrome: Play-Along on *Minuet*, helper on, screenshot shows the diagram updating while the piece advances (two screenshots at different times).
   - Files: `src/components/play/FeedbackPanel.tsx`, `src/pages/PlayPage.tsx` (only if needed), tests.
-- [ ] **T4: Verify, docs, version 0.2.3** (XS)
+- [x] **T4: Verify, docs, version 0.2.3** (XS)
   - Full `npx vitest run`, `npm run typecheck`, `npm run build`, `helm lint chart`, `./scripts/check-sw.sh`, `./scripts/test-chart.sh`. Bump `package.json` and `chart/Chart.yaml` to 0.2.3. Mark tasks done. No tag, no push.
 
 Checkpoint after T2 (names visible) and after T3 (helper works) before T4.
