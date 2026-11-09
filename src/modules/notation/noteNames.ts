@@ -30,16 +30,35 @@ export function isNotationSystem(value: unknown): value is NotationSystem {
   return value === 'letters' || value === 'solfege';
 }
 
+export interface ParsedPitch {
+  step: string;
+  accidental: string;
+  octave?: string;
+}
+
+export function parsePitch(label: string): ParsedPitch | null {
+  const match = LABEL_RE.exec(label);
+  if (!match) return null;
+  return {
+    step: match[1].toUpperCase(),
+    accidental: match[2],
+    octave: match[3],
+  };
+}
+
+export function localizedStep(step: string, system: NotationSystem): string {
+  return system === 'solfege' ? (SOLFEGE_BY_STEP[step] ?? step) : step;
+}
+
 /**
  * Converts a letter-based pitch label ("C#4", "Bb", "F##5") to the chosen notation.
  * Unknown strings (e.g. "--", "Rest") are returned unchanged.
  */
 export function formatNoteName(label: string, system: NotationSystem): string {
   if (system === 'letters') return label;
-  const match = LABEL_RE.exec(label);
-  if (!match) return label;
-  const [, step, accidental, octave] = match;
-  return `${SOLFEGE_BY_STEP[step.toUpperCase()]}${accidental}${octave ?? ''}`;
+  const parsed = parsePitch(label);
+  if (!parsed) return label;
+  return `${localizedStep(parsed.step, system)}${parsed.accidental}${parsed.octave ?? ''}`;
 }
 
 /**
@@ -48,11 +67,9 @@ export function formatNoteName(label: string, system: NotationSystem): string {
  * Unknown strings (e.g. "--", "Rest") are returned unchanged.
  */
 export function scoreNoteName(label: string, system: NotationSystem): string {
-  const match = LABEL_RE.exec(label);
-  if (!match) return label;
-  const [, step, accidental] = match;
-  const base = system === 'solfege' ? SOLFEGE_BY_STEP[step.toUpperCase()] : step.toUpperCase();
-  return `${base}${accidental}`;
+  const parsed = parsePitch(label);
+  if (!parsed) return label;
+  return `${localizedStep(parsed.step, system)}${parsed.accidental}`;
 }
 
 export function loadNotation(): NotationSystem {
