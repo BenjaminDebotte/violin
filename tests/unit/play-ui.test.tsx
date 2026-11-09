@@ -171,10 +171,102 @@ describe('FeedbackPanel fingering hint', () => {
     expect(screen.getByText('Outside 1st and 3rd position')).toBeInTheDocument();
   });
 
-  it('is not offered in Play-Along or during the count-in', () => {
+  it('does not auto-offer stuck hints in Play-Along, and hides hints during Wait-for-Me count-in', () => {
     renderPanel(null, running({ mode: 'play-along', hint: stuck }));
     expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Show finger placement' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show finger placement' })).toHaveAttribute('aria-pressed', 'false');
+
+    const { unmount } = renderPanel(
+      null,
+      running({ mode: 'wait-for-me', countInBeat: { bar: 1, beat: 1, total: 4 }, hint: stuck }),
+    );
+    expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
+    unmount();
+  });
+
+  it('toggles a sticky follow-fingers mode in Play-Along that updates across activeNote changes and count-in', () => {
+    const d4: PlayableNote = {
+      ...a4,
+      id: 'p0-m1-n1',
+      pitch: { step: 'D', alter: 0, octave: 4, midiNumber: 62, label: 'D4', frequencyHz440: 293.66 },
+    };
+
+    const { rerender } = render(
+      <NotationProvider system="letters">
+        <FeedbackPanel
+          controllerState={running({ mode: 'play-along', activeNote: a4, countInBeat: { bar: 1, beat: 1, total: 4 } })}
+          practiceMode="play-along"
+          livePitch={null}
+          referenceA4Hz={440}
+          toleranceCents={15}
+          idleHint="Keep playing"
+          droneActive={false}
+          onToggleDrone={vi.fn()}
+          showSimulate={false}
+          onSimulateInTuneNote={vi.fn()}
+          barMidis={[69, 62]}
+        />
+      </NotationProvider>,
+    );
+
+    const handBtn = screen.getByRole('button', { name: 'Show finger placement' });
+    expect(handBtn).toHaveAttribute('aria-pressed', 'false');
+
+    // Toggle on during count-in: shows the first note (A4)
+    fireEvent.click(handBtn);
+    expect(handBtn).toHaveAttribute('aria-pressed', 'true');
+    const hintOnA4 = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hintOnA4).getByText('Open A string')).toBeInTheDocument();
+    expect(within(hintOnA4).getByText('D string, finger 2')).toBeInTheDocument();
+
+    // Piece advances to D4: hint stays visible and updates to D4's fingerings
+    rerender(
+      <NotationProvider system="letters">
+        <FeedbackPanel
+          controllerState={running({ mode: 'play-along', activeNote: d4, countInBeat: null })}
+          practiceMode="play-along"
+          livePitch={null}
+          referenceA4Hz={440}
+          toleranceCents={15}
+          idleHint="Keep playing"
+          droneActive={false}
+          onToggleDrone={vi.fn()}
+          showSimulate={false}
+          onSimulateInTuneNote={vi.fn()}
+          barMidis={[69, 62]}
+        />
+      </NotationProvider>,
+    );
+    const hintOnD4 = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hintOnD4).getByText('Open D string')).toBeInTheDocument();
+    expect(within(hintOnD4).queryByText('Open A string')).not.toBeInTheDocument();
+
+    // Toggling off hides the hint
+    fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
+    expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show finger placement' })).toHaveAttribute('aria-pressed', 'false');
+
+    // Turn back on, then switch mode to wait-for-me: clears followFingers and keeps Wait-for-Me one-shot behaviour
+    fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
+    expect(screen.getByRole('region', { name: 'Fingering hint' })).toBeInTheDocument();
+    rerender(
+      <NotationProvider system="letters">
+        <FeedbackPanel
+          controllerState={running({ mode: 'wait-for-me', activeNote: d4 })}
+          practiceMode="wait-for-me"
+          livePitch={null}
+          referenceA4Hz={440}
+          toleranceCents={15}
+          idleHint="Hold each note"
+          droneActive={false}
+          onToggleDrone={vi.fn()}
+          showSimulate={false}
+          onSimulateInTuneNote={vi.fn()}
+          barMidis={[69, 62]}
+        />
+      </NotationProvider>,
+    );
+    expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
   });
 });
 

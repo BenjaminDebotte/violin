@@ -65,12 +65,13 @@ export function FeedbackPanel({
   const noteName = useNoteName();
   const target = controllerState.activeNote?.pitch ?? null;
 
-  // Fingering hint: offered by the controller (stuck / wrong note) or requested with the button.
-  // Both are per target note: they clear when the note locks or changes.
-  // Keyed by note (and loop pass), so a request never leaks onto the next note for a frame
+  // Fingering hint: in Wait-for-Me it is offered by the controller (stuck / wrong note) or
+  // requested per target note (clears when the note locks or changes). In Play-Along the hand
+  // button toggles a sticky `followFingers` mode that stays on across notes and bars.
   const hintKey = `${controllerState.activeNote?.id ?? ''}|${controllerState.loopCount}`;
   const [requestedFor, setRequestedFor] = useState<string | null>(null);
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
+  const [followFingers, setFollowFingers] = useState<boolean>(false);
   const requested = requestedFor === hintKey;
   const dismissed = dismissedFor === hintKey;
   const setRequested = (on: boolean) => setRequestedFor(on ? hintKey : null);
@@ -79,9 +80,15 @@ export function FeedbackPanel({
     setRequestedFor(null);
     setDismissedFor(null);
   }, [controllerState.isRunning]);
-  const canHint = practiceMode === 'wait-for-me' && target !== null && !controllerState.countInBeat;
-  const offered = controllerState.hint !== null && !dismissed;
-  const showHint = canHint && (offered || requested);
+  useEffect(() => {
+    if (practiceMode === 'wait-for-me') {
+      setFollowFingers(false);
+    }
+  }, [practiceMode]);
+  const isPlayAlong = practiceMode === 'play-along';
+  const canHint = target !== null && (isPlayAlong || !controllerState.countInBeat);
+  const offered = !isPlayAlong && controllerState.hint !== null && !dismissed;
+  const showHint = canHint && (isPlayAlong ? followFingers : offered || requested);
   const hintReason = offered && controllerState.hint ? controllerState.hint.reason : 'request';
   const targetLabel = target ? noteName(target.label) : '--';
 
@@ -169,7 +176,9 @@ export function FeedbackPanel({
           <button
             type="button"
             onClick={() => {
-              if (showHint) {
+              if (isPlayAlong) {
+                setFollowFingers((f) => !f);
+              } else if (showHint) {
                 setRequested(false);
                 setDismissed(true);
               } else {
@@ -271,8 +280,12 @@ export function FeedbackPanel({
           barMidis={barMidis}
           reason={hintReason}
           onDismiss={() => {
-            setRequested(false);
-            setDismissed(true);
+            if (isPlayAlong) {
+              setFollowFingers(false);
+            } else {
+              setRequested(false);
+              setDismissed(true);
+            }
           }}
         />
       ) : (
