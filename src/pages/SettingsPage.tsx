@@ -60,6 +60,32 @@ function choiceStyle(selected: boolean): React.CSSProperties {
   };
 }
 
+interface SettingSwitchProps {
+  readonly label: string;
+  readonly checked: boolean;
+  readonly onChange?: (checked: boolean) => void;
+}
+
+function SettingSwitch({ label, checked, onChange }: SettingSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange?.(!checked)}
+      className="w-full min-h-12 px-4 rounded-full inline-flex items-center justify-between text-[17px] font-bold cursor-pointer"
+      style={{
+        backgroundColor: checked ? 'var(--ebony)' : 'var(--plate-2)',
+        color: checked ? 'var(--bone)' : 'var(--ink)',
+        border: '1px solid var(--rule)',
+      }}
+    >
+      <span>{label}</span>
+      <span aria-hidden="true">{checked ? 'On ●' : 'Off ○'}</span>
+    </button>
+  );
+}
+
 /**
  * Settings: note names, tuning reference, how strict "in tune" is,
  * microphone, and setup tips. All stored on this device.
@@ -139,42 +165,22 @@ export function SettingsPage({
               );
             })}
           </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={scoreNoteNames}
-            onClick={() => onScoreNoteNamesChange?.(!scoreNoteNames)}
-            className="w-full min-h-12 px-4 rounded-full inline-flex items-center justify-between text-[17px] font-bold cursor-pointer"
-            style={{
-              backgroundColor: scoreNoteNames ? 'var(--ebony)' : 'var(--plate-2)',
-              color: scoreNoteNames ? 'var(--bone)' : 'var(--ink)',
-              border: '1px solid var(--rule)',
-            }}
-          >
-            <span>Note names on the score</span>
-            <span aria-hidden="true">{scoreNoteNames ? 'On ●' : 'Off ○'}</span>
-          </button>
+          <SettingSwitch
+            label="Note names on the score"
+            checked={scoreNoteNames}
+            onChange={onScoreNoteNamesChange}
+          />
         </Group>
 
         <Group
           title="Finger hints"
           hint="In Wait for me, shows which string and finger a note is in 1st and 3rd position, after 2 seconds without finding it or when you play a wrong note."
         >
-          <button
-            type="button"
-            role="switch"
-            aria-checked={hintsEnabled}
-            onClick={() => onHintsEnabledChange?.(!hintsEnabled)}
-            className="w-full min-h-12 px-4 rounded-full inline-flex items-center justify-between text-[17px] font-bold cursor-pointer"
-            style={{
-              backgroundColor: hintsEnabled ? 'var(--ebony)' : 'var(--plate-2)',
-              color: hintsEnabled ? 'var(--bone)' : 'var(--ink)',
-              border: '1px solid var(--rule)',
-            }}
-          >
-            <span>Finger hints</span>
-            <span aria-hidden="true">{hintsEnabled ? 'On ●' : 'Off ○'}</span>
-          </button>
+          <SettingSwitch
+            label="Finger hints"
+            checked={hintsEnabled}
+            onChange={onHintsEnabledChange}
+          />
           <div className="text-[14px] leading-snug space-y-1" style={{ color: 'var(--ink-2)' }}>
             <p>
               Notes that took 2 s or more to find, kept on this device only. Hints on: {stats.withHints.n} notes,
