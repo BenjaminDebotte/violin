@@ -800,6 +800,24 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     };
   }, []);
 
+  const triggerScroll = useCallback(
+    (behavior: ScrollBehavior = 'auto', step = currentStepRef.current) => {
+      const viewport = viewportRef.current;
+      const container = containerRef.current;
+      if (!viewport || !container) return;
+      scrollScoreViewport(
+        viewport,
+        container,
+        highlightedRef.current[0] ?? null,
+        osmdRef.current?.cursor?.cursorElement ?? null,
+        viewModeRef.current,
+        behavior,
+        step,
+      );
+    },
+    [],
+  );
+
   /**
    * After any OSMD render the SVG is brand new: tag the notes, put the cursor back, paint the
    * played colours again and re-mark the current note.
@@ -823,18 +841,8 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       activeNoteIdRef.current,
     );
     renderedSvgRef.current = container.querySelector('svg');
-    if (viewportRef.current) {
-      scrollScoreViewport(
-        viewportRef.current,
-        container,
-        highlightedRef.current[0] ?? null,
-        osmd.cursor?.cursorElement ?? null,
-        viewModeRef.current,
-        'auto',
-        currentStepRef.current,
-      );
-    }
-  }, []);
+    triggerScroll('auto', currentStepRef.current);
+  }, [triggerScroll]);
 
   // Update EngravingRules when viewMode changes
   useEffect(() => {
@@ -946,15 +954,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
       const h = viewport.clientHeight;
       if (h === lastHeight) return;
       lastHeight = h;
-      scrollScoreViewport(
-        viewport,
-        container,
-        highlightedRef.current[0] ?? null,
-        osmdRef.current?.cursor?.cursorElement ?? null,
-        viewModeRef.current,
-        'auto',
-        currentStepRef.current,
-      );
+      triggerScroll('auto');
     });
     observer.observe(viewport);
     return () => observer.disconnect();
@@ -996,15 +996,7 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const behavior: ScrollBehavior =
         reduceMotion || targetStep === 0 ? 'auto' : 'smooth';
-      scrollScoreViewport(
-        viewportRef.current,
-        container,
-        highlightedRef.current[0] ?? null,
-        osmd.cursor.cursorElement ?? null,
-        viewMode,
-        behavior,
-        targetStep,
-      );
+      triggerScroll(behavior, targetStep);
     }
   }, [cursorStepIndex, activeNoteId, viewMode, isLoading, onCursorStepChange]);
 
