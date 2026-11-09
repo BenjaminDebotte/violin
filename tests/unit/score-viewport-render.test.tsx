@@ -147,6 +147,45 @@ describe('ScoreViewport after OSMD renders', () => {
     expect(note('p0-m1-n0')?.getAttribute('fill')).not.toBe('#22c55e');
   });
 
+  it('re-scrolls when the viewport height changes (hint toggled) and stops observing on unmount', async () => {
+    const observed: Element[] = [];
+    let callback: (() => void) | null = null;
+    let disconnected = false;
+    const original = (globalThis as { ResizeObserver?: unknown }).ResizeObserver;
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+      constructor(cb: () => void) {
+        callback = cb;
+      }
+      observe(el: Element) {
+        observed.push(el);
+      }
+      disconnect() {
+        disconnected = true;
+      }
+    };
+    try {
+      const { unmount } = render(<ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} />);
+      await waitFor(() => expect(note('p0-m1-n0')).not.toBeNull());
+      const viewport = document.querySelector('[data-testid="score-scroll-viewport"]') as HTMLElement;
+      expect(observed).toContain(viewport);
+
+      // Hint opens: the viewport shrinks and the band must be scrolled again at once
+      Object.defineProperty(viewport, 'clientHeight', { value: 107, configurable: true });
+      const spy = vi.fn();
+      Object.defineProperty(viewport, 'scrollTop', { get: () => 0, set: spy, configurable: true });
+      Object.defineProperty(viewport, 'scrollLeft', { get: () => 0, set: () => {}, configurable: true });
+      const svg = viewport.querySelector('svg')!;
+      svg.getBoundingClientRect = () => ({ top: 0, left: 0, right: 900, bottom: 400, width: 900, height: 400, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+      act(() => callback?.());
+      expect(spy).toHaveBeenCalled();
+
+      unmount();
+      expect(disconnected).toBe(true);
+    } finally {
+      (globalThis as { ResizeObserver?: unknown }).ResizeObserver = original;
+    }
+  });
+
   it('switches OSMD auto-resize off when the viewport unmounts', async () => {
     const { unmount } = render(<ScoreViewport xmlContent="<a/>" viewMode="ribbon" zoom={1} />);
     await waitFor(() => expect(note('p0-m1-n0')).not.toBeNull());

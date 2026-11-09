@@ -921,6 +921,30 @@ export const ScoreViewport: React.FC<ScoreViewportProps> = ({
     syncNoteLabels(container, noteLabels);
   }, [noteLabels, isLoading]);
 
+  // Re-align the vertical band when the viewport height changes (e.g. fingering hint toggled)
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const container = containerRef.current;
+    if (!viewport || !container || typeof ResizeObserver === 'undefined') return;
+    let lastHeight = viewport.clientHeight;
+    const observer = new ResizeObserver(() => {
+      const h = viewport.clientHeight;
+      if (h === lastHeight) return;
+      lastHeight = h;
+      scrollScoreViewport(
+        viewport,
+        container,
+        highlightedRef.current[0] ?? null,
+        osmdRef.current?.cursor?.cursorElement ?? null,
+        viewModeRef.current,
+        'auto',
+        currentStepRef.current,
+      );
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
   // Cursor synchronization & deterministic auto-scroll
   useEffect(() => {
     const osmd = osmdRef.current;
