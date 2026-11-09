@@ -284,6 +284,8 @@ function safeGetBBox(el: Element | null): BBoxLike | null {
   return null;
 }
 
+export const NOTE_LABEL_OFFSET_Y_PX = 9;
+
 /**
  * Draws or refreshes `<text class="score-note-name">` children under each tagged note `<g>`
  * that has an entry in `noteLabels`. Removes any previous `.score-note-name` elements first
@@ -311,7 +313,7 @@ export function syncNoteLabels(
         : bbox
           ? bbox.x + bbox.width / 2
           : 0;
-    const y = bbox ? bbox.y + bbox.height + 9 : 9;
+    const y = bbox ? bbox.y + bbox.height + NOTE_LABEL_OFFSET_Y_PX : NOTE_LABEL_OFFSET_Y_PX;
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('class', NOTE_NAME_CLASS);
@@ -522,6 +524,10 @@ function restoreCursor(
 }
 
 /** Room kept above the top staff line (clef, bar numbers) and below the bottom one (stems, note names). */
+export const RIBBON_TARGET_RATIO = 0.35;
+export const PAGE_COMFORT_TOP_RATIO = 0.15;
+export const PAGE_COMFORT_BOTTOM_RATIO = 0.78;
+export const PAGE_SYSTEM_CENTER_RATIO = 0.38;
 export const STAFF_BAND_ABOVE_PX = 18;
 export const STAFF_BAND_BELOW_PX = 34;
 
@@ -622,7 +628,7 @@ export function scrollScoreViewport(
       if (cursorStepIndex === 0 && noteOffsetLeft < viewport.clientWidth * 0.5) {
         targetLeft = 0;
       } else {
-        targetLeft = Math.max(0, Math.round(noteOffsetLeft - viewport.clientWidth * 0.35));
+        targetLeft = Math.max(0, Math.round(noteOffsetLeft - viewport.clientWidth * RIBBON_TARGET_RATIO));
       }
     } else if (cursorStepIndex === 0) {
       targetLeft = 0;
@@ -643,8 +649,8 @@ export function scrollScoreViewport(
     targetLeft = 0;
     const h = viewport.clientHeight;
     if (staffBand && h > 0) {
-      const comfortTop = viewport.scrollTop + h * 0.15;
-      const comfortBottom = viewport.scrollTop + h * 0.78;
+      const comfortTop = viewport.scrollTop + h * PAGE_COMFORT_TOP_RATIO;
+      const comfortBottom = viewport.scrollTop + h * PAGE_COMFORT_BOTTOM_RATIO;
       const fitsAtTop = staffBand.bottom <= h && (!noteBand || noteBand.bottom <= h);
       if (cursorStepIndex === 0 && fitsAtTop) {
         targetTop = 0;
@@ -655,7 +661,7 @@ export function scrollScoreViewport(
         (noteBand != null && (noteBand.top < viewport.scrollTop || noteBand.bottom > viewport.scrollTop + h))
       ) {
         const centre = (staffBand.top + staffBand.bottom) / 2;
-        targetTop = fitBand(staffBand, noteBand, h, centre - h * 0.38);
+        targetTop = fitBand(staffBand, noteBand, h, centre - h * PAGE_SYSTEM_CENTER_RATIO);
       }
     } else if (cursorStepIndex === 0) {
       targetTop = 0;
@@ -675,8 +681,8 @@ export function scrollScoreViewport(
         ? Math.max(cursorRect.bottom, noteRect.bottom + 16)
         : noteRect.bottom + STAFF_MARGIN_PX;
 
-      const comfortTop = viewportRect.top + viewport.clientHeight * 0.15;
-      const comfortBottom = viewportRect.bottom - viewport.clientHeight * 0.22;
+      const comfortTop = viewportRect.top + viewport.clientHeight * PAGE_COMFORT_TOP_RATIO;
+      const comfortBottom = viewportRect.top + viewport.clientHeight * PAGE_COMFORT_BOTTOM_RATIO;
 
       if (bandTop < comfortTop || bandBottom > comfortBottom) {
         const systemCenterClientY = (bandTop + bandBottom) / 2;
@@ -684,7 +690,7 @@ export function scrollScoreViewport(
           systemCenterClientY - viewportRect.top + viewport.scrollTop;
         targetTop = Math.max(
           0,
-          Math.round(systemCenterScrollY - viewport.clientHeight * 0.38),
+          Math.round(systemCenterScrollY - viewport.clientHeight * PAGE_SYSTEM_CENTER_RATIO),
         );
       }
     }
