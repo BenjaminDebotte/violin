@@ -92,6 +92,26 @@ export function FeedbackPanel({
   const hintReason = offered && controllerState.hint ? controllerState.hint.reason : 'request';
   const targetLabel = target ? noteName(target.label) : '--';
 
+  const dismissHint = () => {
+    if (isPlayAlong) {
+      setFollowFingers(false);
+    } else {
+      setRequested(false);
+      setDismissed(true);
+    }
+  };
+
+  const toggleHint = () => {
+    if (isPlayAlong) {
+      setFollowFingers((f) => !f);
+    } else if (showHint) {
+      dismissHint();
+    } else {
+      setDismissed(false);
+      setRequested(true);
+    }
+  };
+
   // Briefly echo the last graded note when no live pitch is available (e.g. no mic).
   const [echo, setEcho] = useState<PitchReading | null>(null);
   useEffect(() => {
@@ -175,17 +195,7 @@ export function FeedbackPanel({
         {canHint && (
           <button
             type="button"
-            onClick={() => {
-              if (isPlayAlong) {
-                setFollowFingers((f) => !f);
-              } else if (showHint) {
-                setRequested(false);
-                setDismissed(true);
-              } else {
-                setDismissed(false);
-                setRequested(true);
-              }
-            }}
+            onClick={toggleHint}
             aria-pressed={showHint}
             aria-label="Show finger placement"
             title="Show where the finger goes"
@@ -279,14 +289,7 @@ export function FeedbackPanel({
           fingerings={fingeringsFor(target?.midiNumber)}
           barMidis={barMidis}
           reason={hintReason}
-          onDismiss={() => {
-            if (isPlayAlong) {
-              setFollowFingers(false);
-            } else {
-              setRequested(false);
-              setDismissed(true);
-            }
-          }}
+          onDismiss={dismissHint}
         />
       ) : (
         <>

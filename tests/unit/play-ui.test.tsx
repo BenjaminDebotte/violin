@@ -43,13 +43,13 @@ const running = (overrides: Partial<PracticeControllerState> = {}): PracticeCont
 
 const centsAbove = (cents: number) => midiNoteToFrequency(69, 440) * Math.pow(2, cents / 1200);
 
-function renderPanel(
+function panelElement(
   frequencyHz: number | null,
   state = running(),
   system: 'letters' | 'solfege' = 'letters',
   barMidis?: readonly number[],
 ) {
-  return render(
+  return (
     <NotationProvider system={system}>
       <FeedbackPanel
         controllerState={state}
@@ -57,15 +57,24 @@ function renderPanel(
         livePitch={frequencyHz === null ? null : { frequencyHz, clarity: 0.95, rms: 0.05, audioTimeSec: 0 }}
         referenceA4Hz={440}
         toleranceCents={15}
-        idleHint="Hold each note"
+        idleHint={state.mode === 'play-along' ? 'Keep playing' : 'Hold each note'}
         droneActive={false}
         onToggleDrone={vi.fn()}
         showSimulate={false}
         onSimulateInTuneNote={vi.fn()}
         barMidis={barMidis}
       />
-    </NotationProvider>,
+    </NotationProvider>
   );
+}
+
+function renderPanel(
+  frequencyHz: number | null,
+  state = running(),
+  system: 'letters' | 'solfege' = 'letters',
+  barMidis?: readonly number[],
+) {
+  return render(panelElement(frequencyHz, state, system, barMidis));
 }
 
 describe('FeedbackPanel live verdicts', () => {
@@ -191,22 +200,11 @@ describe('FeedbackPanel fingering hint', () => {
       pitch: { step: 'D', alter: 0, octave: 4, midiNumber: 62, label: 'D4', frequencyHz440: 293.66 },
     };
 
-    const { rerender } = render(
-      <NotationProvider system="letters">
-        <FeedbackPanel
-          controllerState={running({ mode: 'play-along', activeNote: a4, countInBeat: { bar: 1, beat: 1, total: 4 } })}
-          practiceMode="play-along"
-          livePitch={null}
-          referenceA4Hz={440}
-          toleranceCents={15}
-          idleHint="Keep playing"
-          droneActive={false}
-          onToggleDrone={vi.fn()}
-          showSimulate={false}
-          onSimulateInTuneNote={vi.fn()}
-          barMidis={[69, 62]}
-        />
-      </NotationProvider>,
+    const { rerender } = renderPanel(
+      null,
+      running({ mode: 'play-along', activeNote: a4, countInBeat: { bar: 1, beat: 1, total: 4 } }),
+      'letters',
+      [69, 62],
     );
 
     const handBtn = screen.getByRole('button', { name: 'Show finger placement' });
@@ -221,21 +219,12 @@ describe('FeedbackPanel fingering hint', () => {
 
     // Piece advances to D4: hint stays visible and updates to D4's fingerings
     rerender(
-      <NotationProvider system="letters">
-        <FeedbackPanel
-          controllerState={running({ mode: 'play-along', activeNote: d4, countInBeat: null })}
-          practiceMode="play-along"
-          livePitch={null}
-          referenceA4Hz={440}
-          toleranceCents={15}
-          idleHint="Keep playing"
-          droneActive={false}
-          onToggleDrone={vi.fn()}
-          showSimulate={false}
-          onSimulateInTuneNote={vi.fn()}
-          barMidis={[69, 62]}
-        />
-      </NotationProvider>,
+      panelElement(
+        null,
+        running({ mode: 'play-along', activeNote: d4, countInBeat: null }),
+        'letters',
+        [69, 62],
+      ),
     );
     const hintOnD4 = screen.getByRole('region', { name: 'Fingering hint' });
     expect(within(hintOnD4).getByText('Open D string')).toBeInTheDocument();
@@ -250,21 +239,12 @@ describe('FeedbackPanel fingering hint', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
     expect(screen.getByRole('region', { name: 'Fingering hint' })).toBeInTheDocument();
     rerender(
-      <NotationProvider system="letters">
-        <FeedbackPanel
-          controllerState={running({ mode: 'wait-for-me', activeNote: d4 })}
-          practiceMode="wait-for-me"
-          livePitch={null}
-          referenceA4Hz={440}
-          toleranceCents={15}
-          idleHint="Hold each note"
-          droneActive={false}
-          onToggleDrone={vi.fn()}
-          showSimulate={false}
-          onSimulateInTuneNote={vi.fn()}
-          barMidis={[69, 62]}
-        />
-      </NotationProvider>,
+      panelElement(
+        null,
+        running({ mode: 'wait-for-me', activeNote: d4 }),
+        'letters',
+        [69, 62],
+      ),
     );
     expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
   });
