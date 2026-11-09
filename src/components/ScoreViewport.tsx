@@ -667,6 +667,8 @@ export function scrollScoreViewport(
     } else if (cursorStepIndex === 0) {
       targetTop = 0;
     } else if (anchorEl && viewport.clientHeight > 0) {
+      // Retained 0.2.1-era fallback: useCursorBand prevents untagged cursor rests from
+      // jumping outside comfort bounds, and STAFF_MARGIN_PX = 48 preserves centering on synthetic fixtures.
       const noteRect = anchorEl.getBoundingClientRect();
       const cursorRect = cursorEl?.getBoundingClientRect();
       const useCursorBand =
