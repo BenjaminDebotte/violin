@@ -7,6 +7,7 @@ import {
   repaintRecordedNotes,
   resetSvgNoteColors,
   scrollScoreViewport,
+  staffBandOf,
 } from '../../src/components/ScoreViewport';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -317,6 +318,73 @@ describe('scrollScoreViewport', () => {
       inView(viewport, sys2.bandTop, sys2.bandBottom);
       scrollScoreViewport(viewport, container, b, null, 'page', 'auto', 5);
       expect(viewport.scrollTop).toBe(top);
+    });
+
+    it('tolerates staff lines with anti-aliased / zoomed thickness up to 3.5 px (e.g. 3 px)', () => {
+      const { viewport, container, svg } = fixture(350, 300);
+      const staffline = document.createElementNS(SVG_NS, 'g');
+      staffline.setAttribute('class', 'staffline');
+      const measure = document.createElementNS(SVG_NS, 'g');
+      measure.setAttribute('class', 'vf-measure');
+      const line = document.createElementNS(SVG_NS, 'rect');
+      mockContentRect(line, viewport, { left: 50, top: 100, width: 200, height: 3 });
+      measure.appendChild(line);
+      staffline.appendChild(measure);
+      svg.appendChild(staffline);
+
+      const toScrollY = (y: number) => y;
+      const band = staffBandOf(container, line, toScrollY);
+      expect(band).not.toBeNull();
+      expect(band?.top).toBe(82);
+      expect(band?.bottom).toBe(137);
+    });
+
+    it('scopes staff lines query to the active measure instead of the whole staffline', () => {
+      const { viewport, container, svg } = fixture(350, 300);
+      const staffline = document.createElementNS(SVG_NS, 'g');
+      staffline.setAttribute('class', 'staffline');
+      const measure1 = document.createElementNS(SVG_NS, 'g');
+      measure1.setAttribute('class', 'vf-measure');
+      const line1 = document.createElementNS(SVG_NS, 'path');
+      mockContentRect(line1, viewport, { left: 50, top: 50, width: 100, height: 1 });
+      measure1.appendChild(line1);
+
+      const measure2 = document.createElementNS(SVG_NS, 'g');
+      measure2.setAttribute('class', 'vf-measure');
+      const line2 = document.createElementNS(SVG_NS, 'path');
+      mockContentRect(line2, viewport, { left: 160, top: 120, width: 100, height: 1 });
+      measure2.appendChild(line2);
+
+      staffline.appendChild(measure1);
+      staffline.appendChild(measure2);
+      svg.appendChild(staffline);
+
+      const toScrollY = (y: number) => y;
+      const band = staffBandOf(container, line2, toScrollY);
+      expect(band?.top).toBe(120 - 18);
+      expect(band?.bottom).toBe(121 + 34);
+    });
+
+    it('page: when anchor is outside .staffline (e.g. cursor img), falls back to system 1 only at step 0, otherwise keeps current scroll', () => {
+      const { viewport, container, svg } = fixture(350, 300);
+      system(svg, viewport, 105);
+      system(svg, viewport, 400);
+
+      const cursorImg = document.createElement('img');
+      container.appendChild(cursorImg);
+      mockContentRect(cursorImg, viewport, { left: 100, top: 420, width: 20, height: 40 });
+
+      const toScrollY = (y: number) => y;
+      const bandStep0 = staffBandOf(container, cursorImg, toScrollY, 'page', 0);
+      expect(bandStep0).not.toBeNull();
+      expect(bandStep0?.top).toBe(105 - 18);
+
+      const bandStep5 = staffBandOf(container, cursorImg, toScrollY, 'page', 5);
+      expect(bandStep5).toBeNull();
+
+      viewport.scrollTop = 350;
+      scrollScoreViewport(viewport, container, null, cursorImg, 'page', 'auto', 5);
+      expect(viewport.scrollTop).toBe(350);
     });
   });
 });

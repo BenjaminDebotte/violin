@@ -530,20 +530,25 @@ export const STAFF_BAND_BELOW_PX = 34;
  * the five staff lines (thin horizontal paths drawn in `.vf-measure` / `.vf-stave`) plus label room.
  * Returns null when no staff line is found (e.g. jsdom), so callers keep their fallback.
  */
-function staffBandOf(
+export function staffBandOf(
   container: Element,
   anchor: Element | null,
   toScrollY: (clientY: number) => number,
+  viewMode: 'ribbon' | 'page' = 'ribbon',
+  cursorStepIndex = 0,
 ): { top: number; bottom: number } | null {
-  const staffline = anchor?.closest('.staffline') ?? container.querySelector('.staffline');
+  const inside = anchor?.closest('.staffline');
+  const staffline =
+    inside ?? (viewMode === 'page' && cursorStepIndex !== 0 ? null : container.querySelector('.staffline'));
   if (!staffline) return null;
+  const measure = anchor?.closest('.vf-measure') ?? staffline.querySelector('.vf-measure') ?? staffline;
   let top = Infinity;
   let bottom = -Infinity;
-  staffline
-    .querySelectorAll('.vf-measure > path, .vf-measure > line, .vf-measure > rect, .vf-stave path, .vf-stave line, .vf-stave rect')
+  measure
+    .querySelectorAll('path, line, rect')
     .forEach((el) => {
       const r = el.getBoundingClientRect();
-      if (r.height > 2 || r.width < 10) return;
+      if (r.height > 3.5 || r.width < 10) return;
       top = Math.min(top, r.top);
       bottom = Math.max(bottom, r.bottom);
     });
@@ -605,7 +610,10 @@ export function scrollScoreViewport(
     anchorBox && anchorBox.height > 0
       ? { top: toScrollY(anchorBox.top), bottom: toScrollY(anchorBox.bottom) }
       : null;
-  const staffBand = viewport.clientHeight > 0 ? staffBandOf(container, anchorEl, toScrollY) : null;
+  const staffBand =
+    viewport.clientHeight > 0
+      ? staffBandOf(container, anchorEl, toScrollY, viewMode, cursorStepIndex)
+      : null;
 
   if (viewMode === 'ribbon') {
     if (anchorEl && viewport.clientWidth > 0) {
