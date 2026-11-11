@@ -1,4 +1,5 @@
 import { ListMusic, AudioLines, Settings, type LucideIcon } from 'lucide-react';
+import { Footer } from './Footer';
 
 export type AppPage = 'songs' | 'play' | 'tune' | 'settings';
 
@@ -61,7 +62,8 @@ export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
           isPlay ? '' : 'pb-[var(--tabbar-h)] lg:pb-0 lg:pl-24'
         }`}
       >
-        {children}
+        <div className="flex-1 flex flex-col">{children}</div>
+        {!isPlay && <Footer />}
       </main>
 
       {!isPlay && (

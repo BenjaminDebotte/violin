@@ -32,15 +32,21 @@ describe('Task 7: AppShell Component', () => {
 
     fireEvent.click(tuneTab);
     expect(handleNavigate).toHaveBeenCalledWith('tune');
+
+    // Footer with version and helpful info is visible
+    expect(screen.getByTestId('app-footer')).toBeDefined();
+    expect(screen.getByText(/Violin Coach/i)).toBeDefined();
+    expect(screen.getByText(/Tuning: /i)).toBeDefined();
   });
 
-  it('hides the tab bar on the full-screen play page', () => {
+  it('hides the tab bar and footer on the full-screen play page', () => {
     render(
       <AppShell activePage="play" onNavigate={vi.fn()}>
         <div>Play</div>
       </AppShell>,
     );
     expect(screen.queryByRole('navigation', { name: 'Main navigation' })).toBeNull();
+    expect(screen.queryByTestId('app-footer')).toBeNull();
   });
 
   it('maps legacy hashes onto the new pages', () => {
