@@ -246,7 +246,7 @@ describe('FeedbackPanel fingering hint', () => {
     expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show finger placement' })).toHaveAttribute('aria-pressed', 'false');
 
-    // Turn back on, then switch mode to wait-for-me: clears followFingers and keeps Wait-for-Me one-shot behaviour
+    // Turn back on, and advance notes in wait-for-me: remains visible and updates across notes
     fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
     expect(screen.getByRole('region', { name: 'Fingering hint' })).toBeInTheDocument();
     rerender(
@@ -257,6 +257,26 @@ describe('FeedbackPanel fingering hint', () => {
         [69, 62],
       ),
     );
+    expect(screen.getByRole('region', { name: 'Fingering hint' })).toBeInTheDocument();
+
+    const e4: PlayableNote = {
+      ...a4,
+      id: 'p0-m1-n2',
+      pitch: { step: 'E', alter: 0, octave: 4, midiNumber: 64, label: 'E4', frequencyHz440: 329.63 },
+    };
+    rerender(
+      panelElement(
+        null,
+        running({ mode: 'wait-for-me', activeNote: e4 }),
+        'letters',
+        [69, 62, 64],
+      ),
+    );
+    const hintOnE4 = screen.getByRole('region', { name: 'Fingering hint' });
+    expect(within(hintOnE4).getByText('D string, finger 1')).toBeInTheDocument();
+
+    // Explicitly dismissing hides the hint
+    fireEvent.click(within(hintOnE4).getByRole('button', { name: 'Hide finger hint' }));
     expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
   });
 });

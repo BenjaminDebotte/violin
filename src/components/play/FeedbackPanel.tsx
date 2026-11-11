@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Volume2, VolumeX, Sparkles, Hand } from 'lucide-react';
-import { FingeringHint } from './FingeringHint';
+import { FingeringHint, type FingeringHintReason } from './FingeringHint';
 import { fingeringsFor } from '../../modules/fingerboard/fingering';
 import { useNoteName } from '../../modules/notation/NotationContext';
 import type { PracticeControllerState } from '../../modules/practice-coach/practiceController';
@@ -62,50 +62,34 @@ export function FeedbackPanel({
   const noteName = useNoteName();
   const target = controllerState.activeNote?.pitch ?? null;
 
-  // Fingering hint: in Wait-for-Me it is offered by the controller (stuck / wrong note) or
-  // requested per target note (clears when the note locks or changes). In Play-Along the hand
-  // button toggles a sticky `followFingers` mode that stays on across notes and bars.
+  // Fingering helper:
+  // When toggled via the Hand button, it stays sticky across all notes and bars while playing
+  // until the user explicitly toggles it off or clicks dismiss.
+  // When sticky mode is off, automatic hints in Wait-for-Me (stuck / wrong-note) still appear per-note.
   const hintKey = `${controllerState.activeNote?.id ?? ''}|${controllerState.loopCount}`;
-  const [requestedFor, setRequestedFor] = useState<string | null>(null);
-  const [dismissedFor, setDismissedFor] = useState<string | null>(null);
   const [followFingers, setFollowFingers] = useState<boolean>(false);
-  const requested = requestedFor === hintKey;
-  const dismissed = dismissedFor === hintKey;
-  const setRequested = (on: boolean) => setRequestedFor(on ? hintKey : null);
-  const setDismissed = (on: boolean) => setDismissedFor(on ? hintKey : null);
-  useEffect(() => {
-    setRequestedFor(null);
-    setDismissedFor(null);
-  }, [controllerState.isRunning]);
-  useEffect(() => {
-    if (practiceMode === 'wait-for-me') {
-      setFollowFingers(false);
-    }
-  }, [practiceMode]);
+  const [dismissedFor, setDismissedFor] = useState<string | null>(null);
+
   const isPlayAlong = practiceMode === 'play-along';
   const canHint = target !== null && (isPlayAlong || !controllerState.countInBeat);
-  const offered = !isPlayAlong && controllerState.hint !== null && !dismissed;
-  const showHint = canHint && (isPlayAlong ? followFingers : offered || requested);
-  const hintReason = offered && controllerState.hint ? controllerState.hint.reason : 'request';
+  const dismissed = dismissedFor === hintKey;
+
+  const offered = !isPlayAlong && controllerState.hint !== null && !dismissed && !followFingers;
+  const showHint = canHint && (followFingers || offered);
+  const hintReason: FingeringHintReason = offered && controllerState.hint ? controllerState.hint.reason : 'request';
   const targetLabel = target ? noteName(target.label) : '--';
 
   const dismissHint = () => {
-    if (isPlayAlong) {
-      setFollowFingers(false);
-    } else {
-      setRequested(false);
-      setDismissed(true);
-    }
+    setFollowFingers(false);
+    setDismissedFor(hintKey);
   };
 
   const toggleHint = () => {
-    if (isPlayAlong) {
-      setFollowFingers((f) => !f);
-    } else if (showHint) {
+    if (showHint) {
       dismissHint();
     } else {
-      setDismissed(false);
-      setRequested(true);
+      setDismissedFor(null);
+      setFollowFingers(true);
     }
   };
 
