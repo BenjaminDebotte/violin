@@ -14,8 +14,16 @@ import {
   saveStoredScore,
   deleteStoredScore,
   resetInMemoryScoreStore,
+  listScoreFolders,
+  getScoreFolder,
+  saveScoreFolder,
+  renameScoreFolder,
+  deleteScoreFolder,
+  renameStoredScore,
+  moveStoredScore,
   BUILT_IN_SCORES,
   type StoredScore,
+  type ScoreFolder,
 } from '../../src/modules/score-engine/scoreStore';
 import {
   applyNoteGradeToSvg,
@@ -674,6 +682,128 @@ describe('Score Engine Module', () => {
 
       const afterDeleteList = await listStoredScores();
       expect(afterDeleteList.length).toBe(BUILT_IN_SCORES.length);
+    });
+
+    it('renames and moves user scores and built-in scores', async () => {
+      // 1. Rename built-in score
+      await renameStoredScore('twinkle', 'Twinkle Star (Advanced)');
+      const twinkle = await getStoredScore('twinkle');
+      expect(twinkle?.title).toBe('Twinkle Star (Advanced)');
+      expect(twinkle?.isBuiltIn).toBe(true);
+
+      const all = await listStoredScores();
+      const listedTwinkle = all.find((s) => s.id === 'twinkle');
+      expect(listedTwinkle?.title).toBe('Twinkle Star (Advanced)');
+
+      // 2. Move built-in score to a folder
+      await moveStoredScore('twinkle', 'folder-etudes');
+      const movedTwinkle = await getStoredScore('twinkle');
+      expect(movedTwinkle?.folderId).toBe('folder-etudes');
+
+      // 3. Rename and move user score
+      const userScore: StoredScore = {
+        id: 'user-score-2',
+        title: 'Sevcik Op. 1',
+        fileName: 'sevcik.musicxml',
+        format: 'musicxml',
+        isBuiltIn: false,
+        xmlContent: twinkleXml,
+      };
+      await saveStoredScore(userScore);
+      await renameStoredScore('user-score-2', 'Sevcik Op. 1 (Book 1)');
+      await moveStoredScore('user-score-2', 'folder-etudes');
+
+      const retrievedUser = await getStoredScore('user-score-2');
+      expect(retrievedUser?.title).toBe('Sevcik Op. 1 (Book 1)');
+      expect(retrievedUser?.folderId).toBe('folder-etudes');
+    });
+
+    it('performs CRUD operations for folders and handles recursive deletion', async () => {
+      // Create root folder and subfolder
+      const rootFolder: ScoreFolder = {
+        id: 'folder-root',
+        name: 'Classical',
+        parentId: null,
+        createdAt: 1000,
+      };
+      const subFolder: ScoreFolder = {
+        id: 'folder-sub',
+        name: 'Mozart',
+        parentId: 'folder-root',
+        createdAt: 2000,
+      };
+      const otherFolder: ScoreFolder = {
+        id: 'folder-other',
+        name: 'Fiddle',
+        parentId: null,
+        createdAt: 3000,
+      };
+
+      await saveScoreFolder(rootFolder);
+      await saveScoreFolder(subFolder);
+      await saveScoreFolder(otherFolder);
+
+      expect((await listScoreFolders()).length).toBe(3);
+      expect((await getScoreFolder('folder-root'))?.name).toBe('Classical');
+
+      // Rename folder
+      await renameScoreFolder('folder-root', 'Classical Masterpieces');
+      expect((await getScoreFolder('folder-root'))?.name).toBe('Classical Masterpieces');
+
+      // Add scores inside rootFolder, subFolder, and otherFolder
+      const scoreInRoot: StoredScore = {
+        id: 'score-root',
+        title: 'Score In Root',
+        fileName: 'score-root.musicxml',
+        format: 'musicxml',
+        isBuiltIn: false,
+        xmlContent: twinkleXml,
+        folderId: 'folder-root',
+      };
+      const scoreInSub: StoredScore = {
+        id: 'score-sub',
+        title: 'Score In Sub',
+        fileName: 'score-sub.musicxml',
+        format: 'musicxml',
+        isBuiltIn: false,
+        xmlContent: twinkleXml,
+        folderId: 'folder-sub',
+      };
+      const scoreInOther: StoredScore = {
+        id: 'score-other',
+        title: 'Score In Other',
+        fileName: 'score-other.musicxml',
+        format: 'musicxml',
+        isBuiltIn: false,
+        xmlContent: twinkleXml,
+        folderId: 'folder-other',
+      };
+
+      await saveStoredScore(scoreInRoot);
+      await saveStoredScore(scoreInSub);
+      await saveStoredScore(scoreInOther);
+
+      // Move built-in score into subFolder
+      await moveStoredScore('twinkle', 'folder-sub');
+      expect((await getStoredScore('twinkle'))?.folderId).toBe('folder-sub');
+
+      // Deleting rootFolder should recursively delete folder-root and folder-sub
+      await deleteScoreFolder('folder-root');
+
+      // Folders check
+      expect(await getScoreFolder('folder-root')).toBeUndefined();
+      expect(await getScoreFolder('folder-sub')).toBeUndefined();
+      expect(await getScoreFolder('folder-other')).toBeDefined();
+
+      // Scores check: user scores inside root & sub are deleted
+      expect(await getStoredScore('score-root')).toBeUndefined();
+      expect(await getStoredScore('score-sub')).toBeUndefined();
+      expect(await getStoredScore('score-other')).toBeDefined();
+
+      // Built-in score twinkle should revert to root (folderId: null), not be deleted
+      const revertedTwinkle = await getStoredScore('twinkle');
+      expect(revertedTwinkle).toBeDefined();
+      expect(revertedTwinkle?.folderId).toBeNull();
     });
   });
 
