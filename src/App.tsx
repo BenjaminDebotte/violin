@@ -36,6 +36,8 @@ import {
   scoreNoteName,
   type NotationSystem,
 } from './modules/notation/noteNames';
+import { loadWakeLockEnabled, saveWakeLockEnabled } from './modules/wake-lock/wakeLockManager';
+import { useWakeLock } from './hooks/useWakeLock';
 
 export function buildNoteLabels(
   soloNotes: readonly PlayableNote[],
@@ -116,6 +118,11 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
   };
   const hintsEnabledRef = useRef(hintsEnabled);
   hintsEnabledRef.current = hintsEnabled;
+  const [wakeLockEnabled, setWakeLockEnabled] = useState<boolean>(() => loadWakeLockEnabled());
+  const handleWakeLockEnabledChange = (enabled: boolean) => {
+    setWakeLockEnabled(enabled);
+    saveWakeLockEnabled(enabled);
+  };
   const [referenceA4Hz, setReferenceA4Hz] = useState<number>(440);
   const [strictness, setStrictness] = useState<IntonationStrictness>('medium');
   const [customToleranceCents, setCustomToleranceCents] = useState<number>(15);
@@ -356,6 +363,17 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
   );
 
   const livePitch = useLivePitch(micManager, activePage === 'play' && isActive);
+
+  // --- Screen Wake Lock (active during play and tuning) ----------------------
+  const isWakeLockActive = wakeLockEnabled && (activePage === 'play' || activePage === 'tune');
+  const wakeLockManager = useWakeLock({ enabled: isWakeLockActive });
+
+  useEffect(() => {
+    if (livePitch) {
+      wakeLockManager.reportActivity();
+    }
+  }, [livePitch, wakeLockManager]);
+
   const showResult = result !== null && !isResultDismissed && !controllerState.isRunning && activePage === 'play';
 
   return (
@@ -459,6 +477,8 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
             onScoreNoteNamesChange={handleScoreNoteNamesChange}
             hintsEnabled={hintsEnabled}
             onHintsEnabledChange={handleHintsEnabledChange}
+            wakeLockEnabled={wakeLockEnabled}
+            onWakeLockEnabledChange={handleWakeLockEnabledChange}
           />
         )}
 

@@ -23,6 +23,8 @@ export interface SettingsPageProps {
   readonly onScoreNoteNamesChange?: (enabled: boolean) => void;
   readonly hintsEnabled?: boolean;
   readonly onHintsEnabledChange?: (enabled: boolean) => void;
+  readonly wakeLockEnabled?: boolean;
+  readonly onWakeLockEnabledChange?: (enabled: boolean) => void;
 }
 
 const STRICTNESS_PRESETS: readonly {
@@ -105,6 +107,8 @@ export function SettingsPage({
   onScoreNoteNamesChange,
   hintsEnabled = true,
   onHintsEnabledChange,
+  wakeLockEnabled = true,
+  onWakeLockEnabledChange,
 }: SettingsPageProps) {
   const [devices, setDevices] = useState<readonly AudioInputDeviceInfo[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -200,6 +204,17 @@ export function SettingsPage({
               Reset counters
             </button>
           </div>
+        </Group>
+
+        <Group
+          title="Display"
+          hint="Keeps the screen awake during practice and tuning so the score stays visible on your music stand."
+        >
+          <SettingSwitch
+            label="Keep screen awake"
+            checked={wakeLockEnabled}
+            onChange={onWakeLockEnabledChange}
+          />
         </Group>
 
         <Group title="Tuning reference" hint={`A = ${referenceA4Hz} Hz. Most teachers use 440; many European orchestras tune to 442.`}>

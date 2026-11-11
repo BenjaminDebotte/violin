@@ -156,5 +156,29 @@ describe('Task 8: Dedicated Pages (SongsPage, TunerPage, SettingsPage)', () => {
       expect(screen.getByText(/Bluetooth delay is fine/i)).toBeDefined();
       expect(screen.getByText(/350 ms late/i)).toBeDefined();
     });
+
+    it('toggles keep screen awake switch in Settings', () => {
+      const handleWakeLockChange = vi.fn();
+      render(
+        <SettingsPage
+          referenceA4Hz={440}
+          onReferenceA4Change={vi.fn()}
+          strictness="medium"
+          onStrictnessChange={vi.fn()}
+          customToleranceCents={15}
+          onCustomToleranceCentsChange={vi.fn()}
+          selectedMicDeviceId={null}
+          wakeLockEnabled={true}
+          onWakeLockEnabledChange={handleWakeLockChange}
+        />,
+      );
+
+      const switchBtn = screen.getByRole('switch', { name: /keep screen awake/i });
+      expect(switchBtn).toBeDefined();
+      expect(switchBtn.getAttribute('aria-checked')).toBe('true');
+
+      fireEvent.click(switchBtn);
+      expect(handleWakeLockChange).toHaveBeenCalledWith(false);
+    });
   });
 });
