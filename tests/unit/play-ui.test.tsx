@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { FeedbackPanel } from '../../src/components/play/FeedbackPanel';
 import { ResultSheet } from '../../src/components/play/ResultSheet';
+import { PlayPage } from '../../src/pages/PlayPage';
 import { NotationProvider } from '../../src/modules/notation/NotationContext';
 import { buildSessionResult } from '../../src/modules/practice-coach/sessionResult';
 import type { PracticeControllerState } from '../../src/modules/practice-coach/practiceController';
@@ -78,10 +79,10 @@ function renderPanel(
 }
 
 describe('FeedbackPanel live verdicts', () => {
-  it('says in tune within tolerance and shows hold progress', () => {
+  it('says in tune within tolerance and shows intonation meter', () => {
     renderPanel(centsAbove(6));
     expect(screen.getByText('In tune')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Hold progress' })).toHaveAttribute('aria-valuenow', '40');
+    expect(screen.getByRole('meter', { name: 'Intonation' })).toHaveAttribute('aria-valuenow', '6');
     expect(screen.getByText(/\+6 cents/)).toBeInTheDocument();
   });
 
@@ -89,6 +90,16 @@ describe('FeedbackPanel live verdicts', () => {
     renderPanel(centsAbove(-22));
     expect(screen.getByText('A little flat')).toBeInTheDocument();
     expect(screen.getByText('Go higher ↑')).toBeInTheDocument();
+    const meter = screen.getByRole('meter', { name: 'Intonation' });
+    expect(meter).toHaveAttribute('aria-valuenow', '-22');
+    expect(meter).toHaveAttribute('aria-valuetext', '-22 cents flat');
+  });
+
+  it('reports silent intonation meter when no pitch is detected', () => {
+    renderPanel(null);
+    const meter = screen.getByRole('meter', { name: 'Intonation' });
+    expect(meter).toHaveAttribute('aria-valuenow', '0');
+    expect(meter).toHaveAttribute('aria-valuetext', 'Silent');
   });
 
   it('names the note actually heard when far off', () => {
@@ -107,14 +118,14 @@ describe('FeedbackPanel live verdicts', () => {
 describe('FeedbackPanel fingering hint', () => {
   const stuck = { reason: 'stuck' as const, noteKey: '0' };
 
-  it('shows nothing until offered or requested, then both positions for A4', () => {
+  it('shows nothing until offered or requested, then both positions for A4 without extra header', () => {
     renderPanel(null);
     expect(screen.queryByRole('region', { name: 'Fingering hint' })).not.toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Hold progress' })).toBeInTheDocument();
+    expect(screen.getByRole('meter', { name: 'Intonation' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Show finger placement' }));
     const hint = screen.getByRole('region', { name: 'Fingering hint' });
-    expect(within(hint).getByText('Where to put your finger')).toBeInTheDocument();
+    expect(within(hint).queryByText('Where to put your finger')).not.toBeInTheDocument();
     expect(within(hint).getByText('Open A string')).toBeInTheDocument();
     expect(within(hint).getByText('D string, finger 2')).toBeInTheDocument();
     expect(within(hint).getByText('1st')).toBeInTheDocument();
@@ -288,5 +299,168 @@ describe('ResultSheet', () => {
     expect(onLoop).toHaveBeenCalledTimes(1);
     fireEvent.click(within(card).getByRole('button', { name: 'Play again' }));
     expect(onAgain).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PlayPage mobile reorganization', () => {
+  const dummyScore = {
+    id: 'test-score',
+    title: 'Test Piece',
+    fileName: 'test.musicxml',
+    format: 'musicxml' as const,
+    xmlContent:
+      '<score-partwise version="3.1"><part-list><score-part id="P1"><part-name>Violin</part-name></score-part></part-list><part id="P1"><measure number="1"><note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note></measure></part></score-partwise>',
+    isBuiltIn: true,
+    source: 'builtin' as const,
+    updatedAt: 0,
+  };
+
+  const dummyMixer = {
+    soloVolume: 1,
+    soloMuted: false,
+    accompanimentVolume: 0.8,
+    accompanimentMuted: false,
+    metronomeVolume: 0.5,
+    metronomeMuted: false,
+    droneActive: false,
+  };
+
+  function renderPlayPage(overrides: Partial<PracticeControllerState> = {}) {
+    const state = running(overrides);
+    return render(
+      <NotationProvider system="letters">
+        <PlayPage
+          title="Test Piece"
+          subtitle="8 bars"
+          idleHint="Play along"
+          currentScore={dummyScore}
+          totalMeasures={8}
+          controllerState={state}
+          practiceMode="wait-for-me"
+          onPracticeModeChange={vi.fn()}
+          viewMode="page"
+          onViewModeChange={vi.fn()}
+          loopRange={null}
+          onLoopRangeChange={vi.fn()}
+          onStartPractice={vi.fn()}
+          onPausePractice={vi.fn()}
+          onResumePractice={vi.fn()}
+          onStopPractice={vi.fn()}
+          onClose={vi.fn()}
+          onSimulateInTuneNote={vi.fn()}
+          showSimulate={false}
+          onToggleDrone={vi.fn()}
+          mixer={dummyMixer}
+          onMixerChange={vi.fn()}
+          tempoScale={1}
+          onTempoScaleChange={vi.fn()}
+          countInBars={1}
+          onCountInBarsChange={vi.fn()}
+          strictness="medium"
+          onStrictnessChange={vi.fn()}
+          toleranceCents={15}
+          referenceA4Hz={440}
+          livePitch={null}
+        />
+      </NotationProvider>,
+    );
+  }
+
+  it('renders score completion percentage in the score header', () => {
+    // Bar 1 of 8 = 0% completed
+    const { rerender } = renderPlayPage({ isRunning: true, currentMeasureNumber: 1 });
+    expect(screen.getByTestId('score-completion')).toHaveTextContent('0%');
+
+    // Bar 5 of 8 = 50% completed ((5-1)/8 = 4/8 = 50%)
+    rerender(
+      <NotationProvider system="letters">
+        <PlayPage
+          title="Test Piece"
+          subtitle="8 bars"
+          idleHint="Play along"
+          currentScore={dummyScore}
+          totalMeasures={8}
+          controllerState={running({ isRunning: true, currentMeasureNumber: 5 })}
+          practiceMode="wait-for-me"
+          onPracticeModeChange={vi.fn()}
+          viewMode="page"
+          onViewModeChange={vi.fn()}
+          loopRange={null}
+          onLoopRangeChange={vi.fn()}
+          onStartPractice={vi.fn()}
+          onPausePractice={vi.fn()}
+          onResumePractice={vi.fn()}
+          onStopPractice={vi.fn()}
+          onClose={vi.fn()}
+          onSimulateInTuneNote={vi.fn()}
+          showSimulate={false}
+          onToggleDrone={vi.fn()}
+          mixer={dummyMixer}
+          onMixerChange={vi.fn()}
+          tempoScale={1}
+          onTempoScaleChange={vi.fn()}
+          countInBars={1}
+          onCountInBarsChange={vi.fn()}
+          strictness="medium"
+          onStrictnessChange={vi.fn()}
+          toleranceCents={15}
+          referenceA4Hz={440}
+          livePitch={null}
+        />
+      </NotationProvider>,
+    );
+    expect(screen.getByTestId('score-completion')).toHaveTextContent('50%');
+  });
+
+  it('renders single-row compact practice controls with mode switch and transport buttons', () => {
+    // When idle: shows Start Practice
+    const { rerender } = renderPlayPage({ isRunning: false });
+    const dock = screen.getByRole('contentinfo', { name: 'Practice controls' });
+    expect(within(dock).getByRole('radiogroup', { name: 'Practice mode' })).toBeInTheDocument();
+    expect(within(dock).getByRole('radio', { name: 'Wait for me' })).toBeInTheDocument();
+    expect(within(dock).getByRole('radio', { name: 'Play along' })).toBeInTheDocument();
+    expect(within(dock).getByRole('button', { name: 'Stop and Reset Practice' })).toBeInTheDocument();
+    expect(within(dock).getByRole('button', { name: 'Start Practice' })).toBeInTheDocument();
+    expect(within(dock).getByRole('button', { name: 'Practice options' })).toBeInTheDocument();
+
+    // When running: shows Pause Practice
+    rerender(
+      <NotationProvider system="letters">
+        <PlayPage
+          title="Test Piece"
+          subtitle="8 bars"
+          idleHint="Play along"
+          currentScore={dummyScore}
+          totalMeasures={8}
+          controllerState={running({ isRunning: true, isPaused: false })}
+          practiceMode="wait-for-me"
+          onPracticeModeChange={vi.fn()}
+          viewMode="page"
+          onViewModeChange={vi.fn()}
+          loopRange={null}
+          onLoopRangeChange={vi.fn()}
+          onStartPractice={vi.fn()}
+          onPausePractice={vi.fn()}
+          onResumePractice={vi.fn()}
+          onStopPractice={vi.fn()}
+          onClose={vi.fn()}
+          onSimulateInTuneNote={vi.fn()}
+          showSimulate={false}
+          onToggleDrone={vi.fn()}
+          mixer={dummyMixer}
+          onMixerChange={vi.fn()}
+          tempoScale={1}
+          onTempoScaleChange={vi.fn()}
+          countInBars={1}
+          onCountInBarsChange={vi.fn()}
+          strictness="medium"
+          onStrictnessChange={vi.fn()}
+          toleranceCents={15}
+          referenceA4Hz={440}
+          livePitch={null}
+        />
+      </NotationProvider>,
+    );
+    expect(within(dock).getByRole('button', { name: 'Pause Practice' })).toBeInTheDocument();
   });
 });

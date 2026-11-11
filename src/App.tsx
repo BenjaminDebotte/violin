@@ -335,9 +335,7 @@ export default function App({ initialAudioEngine, initialMicManager, initialScor
   const playSubtitle = barsText(loopRange);
   const idleHint = loopRange
     ? 'The passage repeats until you stop. Slow it down in options if it helps.'
-    : practiceMode === 'wait-for-me'
-      ? 'Tap Start, then play. The music waits for each note.'
-      : 'Tap Start for a count-in. The piano keeps going, so keep playing.';
+    : '';
   const barsInPlay = (() => {
     const first = loopRange?.startMeasure ?? 1;
     const last = loopRange?.endMeasure ?? Math.max(totalMeasures, 1);

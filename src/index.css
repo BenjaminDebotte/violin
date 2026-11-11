@@ -152,13 +152,13 @@ input[type='range'] {
 .play-panel[data-hint] .panel-ring { width: 80px; height: 80px; }
 .play-panel[data-hint] .panel-ring > span { font-size: 34px !important; }
 .play-panel[data-hint] .panel-fingering { padding-top: 6px; padding-bottom: 8px; }
-.play-panel[data-hint] .fing-diagram { max-height: 56px !important; }
+.play-panel[data-hint] .fing-diagram { max-height: 44px !important; }
 
 .play-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(120px, 1fr) auto auto;
-  gap: 10px;
+  gap: 8px;
 }
 @media (orientation: landscape) and (max-height: 560px) {
   .play-layout {
@@ -172,7 +172,6 @@ input[type='range'] {
   /* Short landscape screens: keep the verdict and the note, drop the secondary rows */
   .play-panel { gap: 6px !important; padding: 12px !important; }
   .play-panel .panel-hint { visibility: hidden; min-height: 0; height: 0; }
-  .play-panel .panel-meter { display: none; }
   .play-panel .fing-diagram { display: none; }
   .play-panel .panel-ring { width: 96px; height: 96px; }
 }

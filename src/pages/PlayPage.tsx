@@ -57,7 +57,7 @@ export interface PlayPageProps {
 }
 
 const ICON_BTN =
-  'h-14 w-14 shrink-0 rounded-full flex flex-col items-center justify-center cursor-pointer disabled:opacity-35 disabled:cursor-default';
+  'h-11 w-11 shrink-0 rounded-full flex flex-col items-center justify-center cursor-pointer disabled:opacity-35 disabled:cursor-default';
 
 /**
  * Focused play screen. Top: where you are (title, bar tapes). Middle: the score plate with
@@ -93,6 +93,12 @@ export function PlayPage(props: PlayPageProps) {
   const bars = Array.from({ length: lastBar - firstBar + 1 }, (_, i) => firstBar + i);
   const current = controllerState.currentMeasureNumber;
   const hasStarted = controllerState.isRunning;
+  const barsCount = Math.max(1, lastBar - firstBar + 1);
+  const completionPct = controllerState.sessionSummary
+    ? 100
+    : hasStarted
+      ? Math.min(100, Math.max(0, Math.round(((current - firstBar) / barsCount) * 100)))
+      : 0;
 
   return (
     <div
@@ -173,6 +179,18 @@ export function PlayPage(props: PlayPageProps) {
               micManager={props.micManager}
             />
           </div>
+          <div
+            data-testid="score-completion"
+            className="absolute left-1/2 -translate-x-1/2 top-2 z-10 h-8 px-2.5 text-[12px] font-bold rounded-full flex items-center justify-center tabular pointer-events-none"
+            style={{
+              backgroundColor: 'var(--plate-2)',
+              border: '1px solid var(--rule)',
+              color: 'var(--ink)',
+            }}
+            aria-label={`Score completion: ${completionPct}%`}
+          >
+            {completionPct}%
+          </div>
           <div className="absolute right-2 top-2 z-10 flex rounded-full p-0.5" role="radiogroup" aria-label="Score layout" style={{ backgroundColor: 'var(--plate-2)', border: '1px solid var(--rule)' }}>
             {([
               { mode: 'ribbon', label: 'Single line', Icon: AlignJustify },
@@ -223,18 +241,43 @@ export function PlayPage(props: PlayPageProps) {
           barMidis={props.barMidis}
         />
 
-        {/* Thumb zone */}
-        <footer className="play-dock flex flex-col gap-2.5" aria-label="Practice controls">
-          <Segmented<PracticeMode>
-            label="Practice mode"
-            value={practiceMode}
-            onChange={onPracticeModeChange}
-            options={[
-              { value: 'wait-for-me', label: 'Wait for me' },
-              { value: 'play-along', label: 'Play along' },
-            ]}
-          />
-          <div className="flex items-center justify-between gap-3">
+        {/* Thumb zone: single compact row with mode toggle and controls */}
+        <footer className="play-dock flex items-center justify-between gap-2" aria-label="Practice controls">
+          <div
+            role="radiogroup"
+            aria-label="Practice mode"
+            className="flex p-0.5 rounded-full shrink-0"
+            style={{ backgroundColor: '#e8e9e2' }}
+          >
+            {[
+              { value: 'wait-for-me', label: 'Wait for me', shortLabel: 'Wait' },
+              { value: 'play-along', label: 'Play along', shortLabel: 'Along' },
+            ].map((opt) => {
+              const selected = opt.value === practiceMode;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={opt.label}
+                  onClick={() => onPracticeModeChange(opt.value as PracticeMode)}
+                  className="h-11 px-2.5 sm:px-3 rounded-full text-[13px] sm:text-[14px] cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: selected ? 'var(--plate)' : 'transparent',
+                    color: selected ? 'var(--ink)' : 'var(--ink-2)',
+                    fontWeight: selected ? 800 : 600,
+                    boxShadow: selected ? '0 1px 2px rgb(34 29 25 / 0.12)' : 'none',
+                  }}
+                >
+                  <span className="hidden sm:inline">{opt.label}</span>
+                  <span className="sm:hidden">{opt.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
             <button
               type="button"
               onClick={onStopPractice}
@@ -243,7 +286,7 @@ export function PlayPage(props: PlayPageProps) {
               className={ICON_BTN}
               style={{ backgroundColor: 'var(--plate)', color: 'var(--ink)', border: '1px solid var(--rule)' }}
             >
-              <Square className="w-5 h-5 fill-current" />
+              <Square className="w-4 h-4 fill-current" />
             </button>
 
             {!controllerState.isRunning ? (
@@ -251,33 +294,33 @@ export function PlayPage(props: PlayPageProps) {
                 type="button"
                 onClick={onStartPractice}
                 aria-label="Start Practice"
-                className="flex-1 h-16 rounded-full inline-flex items-center justify-center gap-2 text-[20px] font-extrabold cursor-pointer active:translate-y-px"
-                style={{ backgroundColor: 'var(--rosin)', color: 'var(--ink)', boxShadow: 'inset 0 -4px 0 rgb(34 29 25 / 0.18)' }}
+                className="flex-1 max-w-[130px] h-11 px-3 rounded-full inline-flex items-center justify-center gap-1.5 text-[15px] font-extrabold cursor-pointer active:translate-y-px"
+                style={{ backgroundColor: 'var(--rosin)', color: 'var(--ink)', boxShadow: 'inset 0 -2px 0 rgb(34 29 25 / 0.18)' }}
               >
-                <Play className="w-6 h-6 fill-current" />
-                Start
+                <Play className="w-5 h-5 fill-current" />
+                <span>Start</span>
               </button>
             ) : controllerState.isPaused ? (
               <button
                 type="button"
                 onClick={onResumePractice}
                 aria-label="Resume Practice"
-                className="flex-1 h-16 rounded-full inline-flex items-center justify-center gap-2 text-[20px] font-extrabold cursor-pointer"
-                style={{ backgroundColor: 'var(--rosin)', color: 'var(--ink)', boxShadow: 'inset 0 -4px 0 rgb(34 29 25 / 0.18)' }}
+                className="flex-1 max-w-[130px] h-11 px-3 rounded-full inline-flex items-center justify-center gap-1.5 text-[15px] font-extrabold cursor-pointer"
+                style={{ backgroundColor: 'var(--rosin)', color: 'var(--ink)', boxShadow: 'inset 0 -2px 0 rgb(34 29 25 / 0.18)' }}
               >
-                <Play className="w-6 h-6 fill-current" />
-                Resume
+                <Play className="w-5 h-5 fill-current" />
+                <span>Resume</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={onPausePractice}
                 aria-label="Pause Practice"
-                className="flex-1 h-16 rounded-full inline-flex items-center justify-center gap-2 text-[20px] font-extrabold cursor-pointer"
+                className="flex-1 max-w-[130px] h-11 px-3 rounded-full inline-flex items-center justify-center gap-1.5 text-[15px] font-extrabold cursor-pointer"
                 style={{ backgroundColor: 'var(--ebony)', color: 'var(--bone)' }}
               >
-                <Pause className="w-6 h-6 fill-current" />
-                Pause
+                <Pause className="w-5 h-5 fill-current" />
+                <span>Pause</span>
               </button>
             )}
 
@@ -289,8 +332,8 @@ export function PlayPage(props: PlayPageProps) {
               className={ICON_BTN}
               style={{ backgroundColor: 'var(--plate)', color: 'var(--ink)', border: '1px solid var(--rule)' }}
             >
-              <SlidersHorizontal className="w-5 h-5" />
-              <span className="text-[11px] font-bold tabular leading-none mt-0.5">{Math.round(tempoScale * 100)}%</span>
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="text-[10px] font-bold tabular leading-none mt-0.5">{Math.round(tempoScale * 100)}%</span>
             </button>
           </div>
         </footer>

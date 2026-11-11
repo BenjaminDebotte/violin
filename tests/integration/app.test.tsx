@@ -74,9 +74,9 @@ describe('App integration: mobile-first Songs / Play / Tune / Settings', () => {
     expect(screen.getByRole('button', { name: 'Practice options' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Loop bars' })).toBeInTheDocument();
 
-    // Glanceable feedback: target note, hold ring, drone, no-mic simulation
+    // Glanceable feedback: target note, intonation gauge, drone, no-mic simulation
     expect(within(feedback()).getByText('D4')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Hold progress' })).toBeInTheDocument();
+    expect(screen.getByRole('meter', { name: 'Intonation' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Hear D4' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /simulate an in-tune note/i })).toBeInTheDocument();
 
@@ -155,13 +155,12 @@ describe('App integration: mobile-first Songs / Play / Tune / Settings', () => {
     fireEvent.click(along);
     expect(along).toHaveAttribute('aria-checked', 'true');
     expect(wfm).toHaveAttribute('aria-checked', 'false');
-    expect(within(feedback()).getByText(/count-in/i)).toBeInTheDocument();
-    // Play along has no hold ring
-    expect(screen.queryByRole('progressbar', { name: 'Hold progress' })).not.toBeInTheDocument();
+    // Intonation gauge remains visible
+    expect(screen.getByRole('meter', { name: 'Intonation' })).toBeInTheDocument();
 
     fireEvent.click(wfm);
     expect(wfm).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('progressbar', { name: 'Hold progress' })).toBeInTheDocument();
+    expect(screen.getByRole('meter', { name: 'Intonation' })).toBeInTheDocument();
 
     const page = screen.getByRole('radio', { name: 'Full page' });
     const line = screen.getByRole('radio', { name: 'Single line' });
@@ -337,7 +336,7 @@ describe('App integration: mobile-first Songs / Play / Tune / Settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Play Twinkle, Twinkle, Little Star' }));
     expect(screen.getByTestId('play-page')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Twinkle, Twinkle, Little Star' })).toBeInTheDocument();
-    expect(within(feedback()).getByText(/Tap Start, then play/)).toBeInTheDocument();
+    expect(within(feedback()).getByText('Ready')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close practice' }));
     expect(screen.getByTestId('songs-page')).toBeInTheDocument();
